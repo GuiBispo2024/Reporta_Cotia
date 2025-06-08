@@ -1,0 +1,120 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(to bottom, #f2f2f2, #bdbdbd);
+}
+
+.nova-denuncia-container {
+    max-width: 800px;
+    margin: 50px auto;
+    padding: 40px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.nova-denuncia-titulo {
+    font-size: 32px;
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+}
+
+.nova-denuncia-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+label {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+}
+
+.form-control-input,
+.form-control-textarea {
+    padding: 12px;
+    font-size: 16px;
+    border: 4px solid #1c6ed5;
+    border-radius: 10px;
+    transition: border 0.2s ease-in-out;
+}
+
+.form-control-input:focus,
+.form-control-textarea:focus {
+    outline: none;
+    border-color: #094c9e;
+}
+
+.form-control-textarea {
+    height: 120px;
+    resize: vertical;
+}
+
+.btn-anexar {
+    align-self: flex-start;
+    background-color: #007bff;
+    color: white;
+    font-weight: bold;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.btn-anexar:hover {
+    background-color: #0056b3;
+}
+
+.buttons-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.btn-cancelar {
+    background-color: red;
+    color: white;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 25px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.btn-cancelar:hover {
+    background-color: darkred;
+}
+
+.btn-publicar {
+    background-color: limegreen;
+    color: white;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 25px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.btn-publicar:hover {
+    background-color: green;
+}
+
+/* Responsivo para telas maiores */
+@media (min-width: 1000px) {
+    .nova-denuncia-container {
+        padding: 50px 60px;
+    }
+}
