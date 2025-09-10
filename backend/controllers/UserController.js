@@ -2,65 +2,65 @@ const express = require('express')
 const router = express.Router()
 const User = require('../models/User')
 
+//Lista todos os usuários
 router.get('/', async(req,res)=>{
     try{
-        const users = await User.find()
+        const users = await User.findAll()
         res.status(200).json(users)
     }catch(error){
         res.status(500).json({error:error.message})
     }
 })
 
+//Cadastra um usuário
 router.post('/',async(req,res)=>{
     try{
-        const {username,email,password} = req.body
-        const newUser = new User({username,email,password,denuncias:[]})
-        await newUser.save()
+        const {username,email,password,adm} = req.body
+        await User.create({username,email,password,adm})
         res.status(201).json({message:'Cadastrado com sucesso'})
     }catch(error){
         res.status(500).json({error:error.message})
     }
 })
 
-router.post('/denuncia',async(req,res)=>{
-    try{
-        const {username,titulo,descricao} = req.body
-        const user = await User.findOne({username})
-        if(!user){
-            return res.status(404).json({message:'Usuário não encontrado'})
-        }
-        const novaDenuncia = {titulo,descricao}
-        user.denuncias.push(novaDenuncia)
-        await user.save()
-        res.status(201).json({message:'Denúncia registrada com sucesso'})
-    }catch(error){
-        res.status(500).json({error:error.message})
-    }
-})
-
+//Procura um usuário específico
 router.get('/:id',async(req,res)=>{
     try{
-        const user = await user.findById(re.params.id)
+        const user = await user.findByPk(re.params.id)
+        if(!user){
+            return res.status(404).json({error: error.message})
+        }
         res.status(200).json(user)
     }catch(error){
         res.status(500).json({error:error.message})
     }
 })
 
-router.delete('/:id',async(req,res)=>{
+//Altera um usuário
+router.put('/:id',async(req,res)=>{
     try{
-        await User.findByIdAndDelete(req.params.id)
-        res.status(200).json({message:'Excluido com sucesso'})
+        const {username,email,password,adm} = req.body
+        const [rowsUpdate] = await User.update(
+            {username,email,password,adm},
+            {where: {id:req.params.id}}
+        )
+        if(!rowsUpdate){
+            return res.status(404).json({message: 'Usuário não encontrado'})
+        }
+        res.status(200).json({message:'Atualizado com sucesso'})        
     }catch(error){
         res.status(500).json({error:error.message})
     }
 })
 
-router.put('/:id',async(req,res)=>{
+//Deleta um usuário
+router.delete('/:id',async(req,res)=>{
     try{
-        const {username,email,password,denuncias} = req.body
-        await User.findByIdAndUpdate(req.params.id,{username,email,password,denuncias})
-        res.status(200).json({message:'Atualizado com sucesso'})        
+        const rowsDel = await User.destroy({where:{id: req.params.id}})
+        if(!rowsDel){
+            return res.status(404).json({message:'Usuário não encontrado'})
+        }
+        res.status(200).json({message: 'Excluído com sucesso'})
     }catch(error){
         res.status(500).json({error:error.message})
     }
