@@ -1,9 +1,9 @@
 const sequelize = require('./db/db')
-const User = require('./Reporta_Cotia/User')
-const Denuncia = require('./Reporta_Cotia/Denuncia')
-const Comment = require('./Reporta_Cotia/Comment')
-const Like = require('./Reporta_Cotia/Like')
-const Share = require('./Reporta_Cotia/Share') 
+const User = require('./Reporta_Cotia_Tables/User')
+const Denuncia = require('./Reporta_Cotia_Tables/Denuncia')
+const Comment = require('./Reporta_Cotia_Tables/Comment')
+const Like = require('./Reporta_Cotia_Tables/Like')
+const Share = require('./Reporta_Cotia_Tables/Share') 
 
 //User <-> Denuncia
 User.hasMany(Denuncia,{
@@ -19,7 +19,7 @@ Denuncia.belongsTo(User, {
 //User <-> Comentário
 User.hasMany(Comment,{
     foreignKey: 'userId',
-    as: 'comentarios'
+    as: 'comentariosUser'
 })
 Comment.belongsTo(User,{
     foreignKey: 'userId',
@@ -29,7 +29,7 @@ Comment.belongsTo(User,{
 //Denuncia <-> Comentário
 Denuncia.hasMany(Comment,{
     foreignKey: 'denunciaId',
-    as: 'comentarios'
+    as: 'comentariosDenuncia'
 })
 Comment.belongsTo(Denuncia,{
     foreignKey:'denunciaId',
@@ -39,19 +39,19 @@ Comment.belongsTo(Denuncia,{
 // Like <-> User,Denuncia
 User.belongsTo(Denuncia,{
     through: Like,
-    as: 'likes',
+    as: 'likesUser',
     foreignKey: 'userId'    
 })
 Denuncia.belongsTo(Denuncia,{
     through: Like,
-    as: 'likes',
+    as: 'likesDenuncia',
     foreignKey: 'denunciaId'
 })
 
 //User <-> Share
 User.hasMany(Share,{
     foreignKey: 'userId',
-    as: 'shares'
+    as: 'sharesUser'
 })
 Share.belongsTo(User,{
     foreignKey: 'userId',
@@ -61,7 +61,7 @@ Share.belongsTo(User,{
 //Denuncia <-> Share
 Denuncia.hasMany(Share,{
     foreignKey:'denunciaId',
-    as: 'shares'
+    as: 'sharesDenuncia'
 })
 Share.belongsTo(Denuncia,{
     foreignKey: 'denunciaId',
