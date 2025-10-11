@@ -1,6 +1,8 @@
 const express = require('express')
 const router = express.Router()
-const { Like, User, Denuncia } = require('../models/rel')
+const Denuncia = require('../models/Reporta_Cotia_Tables/Denuncia')
+const User = require('../models/Reporta_Cotia_Tables/User')
+const Like = require('../models/Reporta_Cotia_Tables/Like')
 
 // Dá like
 router.post('/denuncia/:id/like', async (req, res) => {

@@ -1,6 +1,8 @@
 const express = require('express')
 const router = express.Router()
-const { Share, User, Denuncia } = require('../models/rel')
+const Denuncia = require('../models/Reporta_Cotia_Tables/Denuncia')
+const User = require('../models/Reporta_Cotia_Tables/User')
+const Share = require('../models/Reporta_Cotia_Tables/Share')
 
 // Compartilha denúncia
 router.post('/denuncia/:id/share', async (req, res) => {

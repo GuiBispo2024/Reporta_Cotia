@@ -1,6 +1,7 @@
 const express = require('express')
 const router = express.Router()
-const {Denuncia, User} = require('../models/rel')
+const Denuncia = require('../models/Reporta_Cotia_Tables/Denuncia')
+const User = require('../models/Reporta_Cotia_Tables/User')
 
 //Lista todas as denúncias
 router.get('/',async(req,res)=>{

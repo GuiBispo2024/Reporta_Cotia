@@ -5,12 +5,18 @@ const app = express()
 const port = process.env.PORT||8081
 const userController = require('./controllers/UserController')
 const denunciaController = require('./controllers/DenunciaController')
+const commentController = require('./controllers/CommentCotroller')
+const likeController = require('./controllers/LikeController')
+const shareController = require('./controllers/ShareController')
 
 app.use(bodyParser.json())
 app.use(cors())
 app.get('/',(req,res)=> res.send('Estou Aqui'))
 app.use('/user',userController)
 app.use('/denuncia',denunciaController)
+app.use('/comentario',commentController)
+app.use('/like',likeController)
+app.use('/compartilhamento',shareController)
 app.use((err,req,res,next)=>{
     console.error(err.stack)
     res.status(500).send('Algo deu errado')

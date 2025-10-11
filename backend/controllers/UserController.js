@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const User = require('../models/User')
+const User = require('../models/Reporta_Cotia_Tables/User')
 
 //Lista todos os usuários
 router.get('/', async(req,res)=>{
