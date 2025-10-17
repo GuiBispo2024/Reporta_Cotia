@@ -1,8 +1,44 @@
 const express = require('express')
 const router = express.Router()
-const Denuncia = require('../models/Reporta_Cotia_Tables/Denuncia')
-const User = require('../models/Reporta_Cotia_Tables/User')
-const Like = require('../models/Reporta_Cotia_Tables/Like')
+const {User, Denuncia, Like} = require('../models/rel')
+
+/**
+ * @swagger
+ * tags:
+ *   name: Curtidas
+ *   description: Endpoints para curtir e descurtir denúncias
+ */
+
+/**
+ * @swagger
+ * /denuncia/{id}/like:
+ *   post:
+ *     summary: Dá like em uma denúncia
+ *     tags: [Curtidas]
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: integer
+ *                 example: 3
+ *     responses:
+ *       201:
+ *         description: Curtida registrada
+ *       400:
+ *         description: Usuário já curtiu
+ *       404:
+ *         description: Usuário ou denúncia não encontrada
+ */
 
 // Dá like
 router.post('/denuncia/:id/like', async (req, res) => {
@@ -24,6 +60,35 @@ router.post('/denuncia/:id/like', async (req, res) => {
   }
 })
 
+/**
+ * @swagger
+ * /denuncia/{id}/like:
+ *   delete:
+ *     summary: Remove o like de uma denúncia
+ *     tags: [Curtidas]
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: integer
+ *                 example: 3
+ *     responses:
+ *       200:
+ *         description: Like removido
+ *       404:
+ *         description: Like não encontrado
+ */
+
 // Remove like
 router.delete('/denuncia/:id/like', async (req, res) => {
   try {
@@ -36,11 +101,28 @@ router.delete('/denuncia/:id/like', async (req, res) => {
   }
 })
 
-// Lista likes
+/**
+ * @swagger
+ * /denuncia/{id}/likes:
+ *   get:
+ *     summary: Lista os likes de uma denúncia
+ *     tags: [Curtidas]
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Lista de usuários que curtiram
+ */
+
+// Lista likes de uma denúncia
 router.get('/denuncia/:id/likes', async (req, res) => {
   try {
     const denuncia = await Denuncia.findByPk(req.params.id, {
-      include: { model: User, as: 'likes', attributes: ['id', 'username'] }
+      include: { model: User, attributes: ['id', 'username'] }
     })
     if (!denuncia) return res.status(404).json({ message: 'Denúncia não existe' })
     res.status(200).json({ totalLikes: denuncia.likes.length, usuarios: denuncia.likes })
