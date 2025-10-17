@@ -8,69 +8,64 @@ const Share = require('./Reporta_Cotia_Tables/Share')
 //User <-> Denuncia
 User.hasMany(Denuncia,{
    foreignKey: 'userId',
-   as: 'denuncias',
    onDelete: 'CASCADE'
 })
-Denuncia.belongsTo(User, {
-    foreignKey: 'userId',
-    as: 'user'
+Denuncia.belongsTo(User,{
+    foreignKey: 'userId'
 })
 
 //User <-> Comentário
 User.hasMany(Comment,{
     foreignKey: 'userId',
-    as: 'comentariosUser'
+    onDelete: 'CASCADE'
 })
 Comment.belongsTo(User,{
-    foreignKey: 'userId',
-    as: 'user'
+    foreignKey: 'userId'
 })
 
 //Denuncia <-> Comentário
 Denuncia.hasMany(Comment,{
     foreignKey: 'denunciaId',
-    as: 'comentariosDenuncia'
+    onDelete: 'CASCADE'
 })
 Comment.belongsTo(Denuncia,{
-    foreignKey:'denunciaId',
-    as: 'denuncia'
+    foreignKey:'denunciaId'
 })
 
-// Like <-> User,Denuncia
-User.belongsTo(Denuncia,{
-    through: Like,
-    as: 'likesUser',
-    foreignKey: 'userId'    
+// Like <-> User
+User.hasMany(Like,{ 
+    foreignKey: 'userId', 
+    onDelete: 'CASCADE' 
 })
-Denuncia.belongsTo(Denuncia,{
-    through: Like,
-    as: 'likesDenuncia',
-    foreignKey: 'denunciaId'
+Like.belongsTo(User,{ 
+    foreignKey: 'userId' 
+})
+
+// Like <-> Denuncia
+Denuncia.hasMany(Like,{ 
+    foreignKey: 'denunciaId', 
+    onDelete: 'CASCADE' 
+})
+Like.belongsTo(Denuncia,{ 
+    foreignKey: 'denunciaId' 
 })
 
 //User <-> Share
 User.hasMany(Share,{
     foreignKey: 'userId',
-    as: 'sharesUser'
+    onDelete: 'CASCADE'
 })
 Share.belongsTo(User,{
-    foreignKey: 'userId',
-    as: 'user'
+    foreignKey: 'userId'
 })
 
 //Denuncia <-> Share
 Denuncia.hasMany(Share,{
     foreignKey:'denunciaId',
-    as: 'sharesDenuncia'
+    onDelete: 'CASCADE'
 })
 Share.belongsTo(Denuncia,{
-    foreignKey: 'denunciaId',
-    as: 'denuncia'
+    foreignKey: 'denunciaId'
 })
-
-/*sequelize.sync({alter:true})
-.then(()=> console.log("Tabelas sincronizadas"))
-.catch((err)=>console.log("Erro ao sincronizar: ", err))
-*/
 
 module.exports = {sequelize,User,Denuncia,Comment,Like,Share}

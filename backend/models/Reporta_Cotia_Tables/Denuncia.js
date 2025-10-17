@@ -6,9 +6,17 @@ const Denuncia = sequelize.define('Denuncia',{
         type: DataTypes.STRING,
         allowNull: false
     },
+    localizacao: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
     descricao: {
         type: DataTypes.STRING,
-        allowNull:false
+        allowNull: false
+    },    
+    status:{
+        type: DataTypes.ENUM('pendente', 'aprovada', 'rejeitada'),
+        defaultValue: 'pendente'
     }
 })
 
