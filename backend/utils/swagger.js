@@ -1,6 +1,8 @@
 const swaggerJSDoc = require('swagger-jsdoc')
 const swaggerUi = require('swagger-ui-express')
 
+const path = require('path')
+
 const options = {
     definition: {
         openapi: '3.0.0',
@@ -16,7 +18,7 @@ const options = {
             }
         ]
     },
-    apis: ['./controllers/*.js']
+    apis: [path.join(__dirname, '../controllers/*.js')]
 }
 
 const swaggerSpec = swaggerJSDoc(options)

@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const {User, Denuncia, Like} = require('../models/rel')
+const LikeService = require('../services/LikeService')
 
 /**
  * @swagger
@@ -46,16 +46,15 @@ router.post('/denuncia/:id/like', async (req, res) => {
     const { userId } = req.body
     const denunciaId = req.params.id
 
-    const user = await User.findByPk(userId)
-    if (!user) return res.status(404).json({ message: 'Usuário não existe' })
-    const denuncia = await Denuncia.findByPk(denunciaId)
-    if (!denuncia) return res.status(404).json({ message: 'Denúncia não existe' })
-
-    const [like, created] = await Like.findOrCreate({ where: { userId, denunciaId } })
-    if (!created) return res.status(400).json({ message: 'Usuário já curtiu essa denúncia' })
-
-    res.status(201).json({ message: 'Curtida registrada' })
+    const result = await LikeService.curtir({ userId, denunciaId })
+    res.status(201).json(result)
   } catch (error) {
+    if (error.message && error.message.includes('Usuário já curtiu')) {
+      return res.status(400).json({ error: error.message })
+    }
+    if (error.message && (error.message.includes('Usuário') || error.message.includes('Denúncia'))) {
+      return res.status(404).json({ error: error.message })
+    }
     res.status(500).json({ error: error.message })
   }
 })
@@ -93,10 +92,13 @@ router.post('/denuncia/:id/like', async (req, res) => {
 router.delete('/denuncia/:id/like', async (req, res) => {
   try {
     const { userId } = req.body
-    const rows = await Like.destroy({ where: { userId, denunciaId: req.params.id } })
-    if (!rows) return res.status(404).json({ message: 'Like não encontrado' })
-    res.status(200).json({ message: 'Like removido' })
+    const denunciaId = req.params.id
+    const result = await LikeService.descurtir({ userId, denunciaId })
+    res.status(200).json(result)
   } catch (error) {
+    if (error.message && error.message.includes('Like não encontrado')) {
+      return res.status(404).json({ error: error.message })
+    }
     res.status(500).json({ error: error.message })
   }
 })
@@ -121,12 +123,12 @@ router.delete('/denuncia/:id/like', async (req, res) => {
 // Lista likes de uma denúncia
 router.get('/denuncia/:id/likes', async (req, res) => {
   try {
-    const denuncia = await Denuncia.findByPk(req.params.id, {
-      include: { model: User, attributes: ['id', 'username'] }
-    })
-    if (!denuncia) return res.status(404).json({ message: 'Denúncia não existe' })
-    res.status(200).json({ totalLikes: denuncia.likes.length, usuarios: denuncia.likes })
+    const denunciaLikes = await LikeService.listarPorDenuncia(req.params.id)
+    res.status(200).json(denunciaLikes)
   } catch (error) {
+    if (error.message && error.message.includes('Denúncia não encontrada')) {
+      return res.status(404).json({ error: error.message })
+    }
     res.status(500).json({ error: error.message })
   }
 })

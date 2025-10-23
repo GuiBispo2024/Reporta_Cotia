@@ -1,7 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const {User, Denuncia, Share} = require('../models/rel')
-const { filterBadWords } = require('../utils/filterBadWords')
+const ShareService = require('../services/ShareService')
 
 /**
  * @swagger
@@ -47,20 +46,13 @@ router.post('/denuncia/:id/share', async (req, res) => {
   try {
     const { userId, comentario } = req.body
     const denunciaId = req.params.id
-
-    const user = await User.findByPk(userId)
-    if (!user) return res.status(404).json({ message: 'Usuário não existe' })
-    const denuncia = await Denuncia.findByPk(denunciaId)
-    if (!denuncia) return res.status(404).json({ message: 'Denúncia não existe' })
-    const { hasBadWord, filteredText } = filterBadWords(comentario)
-    const share = await Share.create({ userId, denunciaId, comentario:filteredText })
-    res.status(201).json({
-      message: hasBadWord
-        ? 'Denúncia compartilhada (comentário censurado)'
-        : 'Denúncia compartilhada com sucesso',
-      share
-    })
+    const result = await ShareService.compartilhar({ userId, denunciaId, comentario })
+    // service returns { message, share }
+    res.status(201).json(result)
   } catch (error) {
+    if (error.message && (error.message.includes('Usuário') || error.message.includes('Denúncia'))) {
+      return res.status(404).json({ error: error.message })
+    }
     res.status(500).json({ error: error.message })
   }
 })
@@ -85,12 +77,41 @@ router.post('/denuncia/:id/share', async (req, res) => {
 // Lista compartilhamentos
 router.get('/denuncia/:id/shares', async (req, res) => {
   try {
-    const shares = await Share.findAll({
-      where: { denunciaId: req.params.id },
-      include: { model: User, attributes: ['id', 'username'] }
-    })
-    res.status(200).json({ totalShares: shares.length, shares })
+    const shares = await ShareService.listarPorDenuncia(req.params.id)
+    res.status(200).json(shares)
   } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+/**
+ * @swagger
+ * /shares/{id}:
+ *   delete:
+ *     summary: Deleta um compartilhamento
+ *     tags: [Compartilhamentos]
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Compartilhamento removido
+ *       404:
+ *         description: Compartilhamento não encontrado
+ */
+
+// Deleta compartilhamento
+router.delete('/shares/:id', async (req, res) => {
+  try {
+    const result = await ShareService.deletar(req.params.id)
+    res.status(200).json(result)
+  } catch (error) {
+    if (error.message && error.message.includes('Compartilhamento não encontrado')) {
+      return res.status(404).json({ error: error.message })
+    }
     res.status(500).json({ error: error.message })
   }
 })

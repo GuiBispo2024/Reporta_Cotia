@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
-const {User, Denuncia} = require('../models/rel')
-const {filterBadWords} = require('../utils/filterBadWords')
+const auth = require('../middlewares/auth')
+const DenunciaService = require('../services/DenunciaService')
 
 /**
  * @swagger
@@ -46,26 +46,14 @@ const {filterBadWords} = require('../utils/filterBadWords')
  */
 
 //Posta uma denúncia
-router.post('/',async(req,res)=>{
-    try{
-        const {titulo, descricao, localizacao, userId} = req.body
-        const user = await User.findByPk(userId)
-        if(!user){
-            return res.status(404).json({message:'Usuário não existe'})
-        }
-        const{hasBadWord: hasBadWordTitulo, filteredText: tituloFiltrado} = filterBadWords(titulo)
-        const{hasBadWord: hasBadWordDescricao, filteredText: descricaoFiltrada} = filterBadWords(descricao)
-        await Denuncia.create({titulo: tituloFiltrado, descricao: descricaoFiltrada, localizacao, status:'pendente', userId})
-        const hasBadWord = hasBadWordTitulo || hasBadWordDescricao
-        res.status(201).json({
-      message: hasBadWord
-        ? 'Denúncia enviada para moderação (palavras censuradas)'
-        : 'Denúncia enviada para moderação com sucesso',
-      Denuncia
-    })
-    }catch(error){
-        res.status(500).json({error:error.message})
-    }
+router.post('/', auth, async (req, res) => {
+  try {
+    const userId = req.user.id
+    const result = await DenunciaService.create({ ...req.body, userId })
+    res.status(201).json(result)
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
 })
 
 /**
@@ -108,28 +96,14 @@ router.post('/',async(req,res)=>{
  */
 
 //Moderação de uma denúncia
-router.patch('/:id/moderar', async (req, res) => {
-  try{
-    const { userId, status } = req.body
-    const user = await User.findByPk(userId)
-    if(!user){
-        return res.status(404).json({message:'Usuário não encontrado'})
-    } 
-    if(!user.adm){
-        return res.status(403).json({message:'Acesso negado. Apenas administradores podem moderar denúncias.'})
-    } 
-    const denuncia = await Denuncia.findByPk(req.params.id)
-    if(!denuncia){
-        return res.status(404).json({message: 'Denúncia não encontrada' })
-    } 
-    if(!['pendente', 'aprovada', 'rejeitada'].includes(status)) {
-        return res.status(400).json({message: 'Status inválido' })
-    }
-    await denuncia.update({ status })
-    res.status(200).json({
-      message: `Denúncia marcada como ${status}`,denuncia})
-  }catch(error){
-    res.status(500).json({ error: error.message })
+router.patch('/:id/moderar', auth, async (req, res) => {
+  try {
+    const { status } = req.body
+    const isAdm = req.user.adm
+    const result = await DenunciaService.moderar(req.params.id, status, isAdm)
+    res.status(200).json(result)
+  } catch (error) {
+    res.status(400).json({ error: error.message })
   }
 })
 
@@ -147,18 +121,13 @@ router.patch('/:id/moderar', async (req, res) => {
  */
 
 //Lista todas as denúncias
-router.get('/',async(req,res)=>{
-    try{
-        const denuncias = await Denuncia.findAll({
-            include:{
-                model: User,
-                attributes: ['id','username','email']
-            }
-        })
-        res.status(200).json(denuncias)
-    }catch(error){
-        res.status(500).json({error: error.message})
-    }
+router.get('/', async (req, res) => {
+  try {
+    const denuncias = await DenunciaService.listarTodas()
+    res.status(200).json(denuncias)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
 })
 
 /**
@@ -181,18 +150,13 @@ router.get('/',async(req,res)=>{
  */
 
 //Procura uma denúncia específica
-router.get('/:id',async(req,res)=>{
-    try{
-        const denuncia = await Denuncia.findByPk(req.params.id,{
-            include:{model: User, attributes:['id','username','email']}
-        })
-        if(!denuncia){
-            return res.status(404).json({message:'Denúncia não encontrada'})
-        }
-        res.status(200).json(denuncia)
-    }catch(error){
-        res.status(500).json({error: error.message})
-    }
+router.get('/:id', async (req, res) => {
+  try {
+    const denuncia = await DenunciaService.buscarPorId(req.params.id)
+    res.status(200).json(denuncia)
+  } catch (error) {
+    res.status(404).json({ error: error.message })
+  }
 })
 
 /**
@@ -217,15 +181,10 @@ router.get('/:id',async(req,res)=>{
 //Procura todas as denúncias de um usuário específico
 router.get('/user/:userId', async (req, res) => {
   try {
-    const denuncias = await Denuncia.findAll({
-      where: { userId: req.params.userId }
-    })
-    if(!denuncias.length) {
-      return res.status(404).json({ message: 'Nenhuma denúncia encontrada para este usuário' })
-    }
+    const denuncias = await DenunciaService.buscarPorUsuario(req.params.userId)
     res.status(200).json(denuncias)
-  }catch(error) {
-    res.status(500).json({ error: error.message })
+  } catch (error) {
+    res.status(404).json({ error: error.message })
   }
 })
 
@@ -265,20 +224,13 @@ router.get('/user/:userId', async (req, res) => {
  */
 
 //Edita uma denúncia
-router.put('/:id',async(req,res)=>{
-    try{
-        const {titulo, descricao, localizacao} = req.body
-        const [rowsUpdate] = await Denuncia.update(
-            {titulo, descricao, localizacao},
-            {where:{id: req.params.id}}
-        )
-        if(!rowsUpdate){
-            return res.status(404).json({message: 'Denúncia não encontrada'})
-        }
-        res.status(200).json({message:'Denúncia atualizada com sucesso'})
-    }catch(error){
-        res.status(500).json({error:error.message})
-    }
+router.put('/:id', async (req, res) => {
+  try {
+    const result = await DenunciaService.atualizar(req.params.id, req.body)
+    res.status(200).json(result)
+  } catch (error) {
+    res.status(404).json({ error: error.message })
+  }
 })
 
 /**
@@ -301,16 +253,13 @@ router.put('/:id',async(req,res)=>{
  */
 
 //Deleta uma denúncia
-router.delete('/:id',async(req,res)=>{
-    try{
-        const rowDel = await Denuncia.destroy({where:{id:req.params.id}})
-        if(!rowDel){
-            return res.status(404).json({message: 'Denúncia não encontrada'})
-        }
-        res.status(200).json({message:'Denúncia excluída com sucesso'})
-    }catch(error){
-        res.status(500).json({error:error.message})
-    }
+router.delete('/:id', async (req, res) => {
+  try {
+    const result = await DenunciaService.deletar(req.params.id)
+    res.status(200).json(result)
+  } catch (error) {
+    res.status(404).json({ error: error.message })
+  }
 })
 
 module.exports = router

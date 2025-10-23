@@ -1,7 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const {User, Denuncia, Comment} = require('../models/rel')
-const filterBadWords = require('../utils/filterBadWords')
+const CommentService = require('../services/CommentService')
 
 /**
  * @swagger
@@ -43,22 +42,12 @@ const filterBadWords = require('../utils/filterBadWords')
 router.post('/', async (req, res) => {
   try {
     const { texto, userId, denunciaId } = req.body
-    const user = await User.findByPk(userId)
-    if (!user) return res.status(404).json({ message: 'Usuário não existe' })
-    const denuncia = await Denuncia.findByPk(denunciaId)
-    if (!denuncia) return res.status(404).json({ message: 'Denúncia não existe' })
-
-    const { hasBadWord, filteredText } = filterBadWords(texto)
-
-    const comentario = await Comment.create({ texto: filteredText, userId, denunciaId })
-
-    res.status(201).json({
-      message: hasBadWord
-        ? 'Comentário publicado (palavras censuradas)'
-        : 'Comentário publicado com sucesso',
-      comentario
-    })
+    const result = await CommentService.create({ texto, userId, denunciaId })
+    res.status(201).json(result)
   } catch (error) {
+    if (error.message && (error.message.includes('Usuário') || error.message.includes('Denúncia'))) {
+      return res.status(404).json({ error: error.message })
+    }
     res.status(500).json({ error: error.message })
   }
 })
@@ -83,10 +72,7 @@ router.post('/', async (req, res) => {
 // Lista comentários de uma denúncia
 router.get('/denuncia/:id', async (req, res) => {
   try {
-    const comentarios = await Comment.findAll({
-      where: { denunciaId: req.params.id },
-      include: { model: User, attributes: ['id', 'username'] }
-    })
+    const comentarios = await CommentService.listarPorDenuncia(req.params.id)
     res.status(200).json(comentarios)
   } catch (error) {
     res.status(500).json({ error: error.message })
@@ -115,10 +101,12 @@ router.get('/denuncia/:id', async (req, res) => {
 // Deleta comentário
 router.delete('/:id', async (req, res) => {
   try {
-    const rows = await Comment.destroy({ where: { id: req.params.id } })
-    if (!rows) return res.status(404).json({ message: 'Comentário não encontrado' })
-    res.status(200).json({ message: 'Comentário excluído com sucesso' })
+    const result = await CommentService.deletar(req.params.id)
+    res.status(200).json(result)
   } catch (error) {
+    if (error.message && error.message.includes('Comentário não encontrado')) {
+      return res.status(404).json({ error: error.message })
+    }
     res.status(500).json({ error: error.message })
   }
 })

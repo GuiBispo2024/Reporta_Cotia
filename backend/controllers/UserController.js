@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const {User} = require('../models/rel')
+const UserService = require('../services/UserService')
 
 /**
  * @swagger
@@ -41,12 +41,47 @@ const {User} = require('../models/rel')
 //Cadastra um usuário
 router.post('/',async(req,res)=>{
     try{
-        const {username,email,password} = req.body
-        await User.create({username,email,password})
-        res.status(201).json({message:'Cadastrado com sucesso'})
+        const user = await UserService.register(req.body)
+        res.status(201).json({user})
     }catch(error){
         res.status(500).json({error:error.message})
     }
+})
+
+/**
+ * @swagger
+ * /users/login:
+ *   post:
+ *     summary: Faz login do usuário
+ *     tags: [Usuários]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: gui@email.com
+ *               password:
+ *                 type: string
+ *                 example: 123456
+ *     responses:
+ *       200:
+ *         description: Login bem-sucedido
+ *       401:
+ *         description: Credenciais inválidas
+ */
+
+//Login de usuário
+router.post('/login', async (req, res) => {
+  try {
+    const result = await UserService.login(req.body)
+    res.status(200).json(result)
+  } catch (error) {
+    res.status(401).json({ error: error.message })
+  }
 })
 
 /**
@@ -61,13 +96,13 @@ router.post('/',async(req,res)=>{
  */
 
 //Lista todos os usuários
-router.get('/', async(req,res)=>{
-    try{
-        const users = await User.findAll()
-        res.status(200).json(users)
-    }catch(error){
-        res.status(500).json({error:error.message})
-    }
+router.get('/', async (req, res) => {
+  try {
+    const users = await UserService.getAll()
+    res.status(200).json(users)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
 })
 
 /**
@@ -90,16 +125,13 @@ router.get('/', async(req,res)=>{
  */
 
 //Procura um usuário específico
-router.get('/:id',async(req,res)=>{
-    try{
-        const user = await user.findByPk(re.params.id)
-        if(!user){
-            return res.status(404).json({error: error.message})
-        }
-        res.status(200).json(user)
-    }catch(error){
-        res.status(500).json({error:error.message})
-    }
+router.get('/:id', async (req, res) => {
+  try {
+    const user = await UserService.getById(req.params.id)
+    res.status(200).json(user)
+  } catch (error) {
+    res.status(404).json({ error: error.message })
+  }
 })
 
 /**
@@ -141,20 +173,13 @@ router.get('/:id',async(req,res)=>{
  */
 
 //Altera um usuário
-router.put('/:id',async(req,res)=>{
-    try{
-        const {username,email,password,adm} = req.body
-        const [rowsUpdate] = await User.update(
-            {username,email,password,adm},
-            {where: {id:req.params.id}}
-        )
-        if(!rowsUpdate){
-            return res.status(404).json({message: 'Usuário não encontrado'})
-        }
-        res.status(200).json({message:'Atualizado com sucesso'})        
-    }catch(error){
-        res.status(500).json({error:error.message})
-    }
+router.put('/:id', async (req, res) => {
+  try {
+    const result = await UserService.update(req.params.id, req.body)
+    res.status(200).json(result)
+  } catch (error) {
+    res.status(404).json({ error: error.message })
+  }
 })
 
 /**
@@ -177,16 +202,13 @@ router.put('/:id',async(req,res)=>{
  */
 
 //Deleta um usuário
-router.delete('/:id',async(req,res)=>{
-    try{
-        const rowsDel = await User.destroy({where:{id: req.params.id}})
-        if(!rowsDel){
-            return res.status(404).json({message:'Usuário não encontrado'})
-        }
-        res.status(200).json({message: 'Excluído com sucesso'})
-    }catch(error){
-        res.status(500).json({error:error.message})
-    }
+router.delete('/:id', async (req, res) => {
+  try {
+    const result = await UserService.delete(req.params.id)
+    res.status(200).json(result)
+  } catch (error) {
+    res.status(404).json({ error: error.message })
+  }
 })
 
 module.exports = router
