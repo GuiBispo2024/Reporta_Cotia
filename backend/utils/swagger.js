@@ -16,6 +16,20 @@ const options = {
                 url: 'http://localhost:8081',
                 description: 'Servidor local'
             }
+        ],
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT'
+                }
+            }
+        },
+        security: [
+            {
+                bearerAuth: []
+            }
         ]
     },
     apis: [path.join(__dirname, '../controllers/*.js')]

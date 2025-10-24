@@ -17,18 +17,22 @@ class LikeService {
     return { message: 'Curtida registrada com sucesso.' }
   }
 
-  // Remove like
-  static async descurtir({ userId, denunciaId }) {
-    const rows = await LikeRepository.delete(userId, denunciaId)
-    if (!rows) throw new Error('Like não encontrado.')
-    return { message: 'Like removido com sucesso.' }
-  }
-
   // Lista todos os likes de uma denúncia
   static async listarPorDenuncia(denunciaId) {
     const denunciaLikes = await LikeRepository.findByDenunciaId(denunciaId)
     if (!denunciaLikes) throw new Error('Denúncia não encontrada.')
     return denunciaLikes
+  }
+
+  // Remove like
+  static async descurtir({ userId, denunciaId }) {
+    const like = await LikeRepository.findByUserAndDenuncia(userId, denunciaId)
+    if (!like) throw new Error('Like não encontrado.')
+    if (like.userId !== userId) {
+      throw new Error('Você não tem permissão para remover este like.')
+    }
+    await LikeRepository.delete(userId, denunciaId)
+    return { message: 'Like removido com sucesso.' }
   }
 }
 

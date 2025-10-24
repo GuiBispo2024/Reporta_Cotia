@@ -1,10 +1,10 @@
 const DenunciaRepository = require('../repositories/DenunciaRepository')
-const { filterBadWords } = require('../utils/filterBadWords')
+const filterBadWords = require('../utils/filterBadWords')
 
 class DenunciaService {
     
   // Cria uma nova denúncia
-  static async create({ titulo, descricao, localizacao, userId }) {
+  static async create({ titulo, descricao, localizacao}) {
     const { hasBadWord: hasBadWordTitulo, filteredText: tituloFiltrado } = filterBadWords(titulo)
     const { hasBadWord: hasBadWordDescricao, filteredText: descricaoFiltrada } = filterBadWords(descricao)
 
@@ -12,8 +12,7 @@ class DenunciaService {
       titulo: tituloFiltrado,
       descricao: descricaoFiltrada,
       localizacao,
-      status: 'pendente',
-      userId
+      status: 'pendente'
     })
 
     const hasBadWord = hasBadWordTitulo || hasBadWordDescricao
@@ -45,7 +44,7 @@ class DenunciaService {
     return DenunciaRepository.findAll()
   }
 
-  // Busca por ID
+  // Busca denúncia por ID
   static async buscarPorId(id) {
     const denuncia = await DenunciaRepository.findById(id)
     if (!denuncia) throw new Error('Denúncia não encontrada.')
@@ -60,16 +59,24 @@ class DenunciaService {
   }
 
   // Atualiza denúncia
-  static async atualizar(id, data) {
-    const [rows] = await DenunciaRepository.update(id, data)
-    if (!rows) throw new Error('Denúncia não encontrada.')
+  static async atualizar(id, data, userIdToken) {
+    const denuncia = await DenunciaRepository.findById(id)
+    if (!denuncia) throw new Error('Denúncia não encontrada.')
+    if (denuncia.userId !== userIdToken) {
+      throw new Error('Você não tem permissão para atualizar esta denúncia.')
+    }
+    await DenunciaRepository.update(id, data)
     return { message: 'Denúncia atualizada com sucesso.' }
   }
 
   // Deleta denúncia
-  static async deletar(id) {
-    const rows = await DenunciaRepository.delete(id)
-    if (!rows) throw new Error('Denúncia não encontrada.')
+  static async deletar(id,userId) {
+    const denuncia = await DenunciaRepository.findById(id)
+    if (!denuncia) throw new Error('Denúncia não encontrada.')
+    if (denuncia.userId !== userId) {
+      throw new Error('Você não tem permissão para excluir esta denúncia.')
+    }
+    await DenunciaRepository.delete(id)
     return { message: 'Denúncia excluída com sucesso.' }
   }
 }

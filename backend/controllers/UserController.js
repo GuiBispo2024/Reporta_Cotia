@@ -1,6 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const UserService = require('../services/UserService')
+const auth = require('../middlewares/auth')
 
 /**
  * @swagger
@@ -138,11 +139,13 @@ router.get('/:id', async (req, res) => {
  * @swagger
  * /users/{id}:
  *   put:
- *     summary: Atualiza um usuário
+ *     summary: Atualiza um usuário (apenas o próprio)
  *     tags: [Usuários]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
- *       - name: id
- *         in: path
+ *       - in: path
+ *         name: id
  *         required: true
  *         schema:
  *           type: integer
@@ -162,23 +165,22 @@ router.get('/:id', async (req, res) => {
  *               password:
  *                 type: string
  *                 example: novaSenha
- *               adm:
- *                 type: boolean
- *                 example: true
  *     responses:
  *       200:
- *         description: Usuário atualizado
- *       404:
- *         description: Usuário não encontrado
+ *         description: Usuário atualizado com sucesso
+ *       403:
+ *         description: Acesso negado
  */
 
 //Altera um usuário
-router.put('/:id', async (req, res) => {
+router.put('/:id',auth, async (req, res) => {
   try {
-    const result = await UserService.update(req.params.id, req.body)
+    const { id } = req.params
+    const { id: userId } = req.user
+    const result = await UserService.update(id, req.body, userId)
     res.status(200).json(result)
   } catch (error) {
-    res.status(404).json({ error: error.message })
+    res.status(403).json({ error: error.message })
   }
 })
 
@@ -186,28 +188,32 @@ router.put('/:id', async (req, res) => {
  * @swagger
  * /users/{id}:
  *   delete:
- *     summary: Deleta um usuário
+ *     summary: Deleta o próprio usuário
  *     tags: [Usuários]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
- *       - name: id
- *         in: path
+ *       - in: path
+ *         name: id
  *         required: true
  *         schema:
  *           type: integer
  *     responses:
  *       200:
- *         description: Usuário excluído
- *       404:
- *         description: Usuário não encontrado
+ *         description: Usuário excluído com sucesso
+ *       403:
+ *         description: Acesso negado
  */
 
 //Deleta um usuário
-router.delete('/:id', async (req, res) => {
+router.delete('/:id',auth, async (req, res) => {
   try {
-    const result = await UserService.delete(req.params.id)
+    const { id } = req.params
+    const { id: userId } = req.user
+    const result = await UserService.delete(id, userId)
     res.status(200).json(result)
   } catch (error) {
-    res.status(404).json({ error: error.message })
+    res.status(403).json({ error: error.message })
   }
 })
 

@@ -33,10 +33,26 @@ class CommentService {
     return comentarios
   }
 
-  // Deleta um comentário
-  static async deletar(id) {
-    const rows = await CommentRepository.delete(id)
-    if (!rows) throw new Error('Comentário não encontrado.')
+  //Altera um comentário(somente usuário que criou pode alterar)
+ static async atualizar(id, data, userId) {
+    const comment = await CommentRepository.findById(id)
+    if (!comment) throw new Error('Comentário não encontrado.')
+    if (comment.userId !== userId) {
+      throw new Error('Você não tem permissão para atualizar este comentário.')
+    }
+    const [rowsUpdate] = await CommentRepository.update(id, data)
+    if (!rowsUpdate) throw new Error('Falha ao atualizar o comentário.')
+    return { message: 'Comentário atualizado com sucesso.' }
+  }
+
+  // Deleta um comentário(user que criou ou adm pode deletar)
+  static async deletar(id,userId,adm) {
+    const comment = await CommentRepository.findById(id)
+    if (!comment) throw new Error('Comentário não encontrado.')
+    if (comment.userId !== userId && !adm) {
+      throw new Error('Você não tem permissão para excluir este comentário.')
+    }
+    await CommentRepository.delete(id)
     return { message: 'Comentário excluído com sucesso.' }
   }
 }

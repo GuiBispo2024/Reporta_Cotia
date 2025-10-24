@@ -20,6 +20,11 @@ class CommentRepository {
     return Comment.findByPk(id)
   }
 
+  //Atualiza um comentário
+  static async update(id, data) {
+        return Comment.update(data, { where: { id } })
+  }
+
   // Deleta um comentário
   static async delete(id) {
     return Comment.destroy({ where: { id } })

@@ -17,7 +17,7 @@ class UserRepository{
         return User.findAll()
     }
 
-    //Busca um usu´pario específico
+    //Busca um usuário específico
     static async findById(id) {
         return User.findByPk(id)
     }

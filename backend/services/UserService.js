@@ -1,8 +1,7 @@
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const UserRepository = require('../repositories/UserRepository')
-
-const SECRET = process.env.JWT_SECRET || 'chave_teste'
+const SECRET = process.env.JWT_SECRET
 
 class UserService {
     
@@ -23,7 +22,7 @@ class UserService {
     const valid = await bcrypt.compare(password, user.password)
     if (!valid) throw new Error('Senha incorreta.')
 
-    const token = jwt.sign({ id: user.id, adm: user.adm }, SECRET, { expiresIn: '24h' })
+    const token = jwt.sign({ id: user.id, adm: user.adm }, SECRET, { expiresIn: '1h' })
 
     return {
       message: 'Login bem-sucedido',
@@ -45,14 +44,20 @@ class UserService {
   }
 
   // Atualizar
-  static async update(id, data) {
+  static async update(id, data,userIdToken) {
+    if (parseInt(id) !== userIdToken) {
+    throw new Error('Você só pode atualizar seu próprio perfil.')
+  }
     const [rowsUpdate] = await UserRepository.update(id, data)
     if (!rowsUpdate) throw new Error('Usuário não encontrado.')
     return { message: 'Usuário atualizado com sucesso' }
   }
 
   // Deletar
-  static async delete(id) {
+  static async delete(id,userIdToken) {
+    if (parseInt(id) !== userIdToken) {
+    throw new Error('Você só pode excluir sua própria conta.')
+  }
     const rowsDel = await UserRepository.delete(id)
     if (!rowsDel) throw new Error('Usuário não encontrado.')
     return { message: 'Usuário excluído com sucesso' }

@@ -12,11 +12,12 @@ const DenunciaService = require('../services/DenunciaService')
 
 /**
  * @swagger
- * /:
+ * /denuncia:
  *   post:
- *     summary: Cria uma nova denúncia
- *     description: Envia uma denúncia que será salva com status "pendente" até ser moderada por um administrador.
+ *     summary: Cria uma nova denúncia (usuário autenticado)
  *     tags: [Denúncias]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -29,20 +30,15 @@ const DenunciaService = require('../services/DenunciaService')
  *                 example: Buraco na rua principal
  *               descricao:
  *                 type: string
- *                 example: Buraco grande em frente à escola municipal
+ *                 example: Buraco grande em frente à escola
  *               localizacao:
  *                 type: string
  *                 example: Rua das Flores, nº 120
- *               userId:
- *                 type: integer
- *                 example: 2
  *     responses:
  *       201:
- *         description: Denúncia enviada com sucesso
- *       404:
- *         description: Usuário não encontrado
- *       500:
- *         description: Erro interno do servidor
+ *         description: Denúncia criada com sucesso
+ *       400:
+ *         description: Erro ao criar denúncia
  */
 
 //Posta uma denúncia
@@ -58,18 +54,18 @@ router.post('/', auth, async (req, res) => {
 
 /**
  * @swagger
- * /{id}/moderar:
+ * /denuncia/{id}/moderar:
  *   patch:
- *     summary: Modera uma denúncia (somente admin)
- *     description: Permite que um usuário com campo "adm" igual a true altere o status de uma denúncia.
+ *     summary: Modera uma denúncia (somente administradores)
  *     tags: [Denúncias]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
- *       - name: id
- *         in: path
+ *       - in: path
+ *         name: id
  *         required: true
  *         schema:
  *           type: integer
- *         description: ID da denúncia a ser moderada
  *     requestBody:
  *       required: true
  *       content:
@@ -77,9 +73,6 @@ router.post('/', auth, async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               userId:
- *                 type: integer
- *                 example: 1
  *               status:
  *                 type: string
  *                 enum: [pendente, aprovada, rejeitada]
@@ -87,12 +80,8 @@ router.post('/', auth, async (req, res) => {
  *     responses:
  *       200:
  *         description: Denúncia moderada com sucesso
- *       400:
- *         description: Status inválido
  *       403:
- *         description: Acesso negado (usuário não é admin)
- *       404:
- *         description: Denúncia ou usuário não encontrado
+ *         description: Acesso negado
  */
 
 //Moderação de uma denúncia
@@ -109,7 +98,7 @@ router.patch('/:id/moderar', auth, async (req, res) => {
 
 /**
  * @swagger
- * /:
+ * /denuncia:
  *   get:
  *     summary: Lista todas as denúncias
  *     tags: [Denúncias]
@@ -132,7 +121,7 @@ router.get('/', async (req, res) => {
 
 /**
  * @swagger
- * /{id}:
+ * /denuncia/{id}:
  *   get:
  *     summary: Retorna uma denúncia específica
  *     tags: [Denúncias]
@@ -161,7 +150,7 @@ router.get('/:id', async (req, res) => {
 
 /**
  * @swagger
- * /user/{userId}:
+ * /denuncia/user/{userId}:
  *   get:
  *     summary: Retorna todas as denúncias de um usuário específico
  *     tags: [Denúncias]
@@ -190,16 +179,20 @@ router.get('/user/:userId', async (req, res) => {
 
 /**
  * @swagger
- * /{id}:
+ * /denuncia/{id}:
  *   put:
- *     summary: Edita uma denúncia existente
+ *     summary: Atualiza uma denúncia (somente o autor pode editar)
  *     tags: [Denúncias]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - name: id
  *         in: path
  *         required: true
  *         schema:
  *           type: integer
+ *           example: 12
+ *         description: ID da denúncia a ser atualizada
  *     requestBody:
  *       required: true
  *       content:
@@ -209,24 +202,33 @@ router.get('/user/:userId', async (req, res) => {
  *             properties:
  *               titulo:
  *                 type: string
- *                 example: Novo título
+ *                 example: "Buraco ainda não foi consertado"
  *               descricao:
  *                 type: string
- *                 example: Nova descrição
+ *                 example: "O problema persiste há mais de 2 meses."
+ *               categoria:
+ *                 type: string
+ *                 example: "Infraestrutura"
  *               localizacao:
  *                 type: string
- *                 example: Nova localização
+ *                 example: "Rua das Flores, nº 200"
  *     responses:
  *       200:
- *         description: Denúncia atualizada
+ *         description: Denúncia atualizada com sucesso.
+ *       401:
+ *         description: Token JWT ausente ou inválido.
+ *       403:
+ *         description: Usuário sem permissão para editar.
  *       404:
- *         description: Denúncia não encontrada
+ *         description: Denúncia não encontrada.
  */
 
 //Edita uma denúncia
-router.put('/:id', async (req, res) => {
+router.put('/:id',auth, async (req, res) => {
   try {
-    const result = await DenunciaService.atualizar(req.params.id, req.body)
+    const { id } = req.params
+    const { id: userId } = req.user
+    const result = await DenunciaService.atualizar(id, req.body, userId)
     res.status(200).json(result)
   } catch (error) {
     res.status(404).json({ error: error.message })
@@ -235,27 +237,37 @@ router.put('/:id', async (req, res) => {
 
 /**
  * @swagger
- * /{id}:
+ * /denuncia/{id}:
  *   delete:
- *     summary: Deleta uma denúncia
+ *     summary: Exclui uma denúncia (somente o autor pode deletar)
  *     tags: [Denúncias]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - name: id
  *         in: path
  *         required: true
  *         schema:
  *           type: integer
+ *           example: 8
+ *         description: ID da denúncia a ser removida
  *     responses:
  *       200:
- *         description: Denúncia excluída com sucesso
+ *         description: Denúncia excluída com sucesso.
+ *       401:
+ *         description: Token JWT ausente ou inválido.
+ *       403:
+ *         description: Usuário sem permissão para excluir.
  *       404:
- *         description: Denúncia não encontrada
+ *         description: Denúncia não encontrada.
  */
 
 //Deleta uma denúncia
-router.delete('/:id', async (req, res) => {
+router.delete('/:id',auth, async (req, res) => {
   try {
-    const result = await DenunciaService.deletar(req.params.id)
+    const { id } = req.params
+    const { id: userId } = req.user
+    const result = await DenunciaService.deletar(id, userId)
     res.status(200).json(result)
   } catch (error) {
     res.status(404).json({ error: error.message })

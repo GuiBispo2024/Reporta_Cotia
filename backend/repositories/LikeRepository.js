@@ -15,6 +15,11 @@ class LikeRepository {
     return { totalLikes: denuncia.likes.length, usuarios: denuncia.likes }
   }
 
+  // Busca um like pelo usuário e denúncia
+  static async findByUserAndDenuncia(userId, denunciaId) {
+    return await Like.findOne({ userId, denunciaId })
+  }
+
   // Remove um like
   static async delete(userId, denunciaId) {
     return Like.destroy({ where: { userId, denunciaId } })
