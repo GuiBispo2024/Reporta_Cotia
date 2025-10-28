@@ -40,10 +40,7 @@ const auth = require('../middlewares/auth')
 // Dá like
 router.post('/:id/like',auth, async (req, res) => {
   try {
-    const denunciaId = req.params.id
-    const userId = req.user.id
-
-    const result = await LikeService.curtir({ userId, denunciaId })
+    const result = await LikeService.curtir(req.params, req.user)
     res.status(201).json(result)
   } catch (error) {
     if (error.message.includes('Usuário já curtiu')) {
@@ -84,9 +81,7 @@ router.post('/:id/like',auth, async (req, res) => {
 // Remove like
 router.delete('/:id/like',auth, async (req, res) => {
   try {
-    const denunciaId = req.params.id
-    const userId = req.user.id
-    const result = await LikeService.descurtir({ userId, denunciaId })
+    const result = await LikeService.descurtir(req.params, req.user)
     res.status(200).json(result)
   } catch (error) {
     if (error.message.includes('Like não encontrado')) {

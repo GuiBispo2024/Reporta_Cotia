@@ -7,8 +7,10 @@ class UserService {
     
   // Cadastrar usuário
   static async register({ username, email, password }) {
-    const existing = await UserRepository.findByEmail(email)
-    if (existing) throw new Error('E-mail já cadastrado.')
+    const existingEmail = await UserRepository.findByEmail(email)
+    if (existingEmail) throw new Error('E-mail já cadastrado.')
+    const existingUsername =  await UserRepository.findByUsername(username)
+    if (existingUsername) throw new Error('Nome de usuário já cadastrado.')
 
     const hashed = await bcrypt.hash(password, 10)
     return UserRepository.create({ username, email, password: hashed })
@@ -46,8 +48,9 @@ class UserService {
   // Atualizar
   static async update(id, data,userIdToken) {
     if (parseInt(id) !== userIdToken) {
-    throw new Error('Você só pode atualizar seu próprio perfil.')
-  }
+      throw new Error('Você só pode atualizar seu próprio perfil.')
+    }
+    if (data.password) data.password = await bcrypt.hash(data.password, 10)
     const [rowsUpdate] = await UserRepository.update(id, data)
     if (!rowsUpdate) throw new Error('Usuário não encontrado.')
     return { message: 'Usuário atualizado com sucesso' }
@@ -57,7 +60,7 @@ class UserService {
   static async delete(id,userIdToken) {
     if (parseInt(id) !== userIdToken) {
     throw new Error('Você só pode excluir sua própria conta.')
-  }
+    }
     const rowsDel = await UserRepository.delete(id)
     if (!rowsDel) throw new Error('Usuário não encontrado.')
     return { message: 'Usuário excluído com sucesso' }

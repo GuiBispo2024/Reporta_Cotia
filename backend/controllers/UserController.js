@@ -94,6 +94,8 @@ router.post('/login', async (req, res) => {
  *     responses:
  *       200:
  *         description: Lista de usuários
+ *       500:
+ *         description: Erro interno do servidor
  */
 
 //Lista todos os usuários
@@ -175,9 +177,7 @@ router.get('/:id', async (req, res) => {
 //Altera um usuário
 router.put('/:id',auth, async (req, res) => {
   try {
-    const { id } = req.params
-    const { id: userId } = req.user
-    const result = await UserService.update(id, req.body, userId)
+    const result = await UserService.update(req.params.id,req.body,req.user.id)
     res.status(200).json(result)
   } catch (error) {
     res.status(403).json({ error: error.message })
@@ -208,9 +208,7 @@ router.put('/:id',auth, async (req, res) => {
 //Deleta um usuário
 router.delete('/:id',auth, async (req, res) => {
   try {
-    const { id } = req.params
-    const { id: userId } = req.user
-    const result = await UserService.delete(id, userId)
+    const result = await UserService.delete(req.params.id,req.user.id)
     res.status(200).json(result)
   } catch (error) {
     res.status(403).json({ error: error.message })

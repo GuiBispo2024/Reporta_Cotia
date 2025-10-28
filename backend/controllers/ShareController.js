@@ -48,10 +48,7 @@ const auth = require('../middlewares/auth')
 // Compartilha denúncia
 router.post('/share/:id',auth, async (req, res) => {
   try {
-    const denunciaId = req.params.id
-    const userId = req.user.id
-    const { comentario } = req.body
-    const result = await ShareService.compartilhar({ userId, denunciaId, comentario })
+    const result = await ShareService.compartilhar(req.params, req.body, req.user)
     res.status(201).json(result)
   } catch (error) {
     if (error.message.includes('Usuário') || error.message.includes('Denúncia')) {
@@ -146,8 +143,7 @@ router.get('/shares/:id', async (req, res) => {
 // Deleta compartilhamento
 router.delete('/share/:id',auth, async (req, res) => {
   try {
-    const userId = req.user.id
-    const result = await ShareService.deletar(req.params.id, userId)
+    const result = await ShareService.deletar(req.params, req.user)
     res.status(200).json(result)
   } catch (error) {
     if (error.message.includes('Compartilhamento não encontrado')) {

@@ -10,20 +10,21 @@ class DenunciaRepository {
     //Busca uma denúncia específica
     static async findById(id) {
         return Denuncia.findByPk(id, {
-        include: { model: User, attributes: ['id', 'username', 'email'] }
+        include: { model: User, attributes: ['id'] }
         })
     }
 
     //Lista todas as Denúncias
     static async findAll() {
         return Denuncia.findAll({
-        include: { model: User, attributes: ['id', 'username', 'email'] }
+        include: { model: User, attributes: ['id'] }
         })
     }
 
     //Busca todas as denúncias de um usuário específico
     static async findByUserId(userId) {
-        return Denuncia.findAll({ where: { userId } })
+        return Denuncia.findAll({ where: { userId } }
+        )
     }
 
     //Altera uma denúncia

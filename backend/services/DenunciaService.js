@@ -4,7 +4,12 @@ const filterBadWords = require('../utils/filterBadWords')
 class DenunciaService {
     
   // Cria uma nova denúncia
-  static async create({ titulo, descricao, localizacao}) {
+  static async create({ titulo, descricao, localizacao},user) {
+    if (!titulo || !descricao || !localizacao) {
+      throw new Error('Título, descrição e localização são obrigatórios.')
+    }
+
+    const { id: userId } = user
     const { hasBadWord: hasBadWordTitulo, filteredText: tituloFiltrado } = filterBadWords(titulo)
     const { hasBadWord: hasBadWordDescricao, filteredText: descricaoFiltrada } = filterBadWords(descricao)
 
@@ -12,6 +17,7 @@ class DenunciaService {
       titulo: tituloFiltrado,
       descricao: descricaoFiltrada,
       localizacao,
+      userId,
       status: 'pendente'
     })
 

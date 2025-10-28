@@ -19,7 +19,6 @@ app.use('/api-docs',swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 app.use('/users', userController)
 app.use('/denuncia', denunciaController)
 app.use('/denuncia', commentController)
-// Like and Share controllers expose routes under /denuncia/... so mount at root
 app.use('/denuncia', likeController)
 app.use('/denuncia', shareController)
 app.use((err,req,res,next)=>{

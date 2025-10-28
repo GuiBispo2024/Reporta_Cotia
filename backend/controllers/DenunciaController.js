@@ -44,8 +44,7 @@ const DenunciaService = require('../services/DenunciaService')
 //Posta uma denúncia
 router.post('/', auth, async (req, res) => {
   try {
-    const userId = req.user.id
-    const result = await DenunciaService.create({ ...req.body, userId })
+    const result = await DenunciaService.create(req.body, req.user)
     res.status(201).json(result)
   } catch (error) {
     res.status(400).json({ error: error.message })
@@ -87,9 +86,7 @@ router.post('/', auth, async (req, res) => {
 //Moderação de uma denúncia
 router.patch('/:id/moderar', auth, async (req, res) => {
   try {
-    const { status } = req.body
-    const isAdm = req.user.adm
-    const result = await DenunciaService.moderar(req.params.id, status, isAdm)
+    const result = await DenunciaService.moderar(req.params.id, req.body.status, req.user.adm)
     res.status(200).json(result)
   } catch (error) {
     res.status(400).json({ error: error.message })
@@ -226,9 +223,7 @@ router.get('/user/:userId', async (req, res) => {
 //Edita uma denúncia
 router.put('/:id',auth, async (req, res) => {
   try {
-    const { id } = req.params
-    const { id: userId } = req.user
-    const result = await DenunciaService.atualizar(id, req.body, userId)
+    const result = await DenunciaService.atualizar(req.body, req.user)
     res.status(200).json(result)
   } catch (error) {
     res.status(404).json({ error: error.message })
@@ -265,9 +260,7 @@ router.put('/:id',auth, async (req, res) => {
 //Deleta uma denúncia
 router.delete('/:id',auth, async (req, res) => {
   try {
-    const { id } = req.params
-    const { id: userId } = req.user
-    const result = await DenunciaService.deletar(id, userId)
+    const result = await DenunciaService.deletar(req.params.id, req.user)
     res.status(200).json(result)
   } catch (error) {
     res.status(404).json({ error: error.message })

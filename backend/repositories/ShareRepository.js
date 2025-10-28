@@ -1,6 +1,7 @@
 const { Share, User } = require('../models/rel')
 
 class ShareRepository {
+  
   // Cria um novo compartilhamento
   static async create(data) {
     return Share.create(data)

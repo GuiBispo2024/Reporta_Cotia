@@ -46,8 +46,7 @@ const auth = require('../middlewares/auth')
 // Cria comentário
 router.post('/comentario',auth, async (req, res) => {
    try {
-    const { id: userId } = req.user
-    const result = await CommentService.create({ ...req.body, userId })
+    const result = await CommentService.create(req.body, req.user)
     res.status(201).json(result)
   } catch (error) {
     res.status(400).json({ error: error.message })
@@ -119,10 +118,9 @@ router.get('/comentarios/:id', async (req, res) => {
  */
 
 //Altera um comentário
-router.put('comentario/:id',auth, async (req, res) => {
+router.put('/comentario/:id',auth, async (req, res) => {
   try {
-    const { id: userId } = req.user
-    const result = await CommentService.atualizar(req.params.id, req.body, userId)
+    const result = await CommentService.atualizar(req.params, req.body, req.user)
     res.status(200).json(result)
   } catch (error) {
     res.status(403).json({ error: error.message })
@@ -155,10 +153,9 @@ router.put('comentario/:id',auth, async (req, res) => {
  */
 
 // Deleta comentário
-router.delete('comentario/:id',auth, async (req, res) => {
+router.delete('/comentario/:id',auth, async (req, res) => {
   try {
-    const { id: userId, adm } = req.user
-    const result = await CommentService.deletar(req.params.id, userId, adm)
+    const result = await CommentService.deletar(req.params.id, req.user)
     res.status(200).json(result)
   } catch (error) {
     res.status(403).json({ error: error.message })

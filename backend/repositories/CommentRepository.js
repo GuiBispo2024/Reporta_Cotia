@@ -22,7 +22,7 @@ class CommentRepository {
 
   //Atualiza um comentário
   static async update(id, data) {
-        return Comment.update(data, { where: { id } })
+    return Comment.update(data, { where: { id } })
   }
 
   // Deleta um comentário

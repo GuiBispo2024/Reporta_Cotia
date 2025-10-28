@@ -7,9 +7,14 @@ class UserRepository{
         return User.create(data)
     }
 
-    //Faz login
+    //Procura usuário pelo email
     static async findByEmail(email) {
         return User.findOne({ where: { email } })
+    }
+
+    //Procura usuário pelo username
+    static async findByUsername(username) {
+        return User.findOne({ where: { username } })
     }
 
     //Lista todos os usuários
