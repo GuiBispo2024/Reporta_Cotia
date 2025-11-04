@@ -1,9 +1,19 @@
-const {Sequelize} = require('sequelize')
-const sequelize = new Sequelize('Reporta_Cotia','postgres','password',{
-    host: 'localhost',
-    dialect: 'postgres'
+const { Sequelize } = require('sequelize')
+
+const DB_NAME = process.env.DB_NAME
+const DB_USER = process.env.DB_USER
+const DB_PASS = process.env.DB_PASS 
+const DB_HOST = process.env.DB_HOST
+const DB_DIALECT = process.env.DB_DIALECT
+
+const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASS, {
+    host: DB_HOST,
+    dialect: DB_DIALECT,
+    logging: false
 })
-sequelize.authenticate().then(()=>console.log("Conexão estabelecida")).catch((err)=>
-    console.error("Erro ao conectar: ",err))
+
+sequelize.authenticate()
+    .then(() => console.log("Conexão com o banco estabelecida"))
+    .catch((err) => console.error("Erro ao conectar ao DB:", err))
 
 module.exports = sequelize

@@ -3,7 +3,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const cors = require('cors')
 const app = express()
-const port = process.env.PORT||8081
+const port = process.env.PORT
 const {swaggerUi, swaggerSpec} = require('./utils/swagger')
 const {sequelize} = require('./models/rel')
 const userController = require('./controllers/UserController')
@@ -26,14 +26,27 @@ app.use((err,req,res,next)=>{
     res.status(500).send('Algo deu errado')
 })
 
-sequelize.sync({ alter: true })
-.then(() => {
-    console.log('Banco sincronizado com sucesso!')
-    app.listen(port,() => console.log(`Servidor rodando na porta ${port}!`))
-    console.log(`Swagger rodando em http://localhost:${port}/api-docs`)
-})
-.catch((err) => {
-    console.error('Erro ao sincronizar o banco:', err)
-})
-/*app.listen(port,() => console.log(`Servidor rodando na porta ${port}!`))
-console.log('Swagger rodando em http://localhost:8081/api-docs')*/ 
+// Em ambiente de desenvolvimento usamos sync({ alter: true }) para acelarar o
+// desenvolvimento. Em produção apenas autenticar a conexão e iniciar o servidor.
+if (process.env.NODE_ENV !== 'production') {
+    sequelize
+        .sync({ alter: true })
+        .then(() => {
+            console.log('Banco sincronizado com sucesso!')
+            app.listen(port, () => console.log(`Servidor rodando na porta ${port}!`))
+            console.log(`Swagger rodando em http://localhost:${port}/api-docs`)
+        })
+        .catch((err) => {
+            console.error('Erro ao sincronizar o banco:', err)
+        })
+} else {
+    sequelize
+        .authenticate()
+        .then(() => {
+            app.listen(port, () => console.log(`Servidor rodando na porta ${port}!`))
+            console.log(`Swagger rodando em http://localhost:${port}/api-docs`)
+        })
+        .catch((err) => {
+            console.error('Erro ao conectar ao banco:', err)
+        })
+}
