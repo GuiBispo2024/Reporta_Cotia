@@ -5,10 +5,8 @@ const filterBadWords = require('../utils/filterBadWords')
 class CommentService {
     
   // Cria um novo comentário
-  static async create({ texto, userId, denunciaId }) {
-    const user = await User.findByPk(userId)
-    if (!user) throw new Error('Usuário não existe.')
-
+  static async create({ texto, denunciaId },user) {
+    const { id: userId } = user
     const denuncia = await Denuncia.findByPk(denunciaId)
     if (!denuncia) throw new Error('Denúncia não existe.')
 

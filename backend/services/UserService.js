@@ -46,22 +46,16 @@ class UserService {
   }
 
   // Atualizar
-  static async update(id, data,userIdToken) {
-    if (parseInt(id) !== userIdToken) {
-      throw new Error('Você só pode atualizar seu próprio perfil.')
-    }
+  static async update(data,userIdToken) {
     if (data.password) data.password = await bcrypt.hash(data.password, 10)
-    const [rowsUpdate] = await UserRepository.update(id, data)
+    const [rowsUpdate] = await UserRepository.update(userIdToken, data)
     if (!rowsUpdate) throw new Error('Usuário não encontrado.')
     return { message: 'Usuário atualizado com sucesso' }
   }
 
   // Deletar
-  static async delete(id,userIdToken) {
-    if (parseInt(id) !== userIdToken) {
-    throw new Error('Você só pode excluir sua própria conta.')
-    }
-    const rowsDel = await UserRepository.delete(id)
+  static async delete(userIdToken) {
+    const rowsDel = await UserRepository.delete(userIdToken)
     if (!rowsDel) throw new Error('Usuário não encontrado.')
     return { message: 'Usuário excluído com sucesso' }
   }

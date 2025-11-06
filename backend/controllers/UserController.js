@@ -139,18 +139,12 @@ router.get('/:id', async (req, res) => {
 
 /**
  * @swagger
- * /users/{id}:
+ * /users/update:
  *   put:
- *     summary: Atualiza um usuário (apenas o próprio)
+ *     summary: Atualiza o próprio usuário (autenticado)
  *     tags: [Usuários]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
  *     requestBody:
  *       required: true
  *       content:
@@ -166,18 +160,20 @@ router.get('/:id', async (req, res) => {
  *                 example: novo@email.com
  *               password:
  *                 type: string
- *                 example: novaSenha
+ *                 example: novaSenha123
  *     responses:
  *       200:
  *         description: Usuário atualizado com sucesso
  *       403:
- *         description: Acesso negado
+ *         description: Você só pode atualizar seu próprio perfil
+ *       401:
+ *         description: Token inválido ou não fornecido
  */
 
 //Altera um usuário
-router.put('/:id',auth, async (req, res) => {
+router.put('/update',auth, async (req, res) => {
   try {
-    const result = await UserService.update(req.params.id,req.body,req.user.id)
+    const result = await UserService.update(req.body,req.user.id)
     res.status(200).json(result)
   } catch (error) {
     res.status(403).json({ error: error.message })
@@ -186,29 +182,25 @@ router.put('/:id',auth, async (req, res) => {
 
 /**
  * @swagger
- * /users/{id}:
+ * /users/delete:
  *   delete:
- *     summary: Deleta o próprio usuário
+ *     summary: Deleta o próprio usuário (autenticado)
  *     tags: [Usuários]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
  *     responses:
  *       200:
  *         description: Usuário excluído com sucesso
  *       403:
- *         description: Acesso negado
+ *         description: Você só pode excluir sua própria conta
+ *       401:
+ *         description: Token inválido ou não fornecido
  */
 
 //Deleta um usuário
-router.delete('/:id',auth, async (req, res) => {
+router.delete('/delete',auth, async (req, res) => {
   try {
-    const result = await UserService.delete(req.params.id,req.user.id)
+    const result = await UserService.delete(req.user.id)
     res.status(200).json(result)
   } catch (error) {
     res.status(403).json({ error: error.message })

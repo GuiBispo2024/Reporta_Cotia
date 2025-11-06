@@ -10,14 +10,14 @@ class DenunciaRepository {
     //Busca uma denúncia específica
     static async findById(id) {
         return Denuncia.findByPk(id, {
-        include: { model: User, attributes: ['id'] }
+        include: { model: User, attributes: ['id','username'] }
         })
     }
 
     //Lista todas as Denúncias
     static async findAll() {
         return Denuncia.findAll({
-        include: { model: User, attributes: ['id'] }
+        include: { model: User, attributes: ['id','username'] }
         })
     }
 

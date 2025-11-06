@@ -6,15 +6,15 @@ class LikeRepository {
     return Like.findOrCreate({ where: { userId, denunciaId } })
   }
 
-  // Conta quantos likes uma denúncia tem e lista os usuários
-  static async findByDenunciaId(denunciaId) {
-    const denuncia = await Denuncia.findByPk(denunciaId, {
-      include: { model: User, attributes: ['id', 'username'] }
-    })
-    if (!denuncia) return null
-    return { totalLikes: denuncia.likes.length, usuarios: denuncia.likes }
-  }
-
+  // Conta quantos likes uma denúncia tem e lista os usuários que deram like
+static async findByDenunciaId(denunciaId) {
+  const likes = await Like.findAll({
+    where: { denunciaId },
+    include: {model: User, attributes: ['id', 'username'] }
+  })
+  return {
+    totalLikes: likes.length, likes}
+}
   // Busca um like pelo usuário e denúncia
   static async findByUserAndDenuncia(userId, denunciaId) {
     return await Like.findOne({ userId, denunciaId })

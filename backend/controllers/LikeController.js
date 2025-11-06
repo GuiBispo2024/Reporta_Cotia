@@ -6,41 +6,36 @@ const auth = require('../middlewares/auth')
 /**
  * @swagger
  * tags:
- *   name: Curtidas
+ *   name: Likes
  *   description: Endpoints para curtir e descurtir denúncias
  */
 
 /**
  * @swagger
- * /denuncia/{id}/like:
+ * /denuncia/{denunciaId}/like:
  *   post:
  *     summary: Dá like em uma denúncia
- *     tags: [Curtidas]
+ *     tags: [Likes]
  *     security:
- *       - bearerAuth: []       
+ *       - bearerAuth: []
  *     parameters:
- *       - name: id
- *         in: path
+ *       - in: path
+ *         name: denunciaId
  *         required: true
- *         description: ID da denúncia que será curtida
+ *         description: ID da denúncia
  *         schema:
  *           type: integer
- *           example: 1
  *     responses:
  *       201:
- *         description: Curtida registrada com sucesso
+ *         description: Like registrado com sucesso
  *       400:
- *         description: Usuário já curtiu esta denúncia
- *       404:
- *         description: Usuário ou denúncia não encontrada
- *       500:
- *         description: Erro interno do servidor
+ *         description: Usuário já curtiu essa denúncia
  */
 
 // Dá like
-router.post('/:id/like',auth, async (req, res) => {
+router.post('/:denunciaId/like',auth, async (req, res) => {
   try {
-    const result = await LikeService.curtir(req.params, req.user)
+    const result = await LikeService.curtir({ denunciaId: req.params.denunciaId }, req.user)
     res.status(201).json(result)
   } catch (error) {
     if (error.message.includes('Usuário já curtiu')) {
@@ -55,36 +50,29 @@ router.post('/:id/like',auth, async (req, res) => {
 
 /**
  * @swagger
- * /denuncia/{id}/like:
- *   delete:
- *     summary: Remove o like de uma denúncia
- *     tags: [Curtidas]
- *     security:
- *       - bearerAuth: []       
+ * /denuncia/{denunciaId}/likes:
+ *   get:
+ *     summary: Lista todos os likes de uma denúncia
+ *     tags: [Likes]
  *     parameters:
- *       - name: id
- *         in: path
+ *       - in: path
+ *         name: denunciaId
  *         required: true
- *         description: ID da denúncia cujo like será removido
+ *         description: ID da denúncia
  *         schema:
  *           type: integer
- *           example: 1
  *     responses:
  *       200:
- *         description: Like removido com sucesso
- *       404:
- *         description: Like não encontrado
- *       500:
- *         description: Erro interno do servidor
+ *         description: Lista de likes retornada
  */
 
-// Remove like
-router.delete('/:id/like',auth, async (req, res) => {
+// Lista likes de uma denúncia
+router.get('/:denunciaId/likes', async (req, res) => {
   try {
-    const result = await LikeService.descurtir(req.params, req.user)
-    res.status(200).json(result)
+    const denunciaLikes = await LikeService.listarPorDenuncia(req.params.denunciaId)
+    res.status(200).json(denunciaLikes)
   } catch (error) {
-    if (error.message.includes('Like não encontrado')) {
+    if (error.message.includes('Denúncia não encontrada')) {
       return res.status(404).json({ error: error.message })
     }
     res.status(500).json({ error: error.message })
@@ -93,53 +81,33 @@ router.delete('/:id/like',auth, async (req, res) => {
 
 /**
  * @swagger
- * /denuncia/{id}/likes:
- *   get:
- *     summary: Lista todos os usuários que curtiram uma denúncia
- *     tags: [Curtidas]
+ * /denuncia/{denunciaId}/like:
+ *   delete:
+ *     summary: Remove o like de uma denúncia
+ *     tags: [Likes]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
- *       - name: id
- *         in: path
+ *       - in: path
+ *         name: denunciaId
  *         required: true
  *         description: ID da denúncia
  *         schema:
  *           type: integer
- *           example: 1
  *     responses:
  *       200:
- *         description: Lista de curtidas da denúncia
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: integer
- *                     example: 10
- *                   userId:
- *                     type: integer
- *                     example: 3
- *                   denunciaId:
- *                     type: integer
- *                     example: 1
- *                   createdAt:
- *                     type: string
- *                     format: date-time
+ *         description: Like removido com sucesso
  *       404:
- *         description: Denúncia não encontrada
- *       500:
- *         description: Erro interno do servidor
+ *         description: Like não encontrado
  */
 
-// Lista likes de uma denúncia
-router.get('/:id/likes', async (req, res) => {
+// Remove like
+router.delete('/:id/like',auth, async (req, res) => {
   try {
-    const denunciaLikes = await LikeService.listarPorDenuncia(req.params.id)
-    res.status(200).json(denunciaLikes)
+    const result = await LikeService.descurtir({ denunciaId: req.params.denunciaId }, req.user)
+    res.status(200).json(result)
   } catch (error) {
-    if (error.message && error.message.includes('Denúncia não encontrada')) {
+    if (error.message.includes('Like não encontrado')) {
       return res.status(404).json({ error: error.message })
     }
     res.status(500).json({ error: error.message })

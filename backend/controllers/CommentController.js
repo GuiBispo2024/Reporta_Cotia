@@ -12,41 +12,44 @@ const auth = require('../middlewares/auth')
 
 /**
  * @swagger
- * /denuncia/comentario:
+ * /denuncia/{denunciaId}/comentario:
  *   post:
  *     summary: Cria um novo comentário em uma denúncia
  *     tags: [Comentários]
  *     security:
- *       - bearerAuth: []       
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: denunciaId
+ *         required: true
+ *         description: ID da denúncia a ser comentada
+ *         schema:
+ *           type: integer
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - texto
- *               - denunciaId
  *             properties:
  *               texto:
  *                 type: string
- *                 example: Concordo totalmente com essa denúncia!
- *               denunciaId:
- *                 type: integer
- *                 example: 1
+ *                 example: "Essa rua está muito perigosa à noite!"
  *     responses:
  *       201:
  *         description: Comentário criado com sucesso
  *       400:
  *         description: Erro ao criar comentário
- *       404:
- *         description: Usuário ou denúncia não encontrada
+ *       401:
+ *         description: Usuário não autorizado
  */
 
 // Cria comentário
-router.post('/comentario',auth, async (req, res) => {
+router.post('/:denunciaId/comentario',auth, async (req, res) => {
    try {
-    const result = await CommentService.create(req.body, req.user)
+    const { denunciaId } = req.params
+    const { texto } = req.body
+    const result = await CommentService.create({ texto, denunciaId }, req.user)
     res.status(201).json(result)
   } catch (error) {
     res.status(400).json({ error: error.message })
@@ -55,27 +58,26 @@ router.post('/comentario',auth, async (req, res) => {
 
 /**
  * @swagger
- * /denuncia/comentarios/{id}:
+ * /denuncia/{denunciaId}/comentarios:
  *   get:
  *     summary: Lista todos os comentários de uma denúncia
  *     tags: [Comentários]
  *     parameters:
- *       - name: id
- *         in: path
+ *       - in: path
+ *         name: denunciaId
  *         required: true
+ *         description: ID da denúncia
  *         schema:
  *           type: integer
  *     responses:
  *       200:
- *         description: Lista de comentários
- *       500:
- *         description: Erro interno ao buscar comentários
+ *         description: Lista de comentários retornada com sucesso
  */
 
 // Lista comentários de uma denúncia
-router.get('/comentarios/:id', async (req, res) => {
+router.get('/:denunciaId/comentarios', async (req, res) => {
   try {
-    const comentarios = await CommentService.listarPorDenuncia(req.params.id)
+    const comentarios = await CommentService.listarPorDenuncia(req.params.denunciaId)
     res.status(200).json(comentarios)
   } catch (error) {
     res.status(500).json({ error: error.message })
@@ -84,20 +86,19 @@ router.get('/comentarios/:id', async (req, res) => {
 
 /**
  * @swagger
- * /denuncia/comentario/{id}:
+ * /comentario/{id}:
  *   put:
- *     summary: Atualiza o texto de um comentário existente
+ *     summary: Atualiza um comentário existente
  *     tags: [Comentários]
  *     security:
- *       - bearerAuth: []      
+ *       - bearerAuth: []
  *     parameters:
- *       - name: id
- *         in: path
+ *       - in: path
+ *         name: id
  *         required: true
- *         description: ID do comentário a ser atualizado
+ *         description: ID do comentário
  *         schema:
  *           type: integer
- *           example: 5
  *     requestBody:
  *       required: true
  *       content:
@@ -107,12 +108,12 @@ router.get('/comentarios/:id', async (req, res) => {
  *             properties:
  *               texto:
  *                 type: string
- *                 example: Atualizei meu comentário após mais informações.
+ *                 example: "Atualizei meu comentário."
  *     responses:
  *       200:
  *         description: Comentário atualizado com sucesso
  *       403:
- *         description: Você não tem permissão para atualizar este comentário
+ *         description: Usuário sem permissão
  *       404:
  *         description: Comentário não encontrado
  */
@@ -120,7 +121,7 @@ router.get('/comentarios/:id', async (req, res) => {
 //Altera um comentário
 router.put('/comentario/:id',auth, async (req, res) => {
   try {
-    const result = await CommentService.atualizar(req.params, req.body, req.user)
+    const result = await CommentService.atualizar(req.params.id, req.body, req.user)
     res.status(200).json(result)
   } catch (error) {
     res.status(403).json({ error: error.message })
@@ -129,25 +130,24 @@ router.put('/comentario/:id',auth, async (req, res) => {
 
 /**
  * @swagger
- * /denuncia/comentario/{id}:
+ * /comentario/{id}:
  *   delete:
  *     summary: Deleta um comentário
  *     tags: [Comentários]
  *     security:
- *       - bearerAuth: []      
+ *       - bearerAuth: []
  *     parameters:
- *       - name: id
- *         in: path
+ *       - in: path
+ *         name: id
  *         required: true
- *         description: ID do comentário a ser excluído
+ *         description: ID do comentário
  *         schema:
  *           type: integer
- *           example: 3
  *     responses:
  *       200:
- *         description: Comentário excluído com sucesso
+ *         description: Comentário deletado com sucesso
  *       403:
- *         description: Você não tem permissão para excluir este comentário
+ *         description: Usuário sem permissão
  *       404:
  *         description: Comentário não encontrado
  */

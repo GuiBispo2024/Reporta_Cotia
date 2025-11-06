@@ -4,10 +4,8 @@ const { User, Denuncia } = require('../models/rel')
 class LikeService {
     
   // Dá like em uma denúncia
-  static async curtir({ userId, denunciaId }) {
-    const user = await User.findByPk(userId)
-    if (!user) throw new Error('Usuário não existe.')
-
+  static async curtir({denunciaId },user) {
+    const { id: userId } = user
     const denuncia = await Denuncia.findByPk(denunciaId)
     if (!denuncia) throw new Error('Denúncia não existe.')
 
@@ -28,9 +26,6 @@ class LikeService {
   static async descurtir({ userId, denunciaId }) {
     const like = await LikeRepository.findByUserAndDenuncia(userId, denunciaId)
     if (!like) throw new Error('Like não encontrado.')
-    if (like.userId !== userId) {
-      throw new Error('Você não tem permissão para remover este like.')
-    }
     await LikeRepository.delete(userId, denunciaId)
     return { message: 'Like removido com sucesso.' }
   }
