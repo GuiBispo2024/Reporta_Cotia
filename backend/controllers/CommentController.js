@@ -86,7 +86,7 @@ router.get('/:denunciaId/comentarios', async (req, res) => {
 
 /**
  * @swagger
- * /comentario/{id}:
+ * /denuncia/comentario/{id}:
  *   put:
  *     summary: Atualiza um comentário existente
  *     tags: [Comentários]
@@ -130,7 +130,7 @@ router.put('/comentario/:id',auth, async (req, res) => {
 
 /**
  * @swagger
- * /comentario/{id}:
+ * /denuncia/comentario/{id}:
  *   delete:
  *     summary: Deleta um comentário
  *     tags: [Comentários]
@@ -155,7 +155,7 @@ router.put('/comentario/:id',auth, async (req, res) => {
 // Deleta comentário
 router.delete('/comentario/:id',auth, async (req, res) => {
   try {
-    const result = await CommentService.deletar(req.params.id, req.user)
+    const result = await CommentService.deletar(req.params.id, req.user.id, req.user.adm)
     res.status(200).json(result)
   } catch (error) {
     res.status(403).json({ error: error.message })

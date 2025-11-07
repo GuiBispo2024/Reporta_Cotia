@@ -85,7 +85,7 @@ router.get('/:denunciaId/shares', async (req, res) => {
 
 /**
  * @swagger
- * /share/{id}:
+ * /denuncia/share/{id}:
  *   delete:
  *     summary: Remove um compartilhamento
  *     tags: [Compartilhamentos]

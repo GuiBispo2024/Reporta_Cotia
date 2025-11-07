@@ -182,6 +182,75 @@ router.put('/update',auth, async (req, res) => {
 
 /**
  * @swagger
+ * /users/{id}/adm:
+ *   put:
+ *     summary: Altera a permissão (adm) de um usuário — apenas administradores
+ *     tags: [Usuários]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               adm:
+ *                 type: boolean
+ *                 example: true
+ *     responses:
+ *       200:
+ *         description: Permissão alterada com sucesso
+ *       403:
+ *         description: Apenas administradores podem alterar permissões
+ *       404:
+ *         description: Usuário não encontrado
+ */
+
+//Altera perfil de usuário para adm(apenas adm pode fazer)
+router.put('/:id/adm', auth, async (req, res) => {
+  try {
+    const { adm } = req.body
+    const result = await UserService.updateAdm(req.params.id, adm, req.user.adm)
+    res.status(200).json(result)
+  } catch (error) {
+    res.status(403).json({ error: error.message })
+  }
+})
+
+/**
+ * @swagger
+ * /users/logout:
+ *   post:
+ *     summary: Faz logout do usuário autenticado
+ *     tags: [Usuários]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout realizado com sucesso
+ *       401:
+ *         description: Token inválido ou não fornecido
+ */
+
+//Logout de usuário(simbolico)
+router.post('/logout', auth, async (req, res) => {
+  try {
+    const result = await UserService.logout()
+    res.status(200).json(result)
+  } catch (error) {
+    res.status(401).json({ error: error.message })
+  }
+})
+
+/**
+ * @swagger
  * /users/delete:
  *   delete:
  *     summary: Deleta o próprio usuário (autenticado)

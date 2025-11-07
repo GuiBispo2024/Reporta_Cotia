@@ -32,6 +32,16 @@ class UserRepository{
         return User.update(data, { where: { id } })
     }
 
+    //Conta quantos usuários administradores existem
+    static async countAdmins() {
+        return User.count({ where: { adm: true } })
+    }
+
+    //Altera perfil de administrador(apenas adm pode fazer)
+    static async updateAdm(id, adm) {
+        return User.update({ adm }, { where: { id } })
+    }
+
     //Deleta um usuário
     static async delete(id) {
         return User.destroy({ where: { id } })

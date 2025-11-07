@@ -24,7 +24,7 @@ class UserService {
     const valid = await bcrypt.compare(password, user.password)
     if (!valid) throw new Error('Senha incorreta.')
 
-    const token = jwt.sign({ id: user.id, adm: user.adm }, SECRET, { expiresIn: '1h' })
+    const token = jwt.sign({ id: user.id, adm: user.adm }, SECRET, { expiresIn: '30m' })
 
     return {
       message: 'Login bem-sucedido',
@@ -47,10 +47,34 @@ class UserService {
 
   // Atualizar
   static async update(data,userIdToken) {
+    delete data.adm // impedir alteração de adm por este método
     if (data.password) data.password = await bcrypt.hash(data.password, 10)
     const [rowsUpdate] = await UserRepository.update(userIdToken, data)
     if (!rowsUpdate) throw new Error('Usuário não encontrado.')
     return { message: 'Usuário atualizado com sucesso' }
+  }
+
+  // Alterar perfil de administrador(apenas adm pode fazer)
+  static async updateAdm(targetUserId, admStatus, requesterAdm) {
+    if (!requesterAdm) {
+      throw new Error('Apenas administradores podem alterar permissões.')
+    }
+    const targetUser = await UserRepository.findById(targetUserId)
+    if (!targetUser) {
+      throw new Error('Usuário alvo não encontrado.')
+    }
+    //checar se é o último admin
+    if (admStatus === false) {
+    const adminsCount = await UserRepository.countAdmins()
+    if (adminsCount <= 1 && targetUser.adm) throw new Error('Não é permitido remover a última conta de administrador.')
+  }
+    await UserRepository.updateAdm(targetUserId, admStatus)
+    return { message: `Permissão de administrador ${admStatus ? 'concedida' : 'removida'} com sucesso.` }
+  }
+
+  // Logout (invalidação simbólica)
+  static async logout() {
+    return { message: 'Logout realizado com sucesso' }
   }
 
   // Deletar
