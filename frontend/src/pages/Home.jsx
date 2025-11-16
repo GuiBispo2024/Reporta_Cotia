@@ -60,7 +60,7 @@ const Home = () => {
               Bem-vindo, {user.username}!
             </h2>
             {user.adm ? (
-              <p className="text-secondary">Você está logado como administrador.</p>
+              <p className="text-secondary">Você está logado como usuário administrador.</p>
             ) : (
               <p className="text-secondary">Você está logado como usuário comum.</p>
             )}

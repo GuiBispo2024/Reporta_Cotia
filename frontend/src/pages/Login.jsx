@@ -1,6 +1,7 @@
 import { useState, useContext} from "react";
 import {AuthContext} from "../context/authContext";
 import { useNavigate } from "react-router-dom";
+import Navbar from "../components/Navbar";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -21,6 +22,8 @@ function Login() {
   };
 
   return (
+    <>
+    <Navbar/>
     <div className="container mt-5 d-flex justify-content-center">
       <div className="card shadow p-4" style={{ maxWidth: "400px", width: "100%" }}>
         <h3 className="text-center mb-4 text-primary fw-bold">Login</h3>
@@ -70,6 +73,7 @@ function Login() {
         </form>
       </div>
     </div>
+    </>
   );
 }
 

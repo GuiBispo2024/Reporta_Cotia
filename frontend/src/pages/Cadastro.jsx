@@ -2,6 +2,7 @@ import { useState, useContext } from "react";
 import { AuthContext } from "../context/authContext";
 import { useNavigate } from "react-router-dom";
 import authService from "../services/authService";
+import Navbar from "../components/Navbar";
 
 function Cadastro() {
   const navigate = useNavigate();
@@ -36,6 +37,8 @@ function Cadastro() {
   };
 
   return (
+    <>
+    <Navbar/>
     <div className="container mt-5 d-flex justify-content-center">
       <div className="card shadow p-4" style={{ maxWidth: "400px", width: "100%" }}>
         <h3 className="text-center mb-4 text-primary fw-bold">Cadastro</h3>
@@ -101,6 +104,7 @@ function Cadastro() {
         </form>
       </div>
     </div>
+    </>
   );
 }
 
