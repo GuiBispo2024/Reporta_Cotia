@@ -1,5 +1,5 @@
 const LikeRepository = require('../repositories/LikeRepository')
-const { User, Denuncia } = require('../models/rel')
+const { Denuncia } = require('../models/rel')
 
 class LikeService {
     
@@ -9,7 +9,7 @@ class LikeService {
     const denuncia = await Denuncia.findByPk(denunciaId)
     if (!denuncia) throw new Error('Denúncia não existe.')
 
-    const [like, created] = await LikeRepository.createOrFind(userId, denunciaId)
+    const [created] = await LikeRepository.createOrFind(userId, denunciaId)
     if (!created) throw new Error('Usuário já curtiu essa denúncia.')
 
     return { message: 'Curtida registrada com sucesso.' }

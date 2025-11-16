@@ -49,9 +49,9 @@ router.post('/:denunciaId/share',auth, async (req, res) => {
     res.status(201).json(result)
   } catch (error) {
     if (error.message.includes('Usuário') || error.message.includes('Denúncia')) {
-      return res.status(404).json({ error: error.message })
+      return res.status(404).json({ message: error.message })
     }
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ message: error.message })
   }
 })
 
@@ -79,7 +79,7 @@ router.get('/:denunciaId/shares', async (req, res) => {
     const shares = await ShareService.listarPorDenuncia(req.params.denunciaId)
     res.status(200).json(shares)
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ message: error.message })
   }
 })
 
@@ -114,12 +114,12 @@ router.delete('/share/:id',auth, async (req, res) => {
     res.status(200).json(result)
   } catch (error) {
     if (error.message.includes('Compartilhamento não encontrado')) {
-      return res.status(404).json({ error: error.message })
+      return res.status(404).json({ message: error.message })
     }
     if (error.message.includes('permissão')) {
-      return res.status(403).json({ error: error.message })
+      return res.status(403).json({ message: error.message })
     }
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ message: error.message })
   }
 })
 

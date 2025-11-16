@@ -1,5 +1,5 @@
 const CommentRepository = require('../repositories/CommentRepository')
-const { User, Denuncia } = require('../models/rel')
+const { Denuncia } = require('../models/rel')
 const filterBadWords = require('../utils/filterBadWords')
 
 class CommentService {

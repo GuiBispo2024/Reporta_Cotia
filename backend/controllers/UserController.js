@@ -35,8 +35,8 @@ const auth = require('../middlewares/auth')
  *     responses:
  *       201:
  *         description: Usuário cadastrado com sucesso
- *       500:
- *         description: Erro interno do servidor
+ *       400:
+ *         description: Credenciais inválidas
  */
 
 //Cadastra um usuário
@@ -45,7 +45,7 @@ router.post('/',async(req,res)=>{
         const user = await UserService.register(req.body)
         res.status(201).json({user})
     }catch(error){
-        res.status(500).json({error:error.message})
+        res.status(400).json({message:error.message})
     }
 })
 
@@ -81,7 +81,7 @@ router.post('/login', async (req, res) => {
     const result = await UserService.login(req.body)
     res.status(200).json(result)
   } catch (error) {
-    res.status(401).json({ error: error.message })
+    res.status(401).json({ message: error.message })
   }
 })
 
@@ -104,7 +104,7 @@ router.get('/', async (req, res) => {
     const users = await UserService.getAll()
     res.status(200).json(users)
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ message: error.message })
   }
 })
 
@@ -133,7 +133,7 @@ router.get('/:id', async (req, res) => {
     const user = await UserService.getById(req.params.id)
     res.status(200).json(user)
   } catch (error) {
-    res.status(404).json({ error: error.message })
+    res.status(404).json({ message: error.message })
   }
 })
 
@@ -176,7 +176,7 @@ router.put('/update',auth, async (req, res) => {
     const result = await UserService.update(req.body,req.user.id)
     res.status(200).json(result)
   } catch (error) {
-    res.status(403).json({ error: error.message })
+    res.status(403).json({ message: error.message })
   }
 })
 
@@ -220,7 +220,7 @@ router.put('/:id/adm', auth, async (req, res) => {
     const result = await UserService.updateAdm(req.params.id, adm, req.user.adm)
     res.status(200).json(result)
   } catch (error) {
-    res.status(403).json({ error: error.message })
+    res.status(403).json({ message: error.message })
   }
 })
 
@@ -245,7 +245,7 @@ router.post('/logout', auth, async (req, res) => {
     const result = await UserService.logout()
     res.status(200).json(result)
   } catch (error) {
-    res.status(401).json({ error: error.message })
+    res.status(401).json({ message: error.message })
   }
 })
 
@@ -272,7 +272,7 @@ router.delete('/delete',auth, async (req, res) => {
     const result = await UserService.delete(req.user.id)
     res.status(200).json(result)
   } catch (error) {
-    res.status(403).json({ error: error.message })
+    res.status(403).json({ message: error.message })
   }
 })
 

@@ -47,7 +47,7 @@ router.post('/', auth, async (req, res) => {
     const result = await DenunciaService.create(req.body, req.user)
     res.status(201).json(result)
   } catch (error) {
-    res.status(400).json({ error: error.message })
+    res.status(400).json({ message: error.message })
   }
 })
 
@@ -89,7 +89,7 @@ router.patch('/:id/moderar', auth, async (req, res) => {
     const result = await DenunciaService.moderar(req.params.id, req.body.status, req.user.adm)
     res.status(200).json(result)
   } catch (error) {
-    res.status(400).json({ error: error.message })
+    res.status(400).json({ message: error.message })
   }
 })
 
@@ -112,7 +112,7 @@ router.get('/', async (req, res) => {
     const denuncias = await DenunciaService.listarTodas()
     res.status(200).json(denuncias)
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ message: error.message })
   }
 })
 
@@ -141,7 +141,7 @@ router.get('/:id', async (req, res) => {
     const denuncia = await DenunciaService.buscarPorId(req.params.id)
     res.status(200).json(denuncia)
   } catch (error) {
-    res.status(404).json({ error: error.message })
+    res.status(404).json({ message: error.message })
   }
 })
 
@@ -170,7 +170,7 @@ router.get('/user/:userId', async (req, res) => {
     const denuncias = await DenunciaService.buscarPorUsuario(req.params.userId)
     res.status(200).json(denuncias)
   } catch (error) {
-    res.status(404).json({ error: error.message })
+    res.status(404).json({ message: error.message })
   }
 })
 
@@ -226,7 +226,7 @@ router.put('/:id',auth, async (req, res) => {
     const result = await DenunciaService.atualizar(req.body, req.user)
     res.status(200).json(result)
   } catch (error) {
-    res.status(404).json({ error: error.message })
+    res.status(404).json({ message: error.message })
   }
 })
 
@@ -263,7 +263,7 @@ router.delete('/:id',auth, async (req, res) => {
     const result = await DenunciaService.deletar(req.params.id, req.user)
     res.status(200).json(result)
   } catch (error) {
-    res.status(404).json({ error: error.message })
+    res.status(404).json({ message: error.message })
   }
 })
 

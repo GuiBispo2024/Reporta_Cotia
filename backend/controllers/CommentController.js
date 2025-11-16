@@ -52,7 +52,7 @@ router.post('/:denunciaId/comentario',auth, async (req, res) => {
     const result = await CommentService.create({ texto, denunciaId }, req.user)
     res.status(201).json(result)
   } catch (error) {
-    res.status(400).json({ error: error.message })
+    res.status(400).json({ message: error.message })
   }
 }) 
 
@@ -80,7 +80,7 @@ router.get('/:denunciaId/comentarios', async (req, res) => {
     const comentarios = await CommentService.listarPorDenuncia(req.params.denunciaId)
     res.status(200).json(comentarios)
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ message: error.message })
   }
 })
 
@@ -124,7 +124,7 @@ router.put('/comentario/:id',auth, async (req, res) => {
     const result = await CommentService.atualizar(req.params.id, req.body, req.user)
     res.status(200).json(result)
   } catch (error) {
-    res.status(403).json({ error: error.message })
+    res.status(403).json({ message: error.message })
   }
 })
 
@@ -158,7 +158,7 @@ router.delete('/comentario/:id',auth, async (req, res) => {
     const result = await CommentService.deletar(req.params.id, req.user.id, req.user.adm)
     res.status(200).json(result)
   } catch (error) {
-    res.status(403).json({ error: error.message })
+    res.status(403).json({ message: error.message })
   }
 })
 
