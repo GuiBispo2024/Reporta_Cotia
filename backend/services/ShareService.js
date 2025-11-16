@@ -1,5 +1,5 @@
 const ShareRepository = require('../repositories/ShareRepository')
-const { User, Denuncia } = require('../models/rel')
+const { Denuncia } = require('../models/rel')
 const filterBadWords = require('../utils/filterBadWords')
 
 class ShareService {

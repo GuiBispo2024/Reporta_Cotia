@@ -29,7 +29,7 @@ class UserService {
     return {
       message: 'Login bem-sucedido',
       token,
-      user: { id: user.id, username: user.username, adm: user.adm }
+      user: { id: user.id, username: user.username, email: user.email, adm: user.adm }
     }
   }
 

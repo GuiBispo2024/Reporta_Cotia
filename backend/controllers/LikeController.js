@@ -39,12 +39,12 @@ router.post('/:denunciaId/like',auth, async (req, res) => {
     res.status(201).json(result)
   } catch (error) {
     if (error.message.includes('Usuário já curtiu')) {
-      return res.status(400).json({ error: error.message })
+      return res.status(400).json({ message: error.message })
     }
     if (error.message.includes('Usuário') || error.message.includes('Denúncia')) {
-      return res.status(404).json({ error: error.message })
+      return res.status(404).json({ message: error.message })
     }
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ message: error.message })
   }
 })
 
@@ -73,9 +73,9 @@ router.get('/:denunciaId/likes', async (req, res) => {
     res.status(200).json(denunciaLikes)
   } catch (error) {
     if (error.message.includes('Denúncia não encontrada')) {
-      return res.status(404).json({ error: error.message })
+      return res.status(404).json({ message: error.message })
     }
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ message: error.message })
   }
 })
 
@@ -108,9 +108,9 @@ router.delete('/:id/like',auth, async (req, res) => {
     res.status(200).json(result)
   } catch (error) {
     if (error.message.includes('Like não encontrado')) {
-      return res.status(404).json({ error: error.message })
+      return res.status(404).json({ message: error.message })
     }
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ message: error.message })
   }
 })
 
