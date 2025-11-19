@@ -2,7 +2,8 @@ const { Like, User, Denuncia } = require('../models/rel')
 
 class LikeRepository {
   // Cria um like (findOrCreate evita duplicidade)
-  static async createOrFind(userId, denunciaId) {
+  static async createOrFind(data) {
+    const {userId, denunciaId} = data
     return Like.findOrCreate({ where: { userId, denunciaId } })
   }
 
