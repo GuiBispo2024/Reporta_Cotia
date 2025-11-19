@@ -1,5 +1,5 @@
 const UserRepository = require('../repositories/UserRepository');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 module.exports = async () => {
     console.log('Iniciando seed de usuários...');
@@ -9,16 +9,16 @@ module.exports = async () => {
 
     //Criação de usuário comum
     await UserRepository.create({
-        username: 'user',
-        email: "",
+        username: 'Gui Ribeiro',
+        email: "guilherme@gmail.com",
         password: senhaUser,
         adm: false
     });
         
     //Criação de usuário administrador
     await UserRepository.create({
-        username: 'admin',
-        email: "",
+        username: 'Ana Bispo',
+        email: "ana@gmail.com",
         password: senhaAdmin,
         adm: true
     });
