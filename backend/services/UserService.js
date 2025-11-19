@@ -66,8 +66,9 @@ class UserService {
     //checar se é o último admin
     if (admStatus === false) {
     const adminsCount = await UserRepository.countAdmins()
-    if (adminsCount <= 1 && targetUser.adm) throw new Error('Não é permitido remover a última conta de administrador.')
-  }
+    if (adminsCount <= 1 && targetUser.adm) 
+      throw new Error('Não é permitido remover a última conta de administrador.')
+    }
     await UserRepository.updateAdm(targetUserId, admStatus)
     return { message: `Permissão de administrador ${admStatus ? 'concedida' : 'removida'} com sucesso.` }
   }

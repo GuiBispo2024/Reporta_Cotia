@@ -5,14 +5,14 @@ const filterBadWords = require('../utils/filterBadWords')
 class CommentService {
     
   // Cria um novo comentário
-  static async create({ texto, denunciaId },user) {
+  static async create({ comentario, denunciaId },user) {
     const { id: userId } = user
     const denuncia = await Denuncia.findByPk(denunciaId)
     if (!denuncia) throw new Error('Denúncia não existe.')
 
-    const { hasBadWord, filteredText } = filterBadWords(texto)
-    const comentario = await CommentRepository.create({
-      texto: filteredText,
+    const { hasBadWord, filteredText } = filterBadWords(comentario)
+    const Comentario = await CommentRepository.create({
+      comentario: filteredText,
       userId,
       denunciaId
     })
@@ -21,7 +21,7 @@ class CommentService {
       message: hasBadWord
         ? 'Comentário publicado (palavras censuradas)'
         : 'Comentário publicado com sucesso',
-      comentario
+      Comentario
     }
   }
 
