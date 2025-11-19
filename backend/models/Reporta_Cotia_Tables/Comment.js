@@ -2,7 +2,7 @@ const {DataTypes} = require('sequelize')
 const sequelize = require('../db/db')
 
 const Comentario = sequelize.define('Comentario', {
-  texto: {
+  comentario: {
     type: DataTypes.STRING,
     allowNull: false
   }

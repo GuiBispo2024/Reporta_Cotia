@@ -32,7 +32,7 @@ const auth = require('../middlewares/auth')
  *           schema:
  *             type: object
  *             properties:
- *               texto:
+ *               comentario:
  *                 type: string
  *                 example: "Essa rua está muito perigosa à noite!"
  *     responses:
@@ -48,8 +48,8 @@ const auth = require('../middlewares/auth')
 router.post('/:denunciaId/comentario',auth, async (req, res) => {
    try {
     const { denunciaId } = req.params
-    const { texto } = req.body
-    const result = await CommentService.create({ texto, denunciaId }, req.user)
+    const { comentario } = req.body
+    const result = await CommentService.create({ comentario, denunciaId }, req.user)
     res.status(201).json(result)
   } catch (error) {
     res.status(400).json({ message: error.message })
@@ -106,7 +106,7 @@ router.get('/:denunciaId/comentarios', async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               texto:
+ *               comentario:
  *                 type: string
  *                 example: "Atualizei meu comentário."
  *     responses:
