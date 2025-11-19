@@ -1,6 +1,7 @@
 import { useEffect, useState, useContext } from "react";
 import {AuthContext} from "../context/authContext";
 import denunciaService from "../services/denunciaService";
+import Comentarios from "./Comentarios.jsx";
 import Navbar from "../components/Navbar.jsx";
 
 const Home = () => {
@@ -90,6 +91,10 @@ const Home = () => {
                       Reportado por:{" "}
                       <strong>{d.User ? d.User.username : "Anônimo"}</strong>
                     </p>
+                  </div>
+                  {/* Seção de comentários */}
+                  <div className="card-footer bg-white border-0">
+                    <Comentarios denunciaId={d.id} />
                   </div>
                 </div>
               </div>
