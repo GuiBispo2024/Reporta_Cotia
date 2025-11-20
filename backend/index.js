@@ -3,7 +3,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const cors = require('cors')
 const app = express()
-const port = process.env.PORT || 8080
+const port = process.env.PORT || 8081
 const {swaggerUi, swaggerSpec} = require('./utils/swagger')
 const {sequelize} = require('./models/rel')
 const userController = require('./controllers/UserController')
@@ -41,8 +41,9 @@ if (process.env.NODE_ENV !== 'production') {
         })
 } else {
     sequelize
-        .authenticate()
+        .sync()
         .then(() => {
+            console.log('Conexão com o banco estabelecida com sucesso(PROD)!')
             app.listen(port, () => console.log(`Servidor rodando na porta ${port}!`))
             console.log(`Swagger rodando em http://localhost:${port}/api-docs`)
         })
