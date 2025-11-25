@@ -38,6 +38,11 @@ class UserService {
     return UserRepository.findAll()
   }
 
+  //Lista todos os usuários com a contagem de denúncias feitas por cada um
+  static async getAllWithDenunciaCount() {
+    return UserRepository.findAllUsersWithDenuniaCount();
+  }
+
   // Buscar um usuário
   static async getById(id) {
     const user = await UserRepository.findById(id)

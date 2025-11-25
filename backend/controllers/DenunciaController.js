@@ -223,7 +223,7 @@ router.get('/user/:userId', async (req, res) => {
 //Edita uma denúncia
 router.put('/:id',auth, async (req, res) => {
   try {
-    const result = await DenunciaService.atualizar(req.body, req.user)
+    const result = await DenunciaService.atualizar(req.params.id,req.body, req.user.id)
     res.status(200).json(result)
   } catch (error) {
     res.status(404).json({ message: error.message })
@@ -260,7 +260,7 @@ router.put('/:id',auth, async (req, res) => {
 //Deleta uma denúncia
 router.delete('/:id',auth, async (req, res) => {
   try {
-    const result = await DenunciaService.deletar(req.params.id, req.user)
+    const result = await DenunciaService.deletar(req.params.id, req.user.id)
     res.status(200).json(result)
   } catch (error) {
     res.status(404).json({ message: error.message })

@@ -1,4 +1,5 @@
-const {User} = require('../models/rel')
+const { where } = require('sequelize')
+const {User, Denuncia, sequelize} = require('../models/rel')
 
 class UserRepository{
 
@@ -20,6 +21,28 @@ class UserRepository{
     //Lista todos os usuários
     static async findAll() {
         return User.findAll()
+    }
+
+    //Lista todos os usuários com a contagem de denúncias feitas por cada um
+    static async findAllUsersWithDenuniaCount() {
+        return User.findAll({
+            include: [{
+                model: Denuncia,
+                attributes: [],
+                where:{
+                    status: 'aprovada'
+                },
+                required: false
+            }],
+            attributes: [
+                "id",
+                "username",
+                "email",
+                "adm",
+                [sequelize.fn("COUNT", sequelize.col("Denuncia.id")), "totalDenuncias"]
+            ],
+            group: ["User.id"]
+         });
     }
 
     //Busca um usuário específico

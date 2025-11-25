@@ -102,7 +102,7 @@ router.get('/:denunciaId/likes', async (req, res) => {
  */
 
 // Remove like
-router.delete('/:id/like',auth, async (req, res) => {
+router.delete('/:denunciaId/like',auth, async (req, res) => {
   try {
     const result = await LikeService.descurtir({ denunciaId: req.params.denunciaId }, req.user)
     res.status(200).json(result)

@@ -108,6 +108,15 @@ router.get('/', async (req, res) => {
   }
 })
 
+router.get('/denunciaCount', auth, async (req, res) => {
+  try{
+    const resultado = await UserService.getAllWithDenunciaCount();
+    res.status(200).json(resultado);
+  }catch(error){
+    res.status(500).json({ message: error.message })
+  }
+});
+
 /**
  * @swagger
  * /users/{id}:

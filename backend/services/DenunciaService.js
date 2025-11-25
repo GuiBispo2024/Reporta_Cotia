@@ -71,8 +71,12 @@ class DenunciaService {
     if (denuncia.userId !== userIdToken) {
       throw new Error('Você não tem permissão para atualizar esta denúncia.')
     }
-    await DenunciaRepository.update(id, data)
-    return { message: 'Denúncia atualizada com sucesso.' }
+    const dadosAtualizados = {
+      ...data,
+      status: "pendente"
+    };
+    await DenunciaRepository.update(id, dadosAtualizados)
+    return { message: 'Denúncia atualizada e reenviada para moderação.' }
   }
 
   // Deleta denúncia
