@@ -85,10 +85,10 @@ export default function FilterAndSearch({ onFilter }) {
 
                 {/* Usuário */}
                 <div className="col-md-3">
-                  <label className="form-label small fw-semibold">ID Usuário</label>
+                  <label className="form-label small fw-semibold">Usuário</label>
                   <input
-                    type="number"
-                    placeholder="Ex: 1, 2, 3"
+                    type="text"
+                    placeholder="Ex: Gui Bispo"
                     className="form-control form-control-sm"
                     value={user}
                     onChange={(e) => setUser(e.target.value)}
