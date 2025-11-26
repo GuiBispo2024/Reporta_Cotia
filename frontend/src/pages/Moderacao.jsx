@@ -1,8 +1,11 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import denunciaService from "../services/denunciaService";
 import Navbar from "../components/Navbar";
+import { AuthContext } from "../context/authContext";
+import Footer from "../components/Footer";
 
 export default function Moderacao() {
+  const {user} = useContext(AuthContext);
   const [denuncias, setDenuncias] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -32,6 +35,10 @@ export default function Moderacao() {
       alert("Erro ao atualizar status da denúncia.");
     }
   };
+
+  if (!user?.adm) {
+    return <h2 className="alert alert-danger text-center">Apenas administradores podem acessar esta página.</h2>
+  }
 
   return (
     <>
@@ -94,6 +101,7 @@ export default function Moderacao() {
           ))}
         </div>
       </div>
+      <Footer />
     </>
   );
 }

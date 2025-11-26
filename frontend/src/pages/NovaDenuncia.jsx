@@ -2,6 +2,7 @@ import { useState, useContext } from "react";
 import denunciaService from "../services/denunciaService";
 import { AuthContext } from "../context/authContext";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 
 export default function NovaDenuncia() {
   const { user } = useContext(AuthContext);
@@ -84,7 +85,7 @@ export default function NovaDenuncia() {
 
             <button
               type="submit"
-              className="btn btn-primary w-100"
+              className="btn btn-success w-100"
               disabled={loading}
             >
               {loading ? "Enviando..." : "Enviar Denúncia"}
@@ -96,6 +97,7 @@ export default function NovaDenuncia() {
           )}
         </div>
       </div>
+      <Footer />
     </>
   );
 }

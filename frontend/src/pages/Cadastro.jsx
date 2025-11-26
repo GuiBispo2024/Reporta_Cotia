@@ -3,6 +3,7 @@ import { AuthContext } from "../context/authContext";
 import { useNavigate } from "react-router-dom";
 import authService from "../services/authService";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 
 function Cadastro() {
   const navigate = useNavigate();
@@ -104,6 +105,7 @@ function Cadastro() {
         </form>
       </div>
     </div>
+    <Footer/>
     </>
   );
 }

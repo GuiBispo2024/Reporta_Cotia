@@ -1,7 +1,8 @@
-import { useState, useContext} from "react";
+import { useState, useContext, useEffect} from "react";
 import {AuthContext} from "../context/authContext";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -9,6 +10,14 @@ function Login() {
   const [error, setError] = useState("");
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const expired = localStorage.getItem("sessionExpired");
+    if (expired) {
+      setError("Sua sessão expirou. Faça login novamente.");
+      localStorage.removeItem("sessionExpired"); 
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -73,6 +82,7 @@ function Login() {
         </form>
       </div>
     </div>
+    <Footer/>
     </>
   );
 }
