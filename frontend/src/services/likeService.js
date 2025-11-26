@@ -11,8 +11,8 @@ const likeService = {
     return res.data
   },
 
-  async descurtir(id) {
-    const res = await api.delete(`/denuncia/${id}/like`)
+  async descurtir(denunciaId) {
+    const res = await api.delete(`/denuncia/${denunciaId}/like`)
     return res.data
   }
 }

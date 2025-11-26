@@ -16,6 +16,11 @@ const denunciaService = {
     return res.data
   },
 
+  async filtrar(params) {
+    const res = await api.get("/denuncia/filter", { params })
+    return res.data
+  },
+
   async buscarPorId(id) {
     const res = await api.get(`/denuncia/${id}`)
     return res.data

@@ -6,6 +6,11 @@ const userService = {
     return res.data
   },
 
+  async getAllWithDenunciaCount() {
+    const res = await api.get("/users/denunciaCount")
+    return res.data
+  },
+
   async getById(id) {
     const res = await api.get(`/users/${id}`)
     return res.data
