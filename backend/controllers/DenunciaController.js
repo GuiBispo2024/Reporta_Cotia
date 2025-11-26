@@ -116,6 +116,26 @@ router.get('/', async (req, res) => {
   }
 })
 
+// Lista denúncias com filtros
+router.get('/filter', async (req, res) => {
+  try {
+    const { titulo, descricao, localizacao, user, sort } = req.query;
+
+    const denuncias = await DenunciaService.getFiltered({
+      titulo,
+      descricao,
+      localizacao,
+      user,
+      sort
+    });
+
+    res.status(200).json(denuncias);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 /**
  * @swagger
  * /denuncia/{id}:

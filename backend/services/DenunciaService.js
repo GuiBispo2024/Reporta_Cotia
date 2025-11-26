@@ -50,6 +50,11 @@ class DenunciaService {
     return DenunciaRepository.findAll()
   }
 
+  // Lista denúncias com filtros
+  static async getFiltered({titulo, descricao, localizacao, user, sort}) {
+    return DenunciaRepository.findWithFilters({ titulo, descricao, localizacao, user, sort});
+  }
+
   // Busca denúncia por ID
   static async buscarPorId(id) {
     const denuncia = await DenunciaRepository.findById(id)
