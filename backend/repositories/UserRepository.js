@@ -1,4 +1,3 @@
-const { where } = require('sequelize')
 const {User, Denuncia, sequelize} = require('../models/rel')
 
 class UserRepository{

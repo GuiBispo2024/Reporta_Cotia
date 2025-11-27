@@ -108,6 +108,24 @@ router.get('/', async (req, res) => {
   }
 })
 
+/**
+ * @swagger
+ * /users/denunciaCount:
+ *   get:
+ *     summary: Lista todos os usuários com contagem de denúncias
+ *     tags: [Usuários]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista com contagens
+ *       401:
+ *         description: Token inválido
+ *       500:
+ *         description: Erro interno do servidor
+ */
+
+//Lista todos os usuários com a contagem de denúncias feitas por cada um
 router.get('/denunciaCount', auth, async (req, res) => {
   try{
     const resultado = await UserService.getAllWithDenunciaCount();
@@ -173,10 +191,10 @@ router.get('/:id', async (req, res) => {
  *     responses:
  *       200:
  *         description: Usuário atualizado com sucesso
- *       403:
- *         description: Você só pode atualizar seu próprio perfil
  *       401:
  *         description: Token inválido ou não fornecido
+ *       403:
+ *         description: Você não tem permissão para atualizar este usuário
  */
 
 //Altera um usuário
@@ -269,10 +287,10 @@ router.post('/logout', auth, async (req, res) => {
  *     responses:
  *       200:
  *         description: Usuário excluído com sucesso
- *       403:
- *         description: Você só pode excluir sua própria conta
  *       401:
  *         description: Token inválido ou não fornecido
+ *       404:
+ *         description: Usuário não encontrado
  */
 
 //Deleta um usuário
@@ -281,7 +299,7 @@ router.delete('/delete',auth, async (req, res) => {
     const result = await UserService.delete(req.user.id)
     res.status(200).json(result)
   } catch (error) {
-    res.status(403).json({ message: error.message })
+    res.status(404).json({ message: error.message })
   }
 })
 

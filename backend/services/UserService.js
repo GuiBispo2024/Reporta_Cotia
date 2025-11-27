@@ -52,11 +52,57 @@ class UserService {
 
   // Atualizar
   static async update(data,userIdToken) {
-    delete data.adm // impedir alteração de adm por este método
-    if (data.password) data.password = await bcrypt.hash(data.password, 10)
-    const [rowsUpdate] = await UserRepository.update(userIdToken, data)
-    if (!rowsUpdate) throw new Error('Usuário não encontrado.')
-    return { message: 'Usuário atualizado com sucesso' }
+    
+    // Impedir alteração de ADM por este método
+    delete data.adm;
+
+    // Buscar o usuário atual no banco
+    const userDb = await UserRepository.findById(userIdToken);
+    if (!userDb) throw new Error("Usuário não encontrado.");
+
+    // --- TROCA DE SENHA ---
+    if (data.senhaAtual || data.novaSenha) {
+
+      if (!data.senhaAtual || !data.novaSenha) {
+        throw new Error("Para trocar a senha, preencha os dois campos.");
+      }
+
+      // Verifica se a senha atual está correta
+      const senhaCorreta = await bcrypt.compare(data.senhaAtual, userDb.password);
+      if (!senhaCorreta) {
+        throw new Error("Senha atual incorreta.");
+      }
+
+      // Cria o hash da nova senha
+      data.password = await bcrypt.hash(data.novaSenha, 10);
+    }
+
+    // Remover campos desnecessários antes de enviar ao banco
+    delete data.senhaAtual;
+    delete data.novaSenha;
+
+    // Atualiza usuário
+    const [rowsUpdate] = await UserRepository.update(userIdToken, data);
+    if (!rowsUpdate) throw new Error("Usuário não encontrado.");
+
+    // Busca usuário atualizado
+    const updatedUser = await UserRepository.findById(userIdToken);
+
+    // Remove password antes de mandar para o front
+    const { password, ...userWithoutPassword } = updatedUser.dataValues;
+
+    // Gera novo token
+    const token = jwt.sign(
+      { id: updatedUser.id, username: updatedUser.username },
+      process.env.JWT_SECRET,
+      { expiresIn: "30m" }
+    );
+
+    return { 
+      message: "Usuário atualizado com sucesso", 
+      user: userWithoutPassword,
+      token
+    };
   }
 
   // Alterar perfil de administrador(apenas adm pode fazer)
