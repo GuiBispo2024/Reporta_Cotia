@@ -5,7 +5,11 @@
   "scripts": {
     "start": "node index.js",
     "seed": "node seed/runSeeds.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "set NODE_ENV=test&& jest --runInBand --verbose",
+    "test:unit": "jest backend/tests/user.service.test.js --runInBand",
+    "test:integration": "jest backend/tests/user.routes.test.js --runInBand",
+    "lint": "eslint . || true",
+    "build": "echo \"no build step\""
   },
   "keywords": [],
   "author": "",
@@ -19,8 +23,15 @@
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.16.3",
     "sequelize": "^6.37.7",
+    "sqlite3": "^5.1.7",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
   },
-  "description": ""
+  "description": "",
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "cross-env": "^10.1.0",
+    "jest": "^30.2.0",
+    "supertest": "^7.1.4"
+  }
 }

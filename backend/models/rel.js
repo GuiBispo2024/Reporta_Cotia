@@ -1,4 +1,4 @@
-const sequelize = require('./db/db')
+const {sequelize} = require('./db/db')
 const User = require('./Reporta_Cotia_Tables/User')
 const Denuncia = require('./Reporta_Cotia_Tables/Denuncia')
 const Comment = require('./Reporta_Cotia_Tables/Comment')

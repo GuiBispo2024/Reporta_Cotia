@@ -1,4 +1,4 @@
-const sequelize = require('../db/db')
+const {sequelize} = require('../db/db')
 
 const Like = sequelize.define('Like', {
 }, {
