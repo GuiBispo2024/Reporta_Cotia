@@ -14,9 +14,9 @@ function Login() {
   useEffect(() => {
     const expired = localStorage.getItem("sessionExpired");
     if (expired) {
-      setError("Sua sessão expirou. Faça login novamente.");
-      localStorage.removeItem("sessionExpired"); 
+      setError("Sua sessão expirou. Faça login novamente.");  
     }
+    localStorage.removeItem("sessionExpired"); 
   }, []);
 
   const handleSubmit = async (e) => {

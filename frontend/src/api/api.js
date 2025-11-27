@@ -16,8 +16,16 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    const originalRequest = error.config;
+
+    // Se der 401 mas for no login → NÃO tratar como sessão expirada
+    if (originalRequest.url.includes("/login")) {
+      return Promise.reject(error);
+    }
+
+    // Se der 401 em qualquer outra rota → sessão expirada
     if (error.response?.status === 401) {
-      logoutOnExpire(); // faz logout automático + redireciona
+      logoutOnExpire();
     }
     return Promise.reject(error);
   }

@@ -12,6 +12,7 @@ export const AuthProvider = ({children}) => {
     const { token, user } = await authService.login(credentials)
     setUser(user)
     setToken(token)
+    return { token, user }
     }
 
     const logout = () => {
@@ -23,7 +24,14 @@ export const AuthProvider = ({children}) => {
     const isAuthenticated = !!token
 
     useEffect(() => {
+        if (user) {
+            localStorage.setItem("user", JSON.stringify(user));
+        }
+    }, [user]);
+
+    useEffect(() => {
         if (token) {
+            localStorage.setItem("token", token);
             api.defaults.headers.common["Authorization"] = `Bearer ${token}`
         } else {
             delete api.defaults.headers.common["Authorization"]
@@ -31,7 +39,7 @@ export const AuthProvider = ({children}) => {
     }, [token])
 
     return (
-        <AuthContext.Provider value={{ user, token, isAuthenticated, login, logout }}>
+        <AuthContext.Provider value={{ user, setUser, token, isAuthenticated, login, logout }}>
             {children}
         </AuthContext.Provider>
     )

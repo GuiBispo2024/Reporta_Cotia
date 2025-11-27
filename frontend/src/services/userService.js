@@ -18,7 +18,7 @@ const userService = {
 
   async update(data) {
     const res = await api.put(`/users/update`, data)
-    return res.data
+    return res.data.user
   },
 
   async delete() {
