@@ -204,5 +204,4 @@ describe('UserService (unit)', () => {
     expect(UserRepository.delete).toHaveBeenCalledWith(1);
     expect(res).toEqual({ message: "Usuário excluído com sucesso" });
   });
-  // adicione testes para update (troca de senha), updateAdm, delete conforme necessidade
 });

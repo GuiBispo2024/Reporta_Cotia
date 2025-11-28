@@ -1,6 +1,6 @@
 const request = require('supertest');
-const app = require('../../app'); // ajuste para o arquivo que exporta seu express app
-const db = require('../../models/db/db'); // se precisar inicializar/limpar DB (opcional)
+const app = require('../../app'); // ajuste para o arquivo que exporta express app
+const db = require('../../models/db/db'); // inicializar/limpar DB (opcional)
 
 describe('Users routes (integration)', () => {
   beforeAll(async () => {
@@ -19,7 +19,7 @@ describe('Users routes (integration)', () => {
     const payload = { username: 'testuser', email: 't@example.com', password: '123456' };
     const res = await request(app).post('/users').send(payload);
     console.log("Resposta:", res.statusCode, res.body);
-    expect([200,201]).toContain(res.statusCode); // seu endpoint retorna 201 conforme router
+    expect([200,201]).toContain(res.statusCode); // endpoint retorna 201 conforme router
     expect(res.body).toHaveProperty('user');
   });
 
