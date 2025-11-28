@@ -14,8 +14,8 @@ module.exports = async () => {
 
     //Criação de like de exemplo
     await LikeRepository.createOrFind({
-        userId: users[1].id,
-        denunciaId: denuncias[0].id
+        userId: users[0].id,
+        denunciaId: denuncias[1].id
     });
 
     console.log('Seed de likes concluída.');

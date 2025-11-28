@@ -9,7 +9,7 @@ class LikeService {
     const denuncia = await Denuncia.findByPk(denunciaId)
     if (!denuncia) throw new Error('Denúncia não existe.')
 
-    const [like, created] = await LikeRepository.createOrFind(userId, denunciaId)
+    const [like, created] = await LikeRepository.createOrFind({userId, denunciaId})
     if (!created) throw new Error('Usuário já curtiu essa denúncia.')
 
     return { message: 'Curtida registrada com sucesso.' }
@@ -17,15 +17,15 @@ class LikeService {
 
   // Lista todos os likes de uma denúncia
   static async listarPorDenuncia(denunciaId) {
-    return LikeRepository.findByDenunciaId(denunciaId)
+    return LikeRepository.findByDenunciaId({denunciaId})
   }
 
   // Remove like
   static async descurtir({denunciaId },user) {
     const userId  = user.id
-    const like = await LikeRepository.findByUserAndDenuncia(userId, denunciaId)
+    const like = await LikeRepository.findByUserAndDenuncia({userId, denunciaId})
     if (!like) throw new Error('Like não encontrado.')
-    await LikeRepository.delete(userId, denunciaId)
+    await LikeRepository.delete({userId, denunciaId})
     return { message: 'Like removido com sucesso.' }
   }
 }

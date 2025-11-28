@@ -1,5 +1,5 @@
 require("dotenv").config();
-const sequelize = require('../models/db/db');
+const {sequelize} = require('../models/db/db');
 require('../models/rel'); // Garante que os modelos sejam carregados
 
 async function runSeeds() {
