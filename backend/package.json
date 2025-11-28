@@ -6,10 +6,8 @@
     "start": "node index.js",
     "seed": "node seed/runSeeds.js",
     "test": "jest --passWithNoTests",
-    "test:unit": "jest tests/unit --passWithNoTests --coverage",
-    "test:integration": "jest tests/integration.test.js --passWithNoTests",
-    "test:infra": "jest tests/infra.test.js --passWithNoTests",
-    "test:performance": "jest tests/performance.test.js --passWithNoTests",
+    "test:unit": "jest --passWithNoTests",
+    "test:integration": "jest --passWithNoTests",
     "test:all": "jest --passWithNoTests --coverage"
   },
   "keywords": [],
