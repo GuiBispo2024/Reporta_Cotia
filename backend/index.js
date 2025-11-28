@@ -1,6 +1,5 @@
 const app = require('./app');
 const { sequelize } = require('./models/rel');
-const userAdmProdSeed = require('./utils/userAdmProd.seed');
 const port = process.env.PORT || 8081;
 
 async function startServer() {
@@ -8,7 +7,6 @@ async function startServer() {
         if (process.env.NODE_ENV === 'production') {
             await sequelize.sync();
             console.log("Banco sincronizado (PROD)");
-            await userAdmProdSeed();
         } else {
             await sequelize.sync({ alter: true });
             console.log("Banco sincronizado (DEV)");
