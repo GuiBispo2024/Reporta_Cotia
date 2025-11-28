@@ -89,7 +89,8 @@ class UserService {
     const updatedUser = await UserRepository.findById(userIdToken);
 
     // Remove password antes de mandar para o front
-    const { password, ...userWithoutPassword } = updatedUser.dataValues;
+    const plainUser = updatedUser.get ? updatedUser.get({ plain: true }) : updatedUser;
+    const { password, ...userWithoutPassword } = plainUser;
 
     // Gera novo token
     const token = jwt.sign(

@@ -42,6 +42,7 @@ class DenunciaService {
     if (!denuncia) throw new Error('Denúncia não encontrada.')
 
     await DenunciaRepository.update(id, { status })
+
     return { message: `Denúncia marcada como ${status}`, denuncia }
   }
 
