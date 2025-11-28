@@ -1,5 +1,8 @@
 const { Denuncia, User, Like, sequelize} = require('../models/rel')
 const { Op } = require("sequelize");
+const dialect = sequelize.getDialect();
+
+const operator = dialect === 'sqlite' ? Op.like : Op.iLike;
 
 class DenunciaRepository {
 
@@ -59,13 +62,13 @@ class DenunciaRepository {
     static async findWithFilters({ titulo, descricao, localizacao, user, sort }) {
         const where = {};
 
-        if (titulo) where.titulo = { [Op.iLike]: `%${titulo}%` };
-        if (descricao) where.descricao = { [Op.iLike]: `%${descricao}%` };
-        if (localizacao) where.localizacao = { [Op.iLike]: `%${localizacao}%` };
+        if (titulo) where.titulo = { [operator]: `%${titulo}%` };
+        if (descricao) where.descricao = { [operator]: `%${descricao}%` };
+        if (localizacao) where.localizacao = { [operator]: `%${localizacao}%` };
         let userWhere = null;
         if (user){
             userWhere = { 
-                username: { [Op.iLike]: `%${user}%` } 
+                username: { [operator]: `%${user}%` } 
             }
         }
 
