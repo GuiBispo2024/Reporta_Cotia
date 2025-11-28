@@ -134,7 +134,7 @@ export default function EditarDenuncia() {
             </div>
 
             <button type="submit" className="btn btn-primary w-100">
-              Salvar Alterações
+              Reenviar para Moderação
             </button>
           </form>
         )}

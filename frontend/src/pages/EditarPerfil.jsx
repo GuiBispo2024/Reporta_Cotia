@@ -2,10 +2,13 @@ import { useState, useContext } from "react";
 import { AuthContext } from "../context/authContext";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { useNavigate } from "react-router-dom";
 import userService from "../services/userService";
 
 export default function EditarPerfil() {
-  const { user, setUser } = useContext(AuthContext);
+  const { user} = useContext(AuthContext);
+  const navigate = useNavigate();
+  const { logout } = useContext(AuthContext);
 
   const [form, setForm] = useState({
     username: user?.username || "",
@@ -28,17 +31,12 @@ export default function EditarPerfil() {
     setLoading(true);
 
     try {
-      const response = await userService.update(form);
+      await userService.update(form);
+    
+      alert("Para concluir esta ação, faça login novamente.");
+      logout(); // limpa token e user
+      navigate("/login"); // redireciona para login
 
-      // resposta do backend:
-      setUser(response.user);
-
-      //SALVA O NOVO TOKEN
-      if (response.token) {
-        localStorage.setItem("token", response.token);
-      }
-
-      alert("Perfil atualizado com sucesso!");
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.message || "Erro ao atualizar perfil.");

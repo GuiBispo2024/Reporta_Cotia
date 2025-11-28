@@ -77,9 +77,9 @@ const Home = () => {
         ) : (
           <div className="text-center mb-5">
             <h2 className="fw-semibold text-success">
-              Bem-vindo, {user.username}!
+              Bem-vindo, {user?.username}!
             </h2>
-            {user.adm ? (
+            {user?.adm ? (
               <p className="text-secondary">Você está logado(a) como usuário administrador.</p>
             ) : (
               <p className="text-secondary">Você está logado(a) como usuário comum.</p>
@@ -99,7 +99,7 @@ const Home = () => {
           <div className="row g-4">
             {denuncias.map((d) => (
               <div key={d.id} className="col-md-6 col-lg-4">
-                <div className="card shadow-sm border-0 h-100">
+                <div className="card shadow-sm border-0">
                   <div className="card-body">
                     <div className="d-flex justify-content-between align-items-center">
                       <h5 className="card-title text-primary fw-bold">
