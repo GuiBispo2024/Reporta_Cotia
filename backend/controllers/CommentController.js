@@ -50,7 +50,7 @@ router.post('/:denunciaId/comentario',auth, async (req, res) => {
     const { denunciaId } = req.params
     const { comentario } = req.body
     const result = await CommentService.create({ comentario, denunciaId }, req.user)
-    res.status(201).json(result)
+    res.status(201).json({comentario: result.Comentario})
   } catch (error) {
     res.status(400).json({ message: error.message })
   }

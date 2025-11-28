@@ -89,7 +89,7 @@ router.patch('/:id/moderar', auth, async (req, res) => {
     const result = await DenunciaService.moderar(req.params.id, req.body.status, req.user.adm)
     res.status(200).json(result)
   } catch (error) {
-    res.status(400).json({ message: error.message })
+    res.status(403).json({ message: error.message })
   }
 })
 
@@ -115,6 +115,51 @@ router.get('/', async (req, res) => {
     res.status(500).json({ message: error.message })
   }
 })
+
+/**
+ * @swagger
+ * /denuncia/filter:
+ *   get:
+ *     summary: Lista denúncias com filtros aplicados
+ *     tags: [Denúncias]
+ *     parameters:
+ *       - in: query
+ *         name: titulo
+ *         schema:
+ *           type: string
+ *         description: Filtra denúncias pelo título
+ *         example: Buraco
+ *       - in: query
+ *         name: descricao
+ *         schema:
+ *           type: string
+ *         description: Filtra denúncias pela descrição
+ *         example: escola
+ *       - in: query
+ *         name: localizacao
+ *         schema:
+ *           type: string
+ *         description: Filtra denúncias pela localização
+ *         example: Rua das Flores
+ *       - in: query
+ *         name: user
+ *         schema:
+ *           type: string
+ *         description: Filtra denúncias pelo nome do usuário que criou
+ *         example: joaosilva
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         description: Ordenação por data de criação
+ *         example: desc
+ *     responses:
+ *       200:
+ *         description: Lista filtrada de denúncias retornada com sucesso
+ *       500:
+ *         description: Erro interno ao buscar denúncias
+ */
 
 // Lista denúncias com filtros
 router.get('/filter', async (req, res) => {
