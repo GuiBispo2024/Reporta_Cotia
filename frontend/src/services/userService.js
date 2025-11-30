@@ -27,7 +27,7 @@ const userService = {
   },
 
   async updateAdm(id, data) {
-    const res = await api.put(`/users/adm/${id}`, data)
+    const res = await api.put(`/users/${id}/adm`, data)
     return res.data
   }
 }
