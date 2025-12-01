@@ -16,7 +16,7 @@ async function startServer() {
             console.log(`Servidor rodando na porta ${port}`)
         );
 
-        console.log(`Swagger disponível em http://localhost:${port}/api-docs`);
+        console.log(`Swagger disponível em /api-docs`);
     } catch (err) {
         console.error("Erro ao conectar ao banco:", err);
     }

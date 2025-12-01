@@ -10,12 +10,7 @@ const options = {
             version: '1.0.0',
             description: 'Documentação da API do sistema Reporta Cotia'
         },
-        servers: [
-            {
-                url: '/',
-                description: 'API Base'
-            }
-        ],
+        servers: [],
         components: {
             securitySchemes: {
                 bearerAuth: {
