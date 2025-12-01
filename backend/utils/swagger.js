@@ -12,8 +12,8 @@ const options = {
         },
         servers: [
             {
-                url: 'http://localhost:8081',
-                description: 'Servidor local'
+                url: '/',
+                description: 'API Base'
             }
         ],
         components: {
