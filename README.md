@@ -35,7 +35,7 @@ Crie um .env na raiz do backend com as seguintes informações:
 Crie um .env na raiz do frontend com as seguintes informações:
 - **REACT_APP_API_URL** → Host onde o servidor Node está rodando (ex:http://localhost:8585).
 
-## Injetar seeds no bando de dados
+## Injetar seeds no banco de dados
 Na raiz do backend rodar:
 ```bash
 npm run seed
