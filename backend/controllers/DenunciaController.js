@@ -1,335 +1,164 @@
-const express = require('express')
-const router = express.Router()
-const auth = require('../middlewares/auth')
-const DenunciaService = require('../services/DenunciaService')
+const express = require('express');
+const router = express.Router();
+const auth = require('../middlewares/auth');
+const optionalAuth = require('../middlewares/optionalAuth');
+const AppError = require('../utils/AppError');
+const DenunciaService = require('../services/DenunciaService');
+const { upload, storeImage } = require('../utils/upload');
+
+function pagination(req) {
+  const hasPagination = req.query.page !== undefined || req.query.limit !== undefined;
+  const page = Math.max(Number.parseInt(req.query.page || '1', 10), 1);
+  const limit = Math.min(Math.max(Number.parseInt(req.query.limit || '12', 10), 1), 50);
+  return { hasPagination, page, limit };
+}
 
 /**
  * @swagger
  * tags:
  *   name: Denúncias
- *   description: Endpoints para gerenciamento de denúncias
+ *   description: Gerenciamento de denúncias urbanas
  */
 
 /**
  * @swagger
  * /denuncia:
  *   post:
- *     summary: Cria uma nova denúncia (usuário autenticado)
+ *     summary: Cria uma denúncia
  *     tags: [Denúncias]
  *     security:
  *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               titulo:
- *                 type: string
- *                 example: Buraco na rua principal
- *               descricao:
- *                 type: string
- *                 example: Buraco grande em frente à escola
- *               localizacao:
- *                 type: string
- *                 example: Rua das Flores, nº 120
- *     responses:
- *       201:
- *         description: Denúncia criada com sucesso
- *       400:
- *         description: Erro ao criar denúncia
  */
-
-//Posta uma denúncia
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, upload.single('imagem'), async (req, res, next) => {
   try {
-    const result = await DenunciaService.create(req.body, req.user)
-    res.status(201).json(result)
-  } catch (error) {
-    res.status(400).json({ message: error.message })
-  }
-})
+    const imageUrl = await storeImage(req.file);
+    res.status(201).json(await DenunciaService.create({ ...req.body, imageUrl }, req.user));
+  } catch (error) { next(error); }
+});
 
 /**
  * @swagger
  * /denuncia/{id}/moderar:
  *   patch:
- *     summary: Modera uma denúncia (somente administradores)
+ *     summary: Aprova ou rejeita uma denúncia
  *     tags: [Denúncias]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [pendente, aprovada, rejeitada]
- *                 example: aprovada
- *     responses:
- *       200:
- *         description: Denúncia moderada com sucesso
- *       403:
- *         description: Acesso negado
  */
-
-//Moderação de uma denúncia
-router.patch('/:id/moderar', auth, async (req, res) => {
+router.patch('/:id/moderar', auth, async (req, res, next) => {
   try {
-    const result = await DenunciaService.moderar(req.params.id, req.body.status, req.user.adm)
-    res.status(200).json(result)
-  } catch (error) {
-    res.status(403).json({ message: error.message })
-  }
-})
+    res.status(200).json(await DenunciaService.moderar(req.params.id, req.body.status, req.user.adm, req.body.motivoRejeicao));
+  } catch (error) { next(error); }
+});
+
+router.patch('/:id/censura', auth, async (req, res, next) => {
+  try {
+    res.status(200).json(await DenunciaService.revisarCensura(
+      req.params.id, req.body.field, req.body.manterCensura, req.user.adm
+    ));
+  } catch (error) { next(error); }
+});
+
+/**
+ * @swagger
+ * /denuncia/{id}/resolucao:
+ *   patch:
+ *     summary: Atualiza o progresso da resolução
+ *     tags: [Denúncias]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.patch('/:id/resolucao', auth, async (req, res, next) => {
+  try {
+    res.status(200).json(
+      await DenunciaService.atualizarResolucao(req.params.id, req.body.resolucaoStatus, req.user.adm)
+    );
+  } catch (error) { next(error); }
+});
 
 /**
  * @swagger
  * /denuncia:
  *   get:
- *     summary: Lista todas as denúncias
+ *     summary: Lista denúncias
  *     tags: [Denúncias]
- *     responses:
- *       200:
- *         description: Lista de todas as denúncias
- *       500:
- *         description: Erro interno do servidor
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 50 }
  */
-
-//Lista todas as denúncias
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
-    const denuncias = await DenunciaService.listarTodas()
-    res.status(200).json(denuncias)
-  } catch (error) {
-    res.status(500).json({ message: error.message })
-  }
-})
+    const { hasPagination, page, limit } = pagination(req);
+    const result = await DenunciaService.listarPublicadas(hasPagination ? { page, limit } : {});
+    res.status(200).json(result);
+  } catch (error) { next(error); }
+});
+
+router.get('/moderacao', auth, async (req, res, next) => {
+  try {
+    if (!req.user.adm) throw new AppError('Acesso negado.', 403, 'FORBIDDEN');
+    const { hasPagination, page, limit } = pagination(req);
+    const result = await DenunciaService.listarTodas(hasPagination ? { page, limit } : {});
+    res.status(200).json(result);
+  } catch (error) { next(error); }
+});
 
 /**
  * @swagger
  * /denuncia/filter:
  *   get:
- *     summary: Lista denúncias com filtros aplicados
+ *     summary: Lista denúncias com filtros
  *     tags: [Denúncias]
- *     parameters:
- *       - in: query
- *         name: titulo
- *         schema:
- *           type: string
- *         description: Filtra denúncias pelo título
- *         example: Buraco
- *       - in: query
- *         name: descricao
- *         schema:
- *           type: string
- *         description: Filtra denúncias pela descrição
- *         example: escola
- *       - in: query
- *         name: localizacao
- *         schema:
- *           type: string
- *         description: Filtra denúncias pela localização
- *         example: Rua das Flores
- *       - in: query
- *         name: user
- *         schema:
- *           type: string
- *         description: Filtra denúncias pelo nome do usuário que criou
- *         example: joaosilva
- *       - in: query
- *         name: sort
- *         schema:
- *           type: string
- *           enum: [asc, desc]
- *         description: Ordenação por data de criação
- *         example: desc
- *     responses:
- *       200:
- *         description: Lista filtrada de denúncias retornada com sucesso
- *       500:
- *         description: Erro interno ao buscar denúncias
  */
-
-// Lista denúncias com filtros
-router.get('/filter', async (req, res) => {
+router.get('/filter', async (req, res, next) => {
   try {
-    const { titulo, descricao, localizacao, user, sort } = req.query;
-
-    const denuncias = await DenunciaService.getFiltered({
-      titulo,
-      descricao,
-      localizacao,
-      user,
-      sort
+    const { titulo, descricao, localizacao, user, sort, categoria, status, resolucaoStatus } = req.query;
+    const { hasPagination, page, limit } = pagination(req);
+    const result = await DenunciaService.getFiltered({
+      titulo, descricao, localizacao, user, sort, categoria, status, resolucaoStatus,
+      ...(hasPagination ? { page, limit } : {})
     });
-
-    res.status(200).json(denuncias);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: error.message });
-  }
+    res.status(200).json(result);
+  } catch (error) { next(error); }
 });
 
-/**
- * @swagger
- * /denuncia/{id}:
- *   get:
- *     summary: Retorna uma denúncia específica
- *     tags: [Denúncias]
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Denúncia encontrada
- *       404:
- *         description: Denúncia não encontrada
- */
-
-//Procura uma denúncia específica
-router.get('/:id', async (req, res) => {
+router.get('/user/:userId', auth, async (req, res, next) => {
   try {
-    const denuncia = await DenunciaService.buscarPorId(req.params.id)
-    res.status(200).json(denuncia)
-  } catch (error) {
-    res.status(404).json({ message: error.message })
-  }
-})
+    if (!req.user.adm && Number(req.user.id) !== Number(req.params.userId)) {
+      throw new AppError('Acesso negado.', 403, 'FORBIDDEN');
+    }
+    res.status(200).json(await DenunciaService.buscarPorUsuario(req.params.userId));
+  } catch (error) { next(error); }
+});
 
-/**
- * @swagger
- * /denuncia/user/{userId}:
- *   get:
- *     summary: Retorna todas as denúncias de um usuário específico
- *     tags: [Denúncias]
- *     parameters:
- *       - name: userId
- *         in: path
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Lista de denúncias do usuário
- *       404:
- *         description: Nenhuma denúncia encontrada
- */
-
-//Procura todas as denúncias de um usuário específico
-router.get('/user/:userId', async (req, res) => {
+router.get('/:id', optionalAuth, async (req, res, next) => {
   try {
-    const denuncias = await DenunciaService.buscarPorUsuario(req.params.userId)
-    res.status(200).json(denuncias)
-  } catch (error) {
-    res.status(404).json({ message: error.message })
-  }
-})
+    res.status(200).json(await DenunciaService.buscarPorId(req.params.id, req.user));
+  } catch (error) { next(error); }
+});
 
-/**
- * @swagger
- * /denuncia/{id}:
- *   put:
- *     summary: Atualiza uma denúncia (somente o autor pode editar)
- *     tags: [Denúncias]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: integer
- *           example: 12
- *         description: ID da denúncia a ser atualizada
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               titulo:
- *                 type: string
- *                 example: "Buraco ainda não foi consertado"
- *               descricao:
- *                 type: string
- *                 example: "O problema persiste há mais de 2 meses."
- *               categoria:
- *                 type: string
- *                 example: "Infraestrutura"
- *               localizacao:
- *                 type: string
- *                 example: "Rua das Flores, nº 200"
- *     responses:
- *       200:
- *         description: Denúncia atualizada com sucesso.
- *       401:
- *         description: Token JWT ausente ou inválido.
- *       403:
- *         description: Usuário sem permissão para editar.
- *       404:
- *         description: Denúncia não encontrada.
- */
-
-//Edita uma denúncia
-router.put('/:id',auth, async (req, res) => {
+router.put('/:id', auth, upload.single('imagem'), async (req, res, next) => {
   try {
-    const result = await DenunciaService.atualizar(req.params.id,req.body, req.user.id)
-    res.status(200).json(result)
-  } catch (error) {
-    res.status(404).json({ message: error.message })
-  }
-})
+    const imageUrl = req.file
+      ? await storeImage(req.file)
+      : req.body.removeImage === 'true' || req.body.removeImage === true
+        ? null
+        : undefined;
+    const data = { ...req.body };
+    delete data.removeImage;
+    if (imageUrl !== undefined) data.imageUrl = imageUrl;
+    res.status(200).json(await DenunciaService.atualizar(req.params.id, data, req.user.id));
+  } catch (error) { next(error); }
+});
 
-/**
- * @swagger
- * /denuncia/{id}:
- *   delete:
- *     summary: Exclui uma denúncia (somente o autor pode deletar)
- *     tags: [Denúncias]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: integer
- *           example: 8
- *         description: ID da denúncia a ser removida
- *     responses:
- *       200:
- *         description: Denúncia excluída com sucesso.
- *       401:
- *         description: Token JWT ausente ou inválido.
- *       403:
- *         description: Usuário sem permissão para excluir.
- *       404:
- *         description: Denúncia não encontrada.
- */
-
-//Deleta uma denúncia
-router.delete('/:id',auth, async (req, res) => {
+router.delete('/:id', auth, async (req, res, next) => {
   try {
-    const result = await DenunciaService.deletar(req.params.id, req.user.id)
-    res.status(200).json(result)
-  } catch (error) {
-    res.status(404).json({ message: error.message })
-  }
-})
+    res.status(200).json(await DenunciaService.deletar(req.params.id, req.user.id));
+  } catch (error) { next(error); }
+});
 
-module.exports = router
+module.exports = router;

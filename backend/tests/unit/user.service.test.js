@@ -163,6 +163,12 @@ describe('UserService (unit)', () => {
     console.log("⚠️ Erro capturado: usuário sem permissão tentou alterar ADM");
   });
 
+  test('updateAdm: administrador não pode alterar a própria permissão', async () => {
+    await expect(
+      UserService.updateAdm(1, false, true, 1)
+    ).rejects.toThrow('Você não pode alterar a permissão da própria conta.');
+  });
+
   test('updateAdm: impede remover o último administrador', async () => {
     console.log("➡️ Iniciando teste: updateAdm() — última conta ADM");
 

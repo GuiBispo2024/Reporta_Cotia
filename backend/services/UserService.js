@@ -1,19 +1,22 @@
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const UserRepository = require('../repositories/UserRepository')
-const SECRET = process.env.JWT_SECRET
+const SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'reporta-cotia-test-secret' : undefined)
 
 class UserService {
     
   // Cadastrar usuário
-  static async register({ username, email, password }) {
+  static async register({ username, email, password, avatarUrl = null }) {
     const existingEmail = await UserRepository.findByEmail(email)
     if (existingEmail) throw new Error('E-mail já cadastrado.')
     const existingUsername =  await UserRepository.findByUsername(username)
     if (existingUsername) throw new Error('Nome de usuário já cadastrado.')
 
     const hashed = await bcrypt.hash(password, 10)
-    return UserRepository.create({ username, email, password: hashed })
+    const created = await UserRepository.create({ username, email, password: hashed, avatarUrl })
+    const plain = created.get ? created.get({ plain: true }) : created
+    const { password: _password, ...safeUser } = plain
+    return safeUser
   }
 
   // Login
@@ -29,7 +32,7 @@ class UserService {
     return {
       message: 'Login bem-sucedido',
       token,
-      user: { id: user.id, username: user.username, email: user.email, adm: user.adm }
+      user: { id: user.id, username: user.username, email: user.email, adm: user.adm, avatarUrl: user.avatarUrl || null }
     }
   }
 
@@ -39,15 +42,23 @@ class UserService {
   }
 
   //Lista todos os usuários com a contagem de denúncias feitas por cada um
-  static async getAllWithDenunciaCount() {
-    return UserRepository.findAllUsersWithDenuniaCount();
+  static async getAllWithDenunciaCount(isAdm = false) {
+    return UserRepository.findAllUsersWithDenuniaCount(isAdm);
   }
 
   // Buscar um usuário
   static async getById(id) {
-    const user = await UserRepository.findById(id)
+    const user = await UserRepository.findPublicById(id)
     if (!user) throw new Error('Usuário não encontrado.')
     return user
+  }
+
+  static async getMe(id) {
+    const user = await UserRepository.findById(id)
+    if (!user) throw new Error('Usuário não encontrado.')
+    const plain = user.get ? user.get({ plain: true }) : user
+    const { password, ...safeUser } = plain
+    return safeUser
   }
 
   // Atualizar
@@ -94,8 +105,8 @@ class UserService {
 
     // Gera novo token
     const token = jwt.sign(
-      { id: updatedUser.id, username: updatedUser.username },
-      process.env.JWT_SECRET,
+      { id: updatedUser.id, adm: updatedUser.adm },
+      SECRET,
       { expiresIn: "30m" }
     );
 
@@ -106,10 +117,33 @@ class UserService {
     };
   }
 
+  static async updateAvatar(userId, avatarUrl) {
+    const user = await UserRepository.findById(userId)
+    if (!user) throw new Error('Usuário não encontrado.')
+    await UserRepository.update(userId, { avatarUrl })
+    const updatedUser = await UserRepository.findById(userId)
+    const plain = updatedUser.get ? updatedUser.get({ plain: true }) : updatedUser
+    const { password, ...safeUser } = plain
+    return { message: 'Foto de perfil atualizada com sucesso.', user: safeUser }
+  }
+
+  static async removeAvatar(userId) {
+    const user = await UserRepository.findById(userId)
+    if (!user) throw new Error('Usuário não encontrado.')
+    await UserRepository.update(userId, { avatarUrl: null })
+    const updatedUser = await UserRepository.findById(userId)
+    const plain = updatedUser.get ? updatedUser.get({ plain: true }) : updatedUser
+    const { password, ...safeUser } = plain
+    return { message: 'Foto de perfil removida com sucesso.', user: safeUser }
+  }
+
   // Alterar perfil de administrador(apenas adm pode fazer)
-  static async updateAdm(targetUserId, admStatus, requesterAdm) {
+  static async updateAdm(targetUserId, admStatus, requesterAdm, requesterId) {
     if (!requesterAdm) {
       throw new Error('Apenas administradores podem alterar permissões.')
+    }
+    if (Number(targetUserId) === Number(requesterId)) {
+      throw new Error('Você não pode alterar a permissão da própria conta.')
     }
     const targetUser = await UserRepository.findById(targetUserId)
     if (!targetUser) {

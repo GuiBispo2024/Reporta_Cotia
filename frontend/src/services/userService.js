@@ -18,7 +18,19 @@ const userService = {
 
   async update(data) {
     const res = await api.put(`/users/update`, data)
-    return res.data.user
+    return res.data
+  },
+
+  async updateAvatar(file) {
+    const data = new FormData()
+    data.append('avatar', file)
+    const res = await api.patch('/users/avatar', data)
+    return res.data
+  },
+
+  async removeAvatar() {
+    const res = await api.delete('/users/avatar')
+    return res.data
   },
 
   async delete() {

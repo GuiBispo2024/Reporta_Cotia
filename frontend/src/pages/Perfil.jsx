@@ -1,88 +1,47 @@
-import {AuthContext} from "../context/authContext";
-import {useContext} from "react";
-import {useNavigate} from "react-router-dom";
+import { AuthContext } from "../context/authContext";
+import { useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import UserAvatar from '../components/UserAvatar';
 
 export default function Perfil() {
-    const {user, logout} = useContext(AuthContext);
-    const navigate = useNavigate();
+  const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const sair = () => logout();
 
-    const irParaEdicao = () => {
-      navigate("/editar-perfil");
-    };
-
-    return (
-    <>
-      <Navbar />
-      <div className="container mt-5">
-        <div className="row justify-content-center">
-          <div className="col-md-6">
-
-            <div className="card shadow-sm border-0">
-              <div className="card-body">
-
-                <h3 className="text-center text-primary mb-4">Meu Perfil</h3>
-
-                {/* Nome */}
-                <div className="mb-3">
-                  <label className="form-label fw-bold">Usuário</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={user.username}
-                    disabled
-                  />
-                </div>
-
-                {/* Email */}
-                <div className="mb-3">
-                  <label className="form-label fw-bold">Email</label>
-                  <input
-                    type="email"
-                    className="form-control"
-                    value={user.email}
-                    disabled
-                  />
-                </div>
-
-                {/* Status: Admin ou Usuário comum */}
-                <div className="mb-4">
-                  <label className="form-label fw-bold">Tipo de Conta</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={user.adm ? "Usuário administrador" : "Usuário comum"}
-                    disabled
-                  />
-                </div>
-
-                {/* Botões */}
-                <div className="d-flex justify-content-between">
-                   {/* Botão Editar Perfil */}
-                  <button
-                    className="btn btn-warning"
-                    onClick={irParaEdicao}
-                  >
-                    Editar Perfil
-                  </button>
-
-                  {/* Botão Sair */}
-                  <button
-                    className="btn btn-danger"
-                    onClick={logout}
-                  >
-                    Sair da conta
-                  </button>
-                </div>
-
-              </div>
-            </div>
-
+  return <div className="rc-page">
+    <Navbar />
+    <main className="container py-4 flex-grow-1">
+      <section className="rc-profile-view">
+        <header className="rc-profile-cover">
+          <span className="rc-eyebrow">MINHA CONTA</span>
+          <div className="rc-profile-cover-content">
+            <UserAvatar user={user} className="rc-profile-main-avatar" />
+            <div><h1>{user?.username}</h1><p><i className="bi bi-geo-alt-fill me-1" />Cidadão de Cotia</p></div>
+            <span className="rc-profile-role"><i className={`bi ${user?.adm ? "bi-shield-check" : "bi-person-check"}`} />{user?.adm ? "Administrador" : "Usuário comum"}</span>
           </div>
+        </header>
+
+        <div className="rc-profile-view-body">
+          <div className="rc-profile-info">
+            <div className="rc-profile-info-title"><div><h2>Informações pessoais</h2><p>Dados associados à sua conta no Reporta Cotia.</p></div><button className="btn btn-primary" onClick={() => navigate("/editar-perfil")}><i className="bi bi-pencil-square me-2" />Editar perfil</button></div>
+            <div className="rc-profile-detail-grid">
+              <div className="rc-profile-detail"><span className="rc-profile-detail-icon"><i className="bi bi-person" /></span><div><small>Nome de usuário</small><strong>{user?.username}</strong></div></div>
+              <div className="rc-profile-detail"><span className="rc-profile-detail-icon"><i className="bi bi-envelope" /></span><div><small>E-mail</small><strong>{user?.email}</strong></div></div>
+              <div className="rc-profile-detail"><span className="rc-profile-detail-icon"><i className="bi bi-patch-check" /></span><div><small>Tipo de conta</small><strong>{user?.adm ? "Administrador" : "Cidadão"}</strong></div></div>
+            </div>
+          </div>
+
+          <aside className="rc-profile-shortcuts">
+            <h3>Acesso rápido</h3>
+            <button onClick={() => navigate("/minhas-denuncias")}><i className="bi bi-clipboard-check" /><span><strong>Minhas denúncias</strong><small>Acompanhar registros</small></span><i className="bi bi-chevron-right" /></button>
+            <button onClick={() => navigate("/nova-denuncia")}><i className="bi bi-plus-circle" /><span><strong>Nova denúncia</strong><small>Reportar um problema</small></span><i className="bi bi-chevron-right" /></button>
+            <button className="rc-profile-logout" onClick={sair}><i className="bi bi-box-arrow-right" /><span><strong>Sair da conta</strong><small>Encerrar esta sessão</small></span></button>
+          </aside>
         </div>
-      </div>
-      <Footer />
-    </>
-  );
+      </section>
+    </main>
+    <Footer />
+  </div>;
 }

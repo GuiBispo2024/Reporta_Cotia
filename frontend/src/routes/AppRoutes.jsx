@@ -8,6 +8,7 @@ import EditarDenuncia from "../pages/EditarDenuncia.jsx";
 import NovaDenuncia from "../pages/NovaDenuncia.jsx";
 import Perfil from "../pages/Perfil.jsx";
 import EditarPerfil from "../pages/EditarPerfil.jsx";
+import DetalheDenuncia from "../pages/DetalheDenuncia.jsx";
 import ListaDeUsuários from "../pages/ListaDeUsuários.jsx";
 import PrivateRoute from "./PrivateRoute.jsx";
 
@@ -17,6 +18,7 @@ function AppRoutes() {
             <Routes>
                 <Route path="/" element={<Home/>}/>
                 <Route path="/login" element={<Login/>}/>
+                <Route path="/denuncia/:id" element={<DetalheDenuncia/>}/>
                 <Route path="/cadastro" element={<Cadastro/>}/>
                 <Route path="/moderacao" element={<PrivateRoute><Moderacao/></PrivateRoute>}/>
                 <Route path="/minhas-denuncias" element={<PrivateRoute><MinhasDenuncias/></PrivateRoute>}/>

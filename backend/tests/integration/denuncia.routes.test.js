@@ -5,6 +5,9 @@ const db = require("../../models/db/db");
 let tokenUser;
 let userId;
 let denunciaId;
+let tokenAdm;
+let admId;
+const { Denuncia, Share } = require('../../models/rel');
 
 describe("Denúncias routes (integration)", () => {
   beforeAll(async () => {
@@ -77,27 +80,77 @@ describe("Denúncias routes (integration)", () => {
 
     expect(res.statusCode).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBeGreaterThan(0);
+    expect(res.body.length).toBe(0);
   });
 
   // -------------------------------------------------------------------
-  test("GET /denuncia/filter → filtra por título", async () => {
+  test("GET /denuncia/filter → aplica os filtros informados", async () => {
     console.log("➡️ Teste: filtro de denúncias");
 
+    await Denuncia.update({
+      status: 'aprovada',
+      categoria: 'Buraco e pavimentação',
+      resolucaoStatus: 'em_andamento'
+    }, { where: { id: denunciaId } });
+
     const res = await request(app)
-      .get("/denuncia/filter?titulo=Buraco");
+      .get("/denuncia/filter")
+      .query({
+        titulo: '  buraco  ',
+        descricao: 'escola',
+        localizacao: 'flores',
+        user: 'NORMAL',
+        categoria: 'buraco e pavimentação',
+        resolucaoStatus: 'em_andamento'
+      });
 
     console.log("Resposta:", res.statusCode, res.body);
 
     expect(res.statusCode).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0]).toHaveProperty('id', denunciaId);
+  });
+
+  test("GET /denuncia/filter → retorna vazio quando o status não corresponde", async () => {
+    const res = await request(app)
+      .get("/denuncia/filter")
+      .query({ resolucaoStatus: 'resolvida' });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data).toHaveLength(0);
+  });
+
+  test("GET /denuncia/filter → ordena pelas mais compartilhadas", async () => {
+    const maisCompartilhada = await Denuncia.create({
+      titulo: 'Iluminação da praça',
+      descricao: 'Praça sem iluminação',
+      localizacao: 'Centro',
+      categoria: 'Iluminação pública',
+      status: 'aprovada',
+      userId
+    });
+    await Share.bulkCreate([
+      { denunciaId: maisCompartilhada.id, userId },
+      { denunciaId: maisCompartilhada.id, userId: admId },
+      { denunciaId, userId }
+    ]);
+
+    const res = await request(app).get('/denuncia/filter').query({ sort: 'shares' });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data[0].id).toBe(maisCompartilhada.id);
+    expect(res.body.data[0].sharesCount).toBe(2);
+    await Share.destroy({ where: { denunciaId: [maisCompartilhada.id, denunciaId] } });
+    await maisCompartilhada.destroy();
   });
 
   // -------------------------------------------------------------------
   test("GET /denuncia/:id → retorna denúncia específica", async () => {
     console.log("➡️ Teste: buscar denúncia por ID");
 
-    const res = await request(app).get(`/denuncia/${denunciaId}`);
+    const res = await request(app).get(`/denuncia/${denunciaId}`)
+      .set("Authorization", `Bearer ${tokenUser}`);
 
     console.log("Resposta:", res.statusCode, res.body);
 
@@ -109,7 +162,8 @@ describe("Denúncias routes (integration)", () => {
   test("GET /denuncia/user/:userId → denúncias do usuário", async () => {
     console.log("➡️ Teste: listar denúncias por usuário");
 
-    const res = await request(app).get(`/denuncia/user/${userId}`);
+    const res = await request(app).get(`/denuncia/user/${userId}`)
+      .set("Authorization", `Bearer ${tokenUser}`);
 
     console.log("Resposta:", res.statusCode, res.body);
 
@@ -121,6 +175,7 @@ describe("Denúncias routes (integration)", () => {
   test("PUT /denuncia/:id → atualizar denúncia (somente autor)", async () => {
     console.log("➡️ Teste: editar denúncia");
 
+    await Denuncia.update({ status: 'rejeitada' }, { where: { id: denunciaId } });
     const res = await request(app)
       .put(`/denuncia/${denunciaId}`)
       .set("Authorization", `Bearer ${tokenUser}`)
@@ -134,6 +189,22 @@ describe("Denúncias routes (integration)", () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty("message", "Denúncia atualizada e reenviada para moderação.");
+  });
+
+  test("PUT /denuncia/:id remove a imagem da denúncia no banco", async () => {
+    await Denuncia.update(
+      { status: 'rejeitada', imageUrl: '/uploads/denuncia-teste.jpg' },
+      { where: { id: denunciaId } }
+    );
+
+    const res = await request(app)
+      .put(`/denuncia/${denunciaId}`)
+      .set("Authorization", `Bearer ${tokenUser}`)
+      .send({ removeImage: true });
+
+    expect(res.statusCode).toBe(200);
+    const denuncia = await Denuncia.findByPk(denunciaId);
+    expect(denuncia.imageUrl).toBeNull();
   });
 
   // -------------------------------------------------------------------

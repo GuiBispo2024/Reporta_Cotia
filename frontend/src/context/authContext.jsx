@@ -19,6 +19,9 @@ export const AuthProvider = ({children}) => {
         authService.logout()
         setUser(null)
         setToken(null)
+        // Navegação completa para eliminar qualquer estado autenticado mantido
+        // pelos componentes da página atual.
+        window.location.assign("/")
     }
 
     const isAuthenticated = !!token
@@ -37,6 +40,28 @@ export const AuthProvider = ({children}) => {
             delete api.defaults.headers.common["Authorization"]
         }
     }, [token])
+
+    useEffect(() => {
+        if (!token) return;
+
+        let active = true;
+        authService.me()
+            .then(currentUser => {
+                if (active) setUser(currentUser);
+            })
+            .catch((error) => {
+                if (!active) return;
+                // Falhas temporárias de rede ou limite não invalidam a sessão.
+                // O interceptor global cuida exclusivamente de respostas 401.
+                if (error.response?.status === 401) {
+                    authService.logout();
+                    setUser(null);
+                    setToken(null);
+                }
+            });
+
+        return () => { active = false; };
+    }, [token]);
 
     return (
         <AuthContext.Provider value={{ user, setUser, token, isAuthenticated, login, logout }}>

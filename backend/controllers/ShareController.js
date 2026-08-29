@@ -110,7 +110,7 @@ router.get('/:denunciaId/shares', async (req, res) => {
 // Deleta compartilhamento
 router.delete('/share/:id',auth, async (req, res) => {
   try {
-    const result = await ShareService.deletar(req.params.id, req.user)
+    const result = await ShareService.deletar(req.params.id, req.user.id)
     res.status(200).json(result)
   } catch (error) {
     if (error.message.includes('Compartilhamento não encontrado')) {

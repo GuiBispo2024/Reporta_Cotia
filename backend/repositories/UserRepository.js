@@ -19,11 +19,11 @@ class UserRepository{
 
     //Lista todos os usuários
     static async findAll() {
-        return User.findAll()
+        return User.findAll({ attributes: ['id', 'username', 'adm', 'avatarUrl'] })
     }
 
     //Lista todos os usuários com a contagem de denúncias feitas por cada um
-    static async findAllUsersWithDenuniaCount() {
+    static async findAllUsersWithDenuniaCount(includeEmail = false) {
         return User.findAll({
             include: [{
                 model: Denuncia,
@@ -36,8 +36,9 @@ class UserRepository{
             attributes: [
                 "id",
                 "username",
-                "email",
                 "adm",
+                "avatarUrl",
+                ...(includeEmail ? ["email"] : []),
                 [sequelize.fn("COUNT", sequelize.col("Denuncia.id")), "totalDenuncias"]
             ],
             group: ["User.id"]
@@ -47,6 +48,10 @@ class UserRepository{
     //Busca um usuário específico
     static async findById(id) {
         return User.findByPk(id)
+    }
+
+    static async findPublicById(id) {
+        return User.findByPk(id, { attributes: ['id', 'username', 'adm', 'avatarUrl'] })
     }
 
     //Altera um usuário

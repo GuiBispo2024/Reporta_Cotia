@@ -1,7 +1,9 @@
 export default function Footer() {
-    return (
-        <footer className="bg-primary text-light text-center py-3 mt-4 fixed-bottom">
-            <small>© 2025 Reporta Cotia — Todos os direitos reservados.</small>
-        </footer>
-    )
+  return (
+    <footer className="rc-footer mt-auto">
+      <div className="container text-center py-3">
+        <small>© 2026 Reporta Cotia — Participação cidadã por uma cidade melhor.</small>
+      </div>
+    </footer>
+  );
 }

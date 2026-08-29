@@ -14,9 +14,14 @@ const authService = {
       localStorage.setItem("user", JSON.stringify(user))
       return { token, user }
     }catch(error){
-      const msg = error.response?.data?.error || "Erro ao fazer login."
+      const msg = error.friendlyMessage || error.response?.data?.message || "Não foi possível entrar. Confira seus dados e tente novamente."
       throw new Error(msg)
     }
+  },
+
+  async me() {
+    const res = await api.get('/users/me')
+    return res.data
   },
 
   getUser() {

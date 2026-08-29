@@ -1,146 +1,143 @@
-import { useEffect, useState, useContext } from "react";
-import {AuthContext} from "../context/authContext";
+import { useCallback, useEffect, useState, useContext, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../context/authContext";
 import denunciaService from "../services/denunciaService";
 import Comentarios from "../components/Comentarios.jsx";
 import Like from "../components/Likes.jsx";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
 import FilterAndSearch from "../components/FilterAndSearch.jsx";
+import Compartilhar from "../components/Compartilhar.jsx";
+import { friendlyError } from '../utils/errorMessage';
+
+const RESOLUTION = {
+  aberta: { label: 'Aberta', icon: 'bi-circle-fill', className: 'is-open' },
+  em_andamento: { label: 'Em andamento', icon: 'bi-clock-fill', className: 'is-progress' },
+  resolvida: { label: 'Resolvida', icon: 'bi-check-circle-fill', className: 'is-resolved' }
+};
 
 const Home = () => {
-    const {user, isAuthenticated} = useContext(AuthContext);
-    const [denuncias, setDenuncias] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+  const { user, isAuthenticated } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const [result, setResult] = useState({ data: [], totalPages: 1, page: 1 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const filtersRef = useRef({});
+  const requestIdRef = useRef(0);
 
-    useEffect(() => {
-        const fetchDenuncias = async () => {
-            try {
-                const data = await denunciaService.listarTodas();
-                const aprovadas = data.filter((d) => d.status === "aprovada");
-                setDenuncias(aprovadas);
-            }catch (err) {
-                setError("Erro ao carregar denúncias.");
-            }finally{
-                setLoading(false);
-            }
-        }
-        fetchDenuncias();
-    },[]);
+  const load = useCallback(async (page = 1, customFilters = filtersRef.current) => {
+    const requestId = ++requestIdRef.current;
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await denunciaService.filtrar({
+        ...customFilters,
+        status: "aprovada",
+        page,
+        limit: 12
+      });
+      const payload = Array.isArray(response)
+        ? { data: response, totalPages: 1, page }
+        : response;
+      if (requestId === requestIdRef.current) setResult(payload);
+    } catch (error) {
+      if (requestId === requestIdRef.current) {
+        setError(friendlyError(error, "Não foi possível carregar as denúncias. Atualize a página para tentar novamente."));
+      }
+    } finally {
+      if (requestId === requestIdRef.current) setLoading(false);
+    }
+  }, []);
 
-    //Função para aplicar os filtros enviados pelo FilterAndSearch
-    const aplicarFiltros = async (params) => {
-        try {
-            setLoading(true);
-            const data = await denunciaService.filtrar(params);
-
-            // Mantém somente aprovadas
-            const aprovadas = data.filter((d) => d.status === "aprovada");
-            setDenuncias(aprovadas);
-        } catch (err) {
-            setError("Erro ao filtrar denúncias.");
-        } finally {
-            setLoading(false);
-        }
+  useEffect(() => {
+    load(1, {});
+    const refreshSharesOrder = () => {
+      if (filtersRef.current.sort === 'shares') load(1, filtersRef.current);
     };
+    window.addEventListener('reporta:shares-changed', refreshSharesOrder);
+    return () => window.removeEventListener('reporta:shares-changed', refreshSharesOrder);
+  }, [load]);
 
-   if (loading)
-    return (
-      <div className="container text-center mt-5">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Carregando...</span>
-        </div>
-        <p className="mt-3">Carregando denúncias...</p>
-      </div>
-    );
-
-  if (error)
-    return (
-      <div className="alert alert-danger text-center mt-4" role="alert">
-        {error}
-      </div>
-    );
+  const aplicarFiltros = (params) => {
+    filtersRef.current = params;
+    load(1, params);
+  };
 
   return (
-    <>
-      <Navbar/>
-
-      <div className="container mt-5">
-        {!isAuthenticated ? (
-          <div className="text-center mb-5">
-            <h1 className="fw-bold text-primary">Bem-vindo ao Reporta Cotia</h1>
-            <p className="text-muted fs-5">
-              Ajude a melhorar sua cidade reportando problemas de
-              infraestrutura.
-            </p>
+    <div className="rc-page">
+      <Navbar />
+      <main className="container py-4 flex-grow-1">
+        <section className="rc-hero mb-4">
+          <div>
+            <span className="rc-eyebrow">COTIA • PARTICIPAÇÃO CIDADÃ</span>
+            <h1>{isAuthenticated ? `Olá, ${user?.username}!` : "Ajude a melhorar Cotia."}</h1>
+            <p>Registre problemas urbanos, acompanhe o andamento e ajude a prefeitura a identificar onde a cidade precisa de atenção.</p>
           </div>
-        ) : (
-          <div className="text-center mb-5">
-            <h2 className="fw-semibold text-success">
-              Bem-vindo, {user?.username}!
-            </h2>
-            {user?.adm ? (
-              <p className="text-secondary">Você está logado(a) como usuário administrador.</p>
-            ) : (
-              <p className="text-secondary">Você está logado(a) como usuário comum.</p>
-            )}
-          </div>
-        )}
+          {isAuthenticated && (
+            <button className="btn btn-light btn-lg fw-bold" onClick={() => navigate("/nova-denuncia")}>
+              + Nova denúncia
+            </button>
+          )}
+        </section>
 
         <FilterAndSearch onFilter={aplicarFiltros} />
 
-        <h3 className="mb-4 text-center fw-bold">Denúncias</h3>
-
-        {denuncias.length === 0 ? (
-          <p className="text-center text-muted">
-            Nenhuma denúncia aprovada ainda.
-          </p>
+        {loading ? (
+          <div className="text-center py-5"><div className="spinner-border text-primary" /><p className="mt-3">Carregando denúncias...</p></div>
+        ) : error ? (
+          <div className="alert alert-danger">{error}</div>
         ) : (
-          <div className="row g-4">
-            {denuncias.map((d) => (
-              <div key={d.id} className="col-md-6 col-lg-4">
-                <div className="card shadow-sm border-0">
-                  <div className="card-body">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <h5 className="card-title text-primary fw-bold">
-                        {d.titulo}
-                      </h5>
-                      <small className="text-muted ms-2">
-                        {new Date(d.createdAt).toLocaleString("pt-BR", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit"
-                          })}
-                      </small>
-                    </div>
-                    <p className="card-text">{d.descricao}</p>
-                    <p className="text-muted mb-1">
-                      <i className="bi bi-geo-alt-fill"></i> {d.localizacao}
-                    </p>
-                    <p className="small text-secondary">
-                      Reportado por:{" "}
-                      <strong>{d.User ? d.User.username : "Anônimo"}</strong>
-                    </p>
+          <>
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h3 className="fw-bold mb-0">Problemas reportados</h3>
+              <span className="text-muted small">{result.total ?? result.data.length} registros</span>
+            </div>
+
+            {result.data.length === 0 ? (
+              <div className="rc-empty">Nenhuma denúncia aprovada encontrada.</div>
+            ) : (
+              <div className="row g-4">
+                {result.data.map((d) => (
+                  <div key={d.id} className="col-12 col-md-6 col-lg-4">
+                    <article className="card rc-card h-100">
+                      {d.imageUrl && <img src={d.imageUrl} className="rc-card-image" alt={`Evidência: ${d.titulo}`} />}
+                      <div className="card-body">
+                        <div className="rc-card-topline">
+                          <span className="badge rc-category">{d.categoria || "Outros"}</span>
+                          <span className={`rc-status-compact ${RESOLUTION[d.resolucaoStatus]?.className || 'is-open'}`}><i className={`bi ${RESOLUTION[d.resolucaoStatus]?.icon || 'bi-circle-fill'}`} />{RESOLUTION[d.resolucaoStatus]?.label || 'Aberta'}</span>
+                        </div>
+                        <h5 className="rc-card-title">{d.titulo}</h5>
+                        <p className="rc-card-description">{d.descricao}</p>
+                        <div className="rc-card-location"><i className="bi bi-geo-alt-fill" /><span>{d.localizacao}</span></div>
+                        <div className="rc-card-meta"><span><i className="bi bi-person-circle" /> {d.User?.username || "Usuário não identificado"}</span><time><i className="bi bi-calendar3" /> {new Date(d.createdAt).toLocaleDateString("pt-BR")}</time></div>
+                        <button className="rc-details-button" onClick={() => navigate(`/denuncia/${d.id}`)}><span>Ver detalhes</span><i className="bi bi-arrow-right" /></button>
+                      </div>
+                      <div className="card-footer bg-white border-0">
+                        <Like denunciaId={d.id} />
+                        <Compartilhar denunciaId={d.id} titulo={d.titulo} />
+                        <Comentarios denunciaId={d.id} />
+                      </div>
+                    </article>
                   </div>
-                  {/* Seção de comentários e likes */}
-                  <div className="card-footer bg-white border-0">
-                    <div className="mb-2">
-                      <Like denunciaId={d.id} />
-                    </div>
-                    <div>
-                      <Comentarios denunciaId={d.id} />
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+
+            {result.totalPages > 1 && (
+              <div className="d-flex justify-content-center align-items-center gap-3 my-4">
+                <button className="btn btn-outline-primary" disabled={result.page <= 1} onClick={() => load(result.page - 1)}>Anterior</button>
+                <span>Página {result.page} de {result.totalPages}</span>
+                <button className="btn btn-outline-primary" disabled={result.page >= result.totalPages} onClick={() => load(result.page + 1)}>Próxima</button>
+              </div>
+            )}
+          </>
         )}
-      </div>
-      <Footer/>
-    </>
-  )
-}
+      </main>
+
+      {isAuthenticated && <button className="rc-fab" onClick={() => navigate("/nova-denuncia")} title="Nova denúncia">+</button>}
+      <Footer />
+    </div>
+  );
+};
+
 export default Home;

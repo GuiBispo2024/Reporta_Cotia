@@ -1,6 +1,10 @@
 const request = require('supertest');
 const app = require('../../app'); // ajuste para o arquivo que exporta express app
 const db = require('../../models/db/db'); // inicializar/limpar DB (opcional)
+const { User } = require('../../models/rel');
+
+let tokenUsuario;
+let idUsuario;
 
 describe('Users routes (integration)', () => {
   beforeAll(async () => {
@@ -43,7 +47,8 @@ describe('Users routes (integration)', () => {
   test("GET /users → lista todos os usuários (200)", async () => {
     console.log("➡️ Teste: listar usuários");
 
-    const res = await request(app).get("/users");
+    const res = await request(app).get("/users")
+      .set("Authorization", `Bearer ${tokenUsuario}`);
 
     console.log("Resposta:", res.statusCode, res.body);
 
@@ -56,7 +61,8 @@ describe('Users routes (integration)', () => {
   test("GET /users/:id → retorna usuário específico", async () => {
     console.log("➡️ Teste: buscar usuário por ID");
 
-    const res = await request(app).get(`/users/${idUsuario}`);
+    const res = await request(app).get(`/users/${idUsuario}`)
+      .set("Authorization", `Bearer ${tokenUsuario}`);
 
     console.log("Resposta:", res.statusCode, res.body);
 
@@ -81,6 +87,19 @@ describe('Users routes (integration)', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.user).toHaveProperty("username", "updatedUser");
+  });
+
+  test("DELETE /users/avatar remove a imagem do perfil no banco", async () => {
+    await User.update({ avatarUrl: '/uploads/perfil-teste.jpg' }, { where: { id: idUsuario } });
+
+    const res = await request(app)
+      .delete('/users/avatar')
+      .set('Authorization', `Bearer ${tokenUsuario}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.user.avatarUrl).toBeNull();
+    const user = await User.findByPk(idUsuario);
+    expect(user.avatarUrl).toBeNull();
   });
 
   // -------------------------------------------------------------------

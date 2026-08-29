@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const UserService = require('../services/UserService')
 const auth = require('../middlewares/auth')
+const { upload, storeImage } = require('../utils/upload')
 
 /**
  * @swagger
@@ -40,12 +41,19 @@ const auth = require('../middlewares/auth')
  */
 
 //Cadastra um usuário
-router.post('/',async(req,res)=>{
+router.post('/', upload.single('avatar'), async(req,res, next)=>{
     try{
-        const user = await UserService.register(req.body)
+        const avatarUrl = await storeImage(req.file, 'perfis')
+        const user = await UserService.register({ ...req.body, avatarUrl })
         res.status(201).json({user})
     }catch(error){
-        res.status(400).json({message:error.message})
+        if (error.name === 'SequelizeUniqueConstraintError') {
+          return res.status(409).json({ message: 'Já existe uma conta com este e-mail ou nome de usuário.' })
+        }
+        if (error.message?.includes('cadastrado')) {
+          return res.status(409).json({ message: error.message })
+        }
+        next(error)
     }
 })
 
@@ -99,7 +107,7 @@ router.post('/login', async (req, res) => {
  */
 
 //Lista todos os usuários
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const users = await UserService.getAll()
     res.status(200).json(users)
@@ -128,12 +136,20 @@ router.get('/', async (req, res) => {
 //Lista todos os usuários com a contagem de denúncias feitas por cada um
 router.get('/denunciaCount', auth, async (req, res) => {
   try{
-    const resultado = await UserService.getAllWithDenunciaCount();
+    const resultado = await UserService.getAllWithDenunciaCount(req.user.adm);
     res.status(200).json(resultado);
   }catch(error){
     res.status(500).json({ message: error.message })
   }
 });
+
+router.get('/me', auth, async (req, res) => {
+  try {
+    res.status(200).json(await UserService.getMe(req.user.id))
+  } catch (error) {
+    res.status(404).json({ message: error.message })
+  }
+})
 
 /**
  * @swagger
@@ -155,7 +171,7 @@ router.get('/denunciaCount', auth, async (req, res) => {
  */
 
 //Procura um usuário específico
-router.get('/:id', async (req, res) => {
+router.get('/:id', auth, async (req, res) => {
   try {
     const user = await UserService.getById(req.params.id)
     res.status(200).json(user)
@@ -198,12 +214,31 @@ router.get('/:id', async (req, res) => {
  */
 
 //Altera um usuário
-router.put('/update',auth, async (req, res) => {
+router.put('/update', auth, async (req, res) => {
   try {
-    const result = await UserService.update(req.body,req.user.id)
+    const result = await UserService.update(req.body, req.user.id)
     res.status(200).json(result)
   } catch (error) {
-    res.status(403).json({ message: error.message })
+    const status = error.name === 'SequelizeUniqueConstraintError' ? 409 : 400
+    res.status(status).json({ message: error.message })
+  }
+})
+
+router.patch('/avatar', auth, upload.single('avatar'), async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'Selecione uma imagem para o perfil.' })
+    const avatarUrl = await storeImage(req.file, 'perfis')
+    res.status(200).json(await UserService.updateAvatar(req.user.id, avatarUrl))
+  } catch (error) {
+    next(error)
+  }
+})
+
+router.delete('/avatar', auth, async (req, res, next) => {
+  try {
+    res.status(200).json(await UserService.removeAvatar(req.user.id))
+  } catch (error) {
+    next(error)
   }
 })
 
@@ -244,7 +279,7 @@ router.put('/update',auth, async (req, res) => {
 router.put('/:id/adm', auth, async (req, res) => {
   try {
     const { adm } = req.body
-    const result = await UserService.updateAdm(req.params.id, adm, req.user.adm)
+    const result = await UserService.updateAdm(req.params.id, adm, req.user.adm, req.user.id)
     res.status(200).json(result)
   } catch (error) {
     res.status(403).json({ message: error.message })

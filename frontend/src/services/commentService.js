@@ -20,6 +20,11 @@ const commentService = {
     const res = await api.delete(`/denuncia/comentario/${id}`)
     return res.data
   }
+  ,
+  async revisarCensura(id, manterCensura) {
+    const res = await api.patch(`/denuncia/comentario/${id}/censura`, { manterCensura })
+    return res.data
+  }
 }
 
 export default commentService

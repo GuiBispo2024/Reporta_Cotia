@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const CommentService = require('../services/CommentService')
 const auth = require('../middlewares/auth')
+const optionalAuth = require('../middlewares/optionalAuth')
 
 /**
  * @swagger
@@ -75,12 +76,20 @@ router.post('/:denunciaId/comentario',auth, async (req, res) => {
  */
 
 // Lista comentários de uma denúncia
-router.get('/:denunciaId/comentarios', async (req, res) => {
+router.get('/:denunciaId/comentarios', optionalAuth, async (req, res) => {
   try {
-    const comentarios = await CommentService.listarPorDenuncia(req.params.denunciaId)
+    const comentarios = await CommentService.listarPorDenuncia(req.params.denunciaId, Boolean(req.user?.adm))
     res.status(200).json(comentarios)
   } catch (error) {
     res.status(500).json({ message: error.message })
+  }
+})
+
+router.patch('/comentario/:id/censura', auth, async (req, res) => {
+  try {
+    res.status(200).json(await CommentService.revisarCensura(req.params.id, req.body.manterCensura, req.user.adm))
+  } catch (error) {
+    res.status(error.message.includes('Apenas administradores') ? 403 : 400).json({ message: error.message })
   }
 })
 
@@ -121,7 +130,7 @@ router.get('/:denunciaId/comentarios', async (req, res) => {
 //Altera um comentário
 router.put('/comentario/:id',auth, async (req, res) => {
   try {
-    const result = await CommentService.atualizar(req.params.id, req.body, req.user)
+    const result = await CommentService.atualizar(req.params.id, req.body, req.user.id)
     res.status(200).json(result)
   } catch (error) {
     res.status(403).json({ message: error.message })

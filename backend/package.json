@@ -8,7 +8,9 @@
     "test": "jest --passWithNoTests",
     "test:unit": "jest --passWithNoTests",
     "test:integration": "jest --passWithNoTests",
-    "test:all": "jest --passWithNoTests --coverage"
+    "test:all": "jest --passWithNoTests --coverage",
+    "db:migrate": "npx sequelize-cli db:migrate",
+    "db:migrate:undo": "npx sequelize-cli db:migrate:undo"
   },
   "keywords": [],
   "author": "",
@@ -16,10 +18,12 @@
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "body-parser": "^2.2.0",
+    "cloudinary": "^2.7.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
     "pg": "^8.16.3",
     "sequelize": "^6.37.7",
     "swagger-jsdoc": "^6.2.8",
@@ -28,6 +32,8 @@
   "description": "",
   "devDependencies": {
     "jest": "^30.2.0",
+    "sequelize-cli": "^6.6.3",
+    "sqlite3": "^6.0.1",
     "supertest": "^7.1.4"
   }
 }

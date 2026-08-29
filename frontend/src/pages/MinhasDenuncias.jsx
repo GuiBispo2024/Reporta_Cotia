@@ -1,116 +1,94 @@
 import { useEffect, useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import denunciasService from "../services/denunciaService";
 import { AuthContext } from "../context/authContext";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import ResolutionTimeline from "../components/ResolutionTimeline";
+import { friendlyError } from '../utils/errorMessage';
+
+const modBadge = (status) => ({
+  aprovada: "bg-success", rejeitada: "bg-danger", pendente: "bg-warning text-dark"
+}[status] || "bg-secondary");
 
 export default function MinhasDenuncias() {
-  const { user, token } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [denuncias, setDenuncias] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchDenuncias = async () => {
-      try {
-        const data = await denunciasService.buscarPorUsuario(user.id, token);
-        setDenuncias(data);
-      } catch (err) {
-        console.error(err);
-        setError("Erro ao carregar denúncias.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (user && token) {
-      fetchDenuncias();
-    }
-  }, [user, token]);
-
-  const handleEditar = (id) => {
-    // Redireciona para página de edição
-    window.location.href = `/editar-denuncia/${id}`;
+  const carregar = async () => {
+    try {
+      setLoading(true);
+      setDenuncias(await denunciasService.buscarPorUsuario(user.id));
+    } catch (err) {
+      setError(err.response?.status === 404 ? null : friendlyError(err, "Não foi possível carregar suas denúncias. Atualize a página para tentar novamente."));
+      setDenuncias([]);
+    } finally { setLoading(false); }
   };
+
+  useEffect(() => { if (user) carregar(); }, [user]);
 
   const handleExcluir = async (id) => {
-    if (!window.confirm("Tem certeza que deseja excluir esta denúncia?")) 
-      return;
+    if (!window.confirm("Excluir esta denúncia permanentemente? Comentários, curtidas e demais dados relacionados também serão removidos.")) return;
     try {
-      await denunciasService.deletar(id, token);
-      // Atualiza a lista de denúncias
-      setDenuncias((prev) => prev.filter((d) => d.id !== id));
-    } catch (err) {
-      console.error(err);
-      alert("Erro ao excluir denúncia.");
-    }
-  };
-
-  const renderStatusBadge = (status) => {
-    if (status === "aprovada")
-      return <span className="badge bg-success">Aprovada ✅</span>;
-    if (status === "rejeitada")
-        return <span className="badge bg-danger">Rejeitada ❌</span>;
-    if (status === "pendente")
-        return <span className="badge bg-warning text-dark">Pendente ⏳</span>;
+      await denunciasService.deletar(id);
+      setDenuncias(prev => prev.filter(d => d.id !== id));
+    } catch (err) { alert(friendlyError(err, "Não foi possível excluir a denúncia. Nenhuma informação foi removida.")); }
   };
 
   return (
-    <>
+    <div className="rc-page">
       <Navbar />
-      <div className="container mt-5">
-        <h2 className="text-center text-primary mb-4">Minhas Denúncias</h2>
+      <main className="container py-4 flex-grow-1">
+        <div className="text-center mb-4">
+          <span className="rc-eyebrow">ACOMPANHAMENTO</span>
+          <h2 className="fw-bold">Minhas denúncias</h2>
+          <p className="text-muted">Acompanhe a moderação e o progresso dos problemas que você registrou.</p>
+        </div>
 
-        {loading ? (
-          <div className="text-center mt-4">
-            <div className="spinner-border text-primary" role="status"></div>
-            <p className="mt-2">Carregando denúncias...</p>
-          </div>
-        ) : error ? (
-          <div className="alert alert-danger text-center">{error}</div>
-        ) : denuncias.length === 0 ? (
-          <div className="alert alert-info text-center">
-            Você ainda não fez nenhuma denúncia.
-          </div>
-        ) : (
-          <div className="row">
-            {denuncias.map((d) => (
-              <div key={d.id} className="col-md-6 col-lg-4 mb-4">
-                <div className="card h-100 shadow-sm border-0">
-                  <div className="card-body">
-                    <h5 className="card-title text-primary">{d.titulo}</h5>
-                    <p className="card-text">{d.descricao}</p>
-                    <p className="text-muted small">
-                      <i className="bi bi-geo-alt"></i> {d.localizacao}
-                    </p>
-                    <div className="d-flex justify-content-between align-items-center">
-                      {renderStatusBadge(d.status)}
-                      {d.status === "rejeitada" && (
-                        <div className="mt-3 d-flex gap-2">
-                          <button
-                            className="btn btn-sm btn-warning"
-                            onClick={() => handleEditar(d.id)}
-                          >
-                            Editar
-                          </button>
-
-                          <button
-                            className="btn btn-sm btn-danger"
-                            onClick={() => handleExcluir(d.id)}
-                          >
-                            Excluir
-                          </button>
-                        </div>
-                      )}
-                    </div>
+        {loading ? <div className="text-center py-5"><div className="spinner-border text-primary" /></div>
+        : error ? <div className="alert alert-danger">{error}</div>
+        : denuncias.length === 0 ? <div className="rc-empty">Você ainda não fez nenhuma denúncia.</div>
+        : <div className="row g-4">
+          {denuncias.map(d => (
+            <div className="col-12 col-md-6" key={d.id}>
+              <article className="card rc-card h-100">
+                {d.imageUrl && <img src={d.imageUrl} className="rc-card-image" alt={d.titulo} />}
+                <div className="card-body">
+                  <div className="d-flex justify-content-between align-items-start gap-2">
+                    <h5 className="fw-bold">{d.titulo}</h5>
+                    <span className={`badge ${modBadge(d.status)}`}>
+                      {d.status === "pendente" ? "Em moderação" : d.status}
+                    </span>
                   </div>
+                  <p className="text-secondary">{d.descricao}</p>
+                  <p><i className="bi bi-geo-alt" /> {d.localizacao}</p>
+
+                  {d.status === "aprovada" && (
+                    <>
+                      <hr />
+                      <div className="small text-muted mb-2">Progresso da solução</div>
+                      <ResolutionTimeline status={d.resolucaoStatus} />
+                    </>
+                  )}
+
+                  {d.status === "rejeitada" && (
+                    <div className="alert alert-warning py-2 small"><strong>A denúncia foi rejeitada.</strong>{d.motivoRejeicao && <span className="d-block mt-1"><strong>Motivo informado:</strong> {d.motivoRejeicao}</span>}<span className="d-block mt-1">Você pode corrigir os dados e reenviar para moderação.</span></div>
+                  )}
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                <div className="card-footer bg-white border-0 d-flex gap-2">
+                  <button className="btn btn-outline-primary btn-sm" onClick={() => navigate(`/denuncia/${d.id}`)}>Detalhes</button>
+                  {d.status === "rejeitada" && <button className="btn btn-warning btn-sm" onClick={() => navigate(`/editar-denuncia/${d.id}`)}>Editar</button>}
+                  {d.status === "rejeitada" && <button className="btn btn-outline-danger btn-sm" onClick={() => handleExcluir(d.id)}>Excluir</button>}
+                </div>
+              </article>
+            </div>
+          ))}
+        </div>}
+      </main>
       <Footer />
-    </>
+    </div>
   );
 }

@@ -2,15 +2,27 @@ const swaggerJSDoc = require('swagger-jsdoc')
 const swaggerUi = require('swagger-ui-express')
 const path = require('path')
 
+const controllersPath = path
+    .resolve(__dirname, '../controllers/*.js')
+    .replace(/\\/g, '/')
+
 const options = {
     definition: {
         openapi: '3.0.0',
+
         info: {
             title: 'API Reporta Cotia',
             version: '1.0.0',
             description: 'Documentação da API do sistema Reporta Cotia'
         },
-        servers: [],
+
+        servers: [
+            {
+                url: 'http://localhost:8081',
+                description: 'Servidor local'
+            }
+        ],
+
         components: {
             securitySchemes: {
                 bearerAuth: {
@@ -20,15 +32,20 @@ const options = {
                 }
             }
         },
+
         security: [
             {
                 bearerAuth: []
             }
         ]
     },
-    apis: [path.join(__dirname, '../controllers/*.js')]
+
+    apis: [controllersPath]
 }
 
 const swaggerSpec = swaggerJSDoc(options)
 
-module.exports = {swaggerUi, swaggerSpec}
+module.exports = {
+    swaggerUi,
+    swaggerSpec
+}

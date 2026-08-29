@@ -38,8 +38,10 @@ else {
     );
 }
 
-sequelize.authenticate()
-    .then(() => console.log("Conexão com o banco estabelecida"))
-    .catch((err) => console.error("Erro ao conectar ao DB:", err))
+if (process.env.NODE_ENV !== 'test') {
+    sequelize.authenticate()
+        .then(() => console.log("Conexão com o banco estabelecida"))
+        .catch((err) => console.error("Erro ao conectar ao DB:", err))
+}
 
 module.exports = {sequelize, Sequelize}

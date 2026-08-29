@@ -38,7 +38,7 @@ describe('DenunciaService (unit)', () => {
     console.log("📦 Resultado:", result);
 
     expect(DenunciaRepository.create).toHaveBeenCalled();
-    expect(result.message).toBe("Denúncia enviada para moderação com sucesso");
+    expect(result.message).toBe("Denúncia enviada para moderação com sucesso.");
     expect(result.denuncia).toHaveProperty("id");
   });
 
@@ -47,7 +47,7 @@ describe('DenunciaService (unit)', () => {
 
     await expect(
       DenunciaService.create({ titulo: "", descricao: "", localizacao: "" }, { id: 1 })
-    ).rejects.toThrow("Título, descrição e localização são obrigatórios.");
+    ).rejects.toThrow("Título é obrigatório.");
   });
 
   // -----------------------------
@@ -67,7 +67,7 @@ describe('DenunciaService (unit)', () => {
 
     console.log("📦 Resultado:", res);
 
-    expect(res.message).toBe("Denúncia marcada como aprovada");
+    expect(res.message).toBe("Denúncia marcada como aprovada.");
     expect(res.denuncia.status).toBe("aprovada");
   });
 
@@ -84,7 +84,7 @@ describe('DenunciaService (unit)', () => {
 
     await expect(
       DenunciaService.moderar(1, "xxxx", true)
-    ).rejects.toThrow("Status inválido.");
+    ).rejects.toThrow("Status de moderação inválido.");
   });
 
   test('moderar: erro denúncia não encontrada', async () => {
@@ -103,11 +103,11 @@ describe('DenunciaService (unit)', () => {
   test('buscarPorId: retorna denúncia', async () => {
     console.log("➡️ Testando: buscarPorId()");
 
-    DenunciaRepository.findById.mockResolvedValue({ id: 1 });
+    DenunciaRepository.findById.mockResolvedValue({ id: 1, status: 'aprovada' });
 
     const res = await DenunciaService.buscarPorId(1);
 
-    expect(res).toEqual({ id: 1 });
+    expect(res).toEqual({ id: 1, status: 'aprovada' });
   });
 
   test('buscarPorId: erro se não existe', async () => {
@@ -137,8 +137,7 @@ describe('DenunciaService (unit)', () => {
 
     DenunciaRepository.findByUserId.mockResolvedValue([]);
 
-    await expect(DenunciaService.buscarPorUsuario(10))
-      .rejects.toThrow("Nenhuma denúncia encontrada para este usuário.");
+    await expect(DenunciaService.buscarPorUsuario(10)).resolves.toEqual([]);
   });
 
   // -----------------------------
@@ -147,7 +146,7 @@ describe('DenunciaService (unit)', () => {
   test('atualizar: autor atualiza denúncia', async () => {
     console.log("➡️ Testando: atualizar()");
 
-    DenunciaRepository.findById.mockResolvedValue({ id: 1, userId: 10 });
+    DenunciaRepository.findById.mockResolvedValue({ id: 1, userId: 10, status: 'rejeitada' });
 
     DenunciaRepository.update.mockResolvedValue();
 

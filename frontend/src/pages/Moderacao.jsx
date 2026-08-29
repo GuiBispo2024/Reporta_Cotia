@@ -3,105 +3,223 @@ import denunciaService from "../services/denunciaService";
 import Navbar from "../components/Navbar";
 import { AuthContext } from "../context/authContext";
 import Footer from "../components/Footer";
+import ResolutionTimeline from "../components/ResolutionTimeline";
+import { friendlyError } from '../utils/errorMessage';
 
 export default function Moderacao() {
-  const {user} = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   const [denuncias, setDenuncias] = useState([]);
+  const [aprovadas, setAprovadas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [motivos, setMotivos] = useState({});
 
-  useEffect(() => {
-    carregarDenunciasPendentes();
-  }, []);
-
-  const carregarDenunciasPendentes = async () => {
+  const carregar = async () => {
     try {
-      const todas = await denunciaService.listarTodas();
-      const pendentes = todas.filter((d) => d.status === "pendente");
-      setDenuncias(pendentes);
+      setLoading(true);
+      const todas = await denunciaService.listarParaModeracao();
+      setDenuncias(todas.filter(d => d.status === "pendente"));
+      setAprovadas(todas.filter(d => d.status === "aprovada"));
+    } catch (error) { setError(friendlyError(error, "Não foi possível carregar o painel de moderação. Atualize a página para tentar novamente.")); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { if (user?.adm) carregar(); }, [user]);
+
+  const moderar = async (id, status) => {
+    try {
+      const response = await denunciaService.moderar(id, {
+        status,
+        motivoRejeicao: status === 'rejeitada' ? motivos[id] || '' : ''
+      });
+
+      setDenuncias(prev =>
+        prev.filter(d => d.id !== id)
+      );
+
+      if (status === "aprovada") {
+        setAprovadas(prev => [
+          response.denuncia,
+          ...prev
+        ]);
+      }
     } catch (err) {
-      setError("Erro ao carregar denúncias pendentes.");
-    } finally {
-      setLoading(false);
+      alert(
+        friendlyError(err, "Não foi possível atualizar a moderação. A denúncia permaneceu no estado anterior.")
+      );
     }
   };
 
-  const moderarDenuncia = async (id, status) => {
+  const revisarCensura = async (id, field, manterCensura) => {
     try {
-      await denunciaService.moderar(id, { status });
-      setDenuncias((prev) => prev.filter((d) => d.id !== id));
-      alert(`Denúncia marcada como ${status}.`);
+      const result = await denunciaService.revisarCensura(id, field, manterCensura);
+      setDenuncias(prev => prev.map(d => d.id === id ? {
+        ...d,
+        [field]: result.value,
+        [field === 'titulo' ? 'tituloCensurado' : 'descricaoCensurada']: result.censurado,
+        [field === 'titulo' ? 'tituloOriginal' : 'descricaoOriginal']: null
+      } : d));
     } catch (err) {
-      alert("Erro ao atualizar status da denúncia.");
+      alert(friendlyError(err, 'Não foi possível registrar a revisão da censura.'));
     }
   };
 
-  if (!user?.adm) {
-    return <h2 className="alert alert-danger text-center">Apenas administradores podem acessar esta página.</h2>
-  }
+  const atualizarResolucao = async (id, resolucaoStatus) => {
+    try {
+      await denunciaService.atualizarResolucao(
+        id,
+        resolucaoStatus
+      );
+
+      setAprovadas(prev =>
+        prev.map(d =>
+          d.id === id
+            ? {
+                ...d,
+                resolucaoStatus
+              }
+            : d
+        )
+      );
+    } catch (err) {
+      alert(
+        friendlyError(err, "Não foi possível atualizar o andamento. O status anterior foi mantido.")
+      );
+    }
+  };
+
+  if (!user?.adm) return <div className="container py-5"><div className="alert alert-danger">Apenas administradores podem acessar esta página.</div></div>;
 
   return (
-    <>
+    <div className="rc-page">
       <Navbar />
-      <div className="container mt-4">
-        <h2 className="text-center mb-4">🛠️ Moderação de Denúncias</h2>
+      <main className="container py-4 flex-grow-1">
+        <div className="text-center mb-4">
+          <span className="rc-eyebrow">PAINEL ADMINISTRATIVO</span>
+          <h2 className="fw-bold">Moderação</h2>
+          <p className="text-muted">Aprove ou rejeite novos registros antes da publicação.</p>
+        </div>
 
-        {loading && (
-          <div className="text-center">
-            <div className="spinner-border text-primary" role="status"></div>
-            <p className="mt-2">Carregando denúncias...</p>
-          </div>
-        )}
+        {loading && <div className="text-center"><div className="spinner-border text-primary" /></div>}
+        {error && <div className="alert alert-danger">{error}</div>}
+        {!loading && !denuncias.length && <div className="rc-empty">Não há denúncias pendentes no momento.</div>}
 
-        {error && (
-          <div className="alert alert-danger text-center" role="alert">
-            {error}
-          </div>
-        )}
-
-        {!loading && denuncias.length === 0 && (
-          <div className="alert alert-info text-center">
-            Não há denúncias pendentes no momento.
-          </div>
-        )}
-
-        <div className="row">
-          {denuncias.map((d) => (
-            <div className="col-md-6 col-lg-4 mb-4" key={d.id}>
-              <div className="card shadow-sm h-100">
+        <div className="row g-4">
+          {denuncias.map(d => (
+            <div className="col-12 col-md-6 col-lg-4" key={d.id}>
+              <article className="card rc-card h-100">
+                {d.imageUrl && <img src={d.imageUrl} className="rc-card-image" alt={d.titulo} />}
                 <div className="card-body">
-                  <h5 className="card-title">{d.titulo}</h5>
-                  <p className="card-text">
-                    <strong>Descrição:</strong> {d.descricao}
-                  </p>
-                  <p className="card-text">
-                    <strong>Localização:</strong> {d.localizacao}
-                  </p>
-                  <p className="card-text">
-                    <strong>Usuário:</strong> {d.User?.username || "Desconhecido"}
-                  </p>
-
-                  <div className="d-flex justify-content-between mt-3">
-                    <button
-                      className="btn btn-success w-50 me-2"
-                      onClick={() => moderarDenuncia(d.id, "aprovada")}
-                    >
-                      ✅ Aprovar
-                    </button>
-                    <button
-                      className="btn btn-danger w-50"
-                      onClick={() => moderarDenuncia(d.id, "rejeitada")}
-                    >
-                      ❌ Rejeitar
-                    </button>
+                  <span className="badge rc-category mb-2">{d.categoria || "Outros"}</span>
+                  <h5 className="fw-bold">{d.titulo}</h5>
+                  <p>{d.descricao}</p>
+                  {(d.tituloOriginal || d.descricaoOriginal) && <div className="rc-censorship-review">
+                    <strong><i className="bi bi-eye" /> Revisão de conteúdo automático</strong>
+                    {d.tituloOriginal && <div className="rc-censored-field"><small>Título original</small><p>{d.tituloOriginal}</p><div><button className="btn btn-sm btn-outline-danger" onClick={() => revisarCensura(d.id, 'titulo', true)}>Manter censura</button><button className="btn btn-sm btn-outline-success" onClick={() => revisarCensura(d.id, 'titulo', false)}>Retirar censura</button></div></div>}
+                    {d.descricaoOriginal && <div className="rc-censored-field"><small>Descrição original</small><p>{d.descricaoOriginal}</p><div><button className="btn btn-sm btn-outline-danger" onClick={() => revisarCensura(d.id, 'descricao', true)}>Manter censura</button><button className="btn btn-sm btn-outline-success" onClick={() => revisarCensura(d.id, 'descricao', false)}>Retirar censura</button></div></div>}
+                  </div>}
+                  <p className="small"><strong>Local:</strong> {d.localizacao}</p>
+                  <p className="small"><strong>Usuário:</strong> {d.User?.username || "Desconhecido"}</p>
+                  <label className="form-label small fw-semibold mt-2">Motivo da rejeição <span className="text-muted">(opcional)</span></label>
+                  <textarea className="form-control form-control-sm" rows="2" maxLength="1000" placeholder="Explique o que o cidadão pode corrigir..." value={motivos[d.id] || ''} onChange={e => setMotivos(prev => ({ ...prev, [d.id]: e.target.value }))} />
+                  <div className="d-flex gap-2 mt-3">
+                    <button className="btn btn-success flex-fill" onClick={() => moderar(d.id, "aprovada")}>✅ Aprovar</button>
+                    <button className="btn btn-danger flex-fill" onClick={() => moderar(d.id, "rejeitada")}>❌ Rejeitar</button>
                   </div>
                 </div>
-              </div>
+              </article>
             </div>
           ))}
         </div>
-      </div>
+
+      <section className="mt-5">
+
+        <h4 className="fw-bold">
+          Atualizar resolução dos problemas
+        </h4>
+
+        <p className="text-muted">
+          Atualize o andamento das denúncias que já
+          foram aprovadas pela moderação.
+        </p>
+
+        {!aprovadas.length ? (
+          <div className="rc-empty">
+            Não há denúncias aprovadas para acompanhar.
+          </div>
+        ) : (
+          <div className="row g-3">
+
+            {aprovadas.map(d => (
+
+              <div
+                className="col-12 col-lg-6"
+                key={`resolution-${d.id}`}
+              >
+
+                <div className="rc-filter-card">
+
+                  <div className="d-flex justify-content-between">
+                    <strong>{d.titulo}</strong>
+
+                    <span className="badge bg-success">
+                      Aprovada
+                    </span>
+                  </div>
+
+                  <p className="small text-muted mt-2 mb-2">
+                    <i className="bi bi-person-circle me-1" />
+
+                    {d.User?.username ||
+                      "Usuário não identificado"}
+                  </p>
+
+                  <ResolutionTimeline
+                    status={d.resolucaoStatus}
+                  />
+
+                  <label
+                    className="form-label mt-3 fw-semibold"
+                  >
+                    Andamento
+                  </label>
+
+                  <select
+                    className="form-select"
+                    value={
+                      d.resolucaoStatus || "aberta"
+                    }
+                    onChange={e =>
+                      atualizarResolucao(
+                        d.id,
+                        e.target.value
+                      )
+                    }
+                  >
+                    <option value="aberta">
+                      Aberta
+                    </option>
+
+                    <option value="em_andamento">
+                      Em andamento
+                    </option>
+
+                    <option value="resolvida">
+                      Resolvida
+                    </option>
+                  </select>
+
+                </div>
+
+              </div>
+
+            ))}
+
+          </div>
+        )}
+      </section>
+      </main>
       <Footer />
-    </>
+    </div>
   );
 }

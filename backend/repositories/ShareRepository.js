@@ -11,7 +11,8 @@ class ShareRepository {
   static async findByDenunciaId(denunciaId) {
     const shares = await Share.findAll({
       where: { denunciaId },
-      include: { model: User, attributes: ['id', 'username'] }
+      include: { model: User, attributes: ['id', 'username', 'avatarUrl'] },
+      order: [['createdAt', 'DESC']]
     })
     return { totalShares: shares.length, shares }
   }

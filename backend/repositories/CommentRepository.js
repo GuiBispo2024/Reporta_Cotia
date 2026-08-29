@@ -8,10 +8,12 @@ class CommentRepository {
   }
 
   // Busca todos os comentários de uma denúncia
-  static async findByDenunciaId(denunciaId) {
+  static async findByDenunciaId(denunciaId, includeSensitive = false) {
     const comments = await Comment.findAll({
       where: { denunciaId },
-      include: [{ model: User, attributes: ['id', 'username'] }]
+      include: [{ model: User, attributes: ['id', 'username', 'avatarUrl'] }],
+      order: [['createdAt', 'DESC']],
+      attributes: includeSensitive ? undefined : { exclude: ['comentarioOriginal'] }
     })
     return{
       totalComments: comments.length, comments

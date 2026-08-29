@@ -10,7 +10,8 @@ class LikeRepository {
   static async findByDenunciaId({denunciaId}) {
     return Like.findAll({
       where: { denunciaId },
-      include: { model: User, attributes: ['id', 'username'] }
+      include: { model: User, attributes: ['id', 'username', 'avatarUrl'] },
+      order: [['createdAt', 'DESC']]
     })
   }
 

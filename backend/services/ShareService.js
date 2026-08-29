@@ -10,7 +10,8 @@ class ShareService {
     const denuncia = await Denuncia.findByPk(denunciaId)
     if (!denuncia) throw new Error('Denúncia não existe.')
 
-    const { hasBadWord, filteredText } = filterBadWords(comentario || '')
+    const mensagem = typeof comentario === 'string' ? comentario.trim().slice(0, 255) : ''
+    const { hasBadWord, filteredText } = filterBadWords(mensagem)
 
     const share = await ShareRepository.create({
       userId,
