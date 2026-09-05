@@ -6,8 +6,8 @@ const commentService = {
     return res.data
   },
   
-  async listarPorDenuncia(denunciaId) {
-    const res = await api.get(`/denuncia/${denunciaId}/comentarios`)
+  async listarPorDenuncia(denunciaId, params = {}) {
+    const res = await api.get(`/denuncia/${denunciaId}/comentarios`, { params })
     return res.data
   },
 

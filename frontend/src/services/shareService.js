@@ -6,8 +6,8 @@ const shareService = {
     return res.data
   },
 
-  async listarPorDenuncia(denunciaId) {
-    const res = await api.get(`/denuncia/${denunciaId}/shares`)
+  async listarPorDenuncia(denunciaId, params = {}) {
+    const res = await api.get(`/denuncia/${denunciaId}/shares`, { params })
     return res.data
   },
 
