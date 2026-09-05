@@ -1,6 +1,6 @@
 import { useState, useContext, useEffect } from "react";
 import { AuthContext } from "../context/authContext";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
@@ -48,6 +48,7 @@ export default function Login() {
             <div className="input-group input-group-lg mb-3"><span className="input-group-text"><i className="bi bi-envelope" /></span><input type="email" className="form-control" placeholder="seu@email.com" value={email} onChange={e => setEmail(e.target.value)} required /></div>
             <label className="form-label fw-semibold">Senha</label>
             <div className="input-group input-group-lg mb-3"><span className="input-group-text"><i className="bi bi-lock" /></span><input type="password" className="form-control" placeholder="Digite sua senha" value={password} onChange={e => setPassword(e.target.value)} required /></div>
+            <div className="text-end mb-3"><Link className="small fw-semibold" to="/esqueci-senha">Esqueci minha senha</Link></div>
             {error && <div className="alert alert-danger py-2">{error}</div>}
             <button className="btn btn-primary btn-lg w-100" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</button>
           </form>
