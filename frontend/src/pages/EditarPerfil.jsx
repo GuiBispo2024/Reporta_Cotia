@@ -6,15 +6,18 @@ import { useNavigate } from "react-router-dom";
 import userService from "../services/userService";
 import UserAvatar from '../components/UserAvatar';
 import { friendlyError } from '../utils/errorMessage';
+import AvatarCropper from '../components/AvatarCropper';
 
 export default function EditarPerfil() {
-  const { user, setUser } = useContext(AuthContext);
+  const { user, setUser, setToken } = useContext(AuthContext);
   const navigate = useNavigate();
   const [form, setForm] = useState({ username: user?.username || "", email: user?.email || "", senhaAtual: "", novaSenha: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [avatar, setAvatar] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(user?.avatarUrl || "");
+  const [avatarToCrop, setAvatarToCrop] = useState(null);
+  const [showAvatarActions, setShowAvatarActions] = useState(false);
 
   const escolherAvatar = e => {
     const file = e.target.files?.[0];
@@ -22,8 +25,16 @@ export default function EditarPerfil() {
     if (!file.type.startsWith('image/')) return setError('Selecione um arquivo de imagem.');
     if (file.size > 5 * 1024 * 1024) return setError('A foto deve ter no máximo 5 MB.');
     setError('');
+    setAvatarToCrop(file);
+    e.target.value = '';
+  };
+
+  const aplicarRecorte = file => {
+    if (avatar && avatarPreview) URL.revokeObjectURL(avatarPreview);
     setAvatar(file);
     setAvatarPreview(URL.createObjectURL(file));
+    setAvatarToCrop(null);
+    setShowAvatarActions(false);
   };
 
   const removerAvatar = async () => {
@@ -31,6 +42,7 @@ export default function EditarPerfil() {
       if (avatarPreview) URL.revokeObjectURL(avatarPreview);
       setAvatar(null);
       setAvatarPreview(user?.avatarUrl || '');
+      setShowAvatarActions(false);
       return;
     }
     if (!user?.avatarUrl) return;
@@ -40,6 +52,7 @@ export default function EditarPerfil() {
       const result = await userService.removeAvatar();
       setUser(result.user);
       setAvatarPreview('');
+      setShowAvatarActions(false);
     } catch (err) {
       setError(friendlyError(err, 'Não foi possível remover a foto de perfil. Tente novamente.'));
     } finally { setLoading(false); }
@@ -52,6 +65,7 @@ export default function EditarPerfil() {
       setError("");
       const profileResult = await userService.update(form);
       let updatedUser = profileResult.user;
+      if (profileResult.token) setToken(profileResult.token);
       if (avatar) {
         const avatarResult = await userService.updateAvatar(avatar);
         updatedUser = avatarResult.user;
@@ -68,13 +82,18 @@ export default function EditarPerfil() {
     <main className="container py-4 flex-grow-1">
       <div className="rc-profile-layout">
         <aside className="rc-profile-summary">
-          {avatarPreview ? <img className="rc-profile-avatar rc-avatar-image" src={avatarPreview} alt="Prévia da foto do perfil" onError={() => setAvatarPreview('')} /> : <UserAvatar user={user} className="rc-profile-avatar" />}
+          {avatarPreview ? <div className="rc-profile-avatar-control">
+            <button type="button" className="rc-profile-avatar-button" onClick={() => setShowAvatarActions(value => !value)} aria-expanded={showAvatarActions} aria-label="Abrir opções da foto de perfil">
+              <img className="rc-profile-avatar rc-avatar-image" src={avatarPreview} alt="Prévia da foto do perfil" onError={() => setAvatarPreview('')} />
+              <span><i className="bi bi-pencil-fill" /></span>
+            </button>
+            {showAvatarActions && <div className="rc-profile-avatar-actions"><label className="btn btn-light btn-sm"><i className="bi bi-camera me-2" />Alterar foto<input type="file" accept="image/*" onChange={escolherAvatar} /></label><button type="button" className="btn btn-light btn-sm" disabled={loading} onClick={removerAvatar}><i className="bi bi-trash me-2" />Remover foto</button></div>}
+          </div> : <UserAvatar user={user} className="rc-profile-avatar" />}
           <h2>{user?.username}</h2>
           <p>{user?.email}</p>
           <span className="badge bg-light text-dark">{user?.adm ? "Administrador" : "Cidadão"}</span>
           <button className="btn btn-outline-light mt-4" onClick={() => navigate("/perfil")}><i className="bi bi-arrow-left me-2" />Voltar ao perfil</button>
-          <label className="btn btn-light btn-sm mt-3 rc-avatar-upload"><i className="bi bi-camera me-2" />Alterar foto<input type="file" accept="image/*" onChange={escolherAvatar} /></label>
-          {avatarPreview && <button type="button" className="btn btn-outline-light btn-sm mt-2" disabled={loading} onClick={removerAvatar}><i className="bi bi-trash me-2" />Remover foto</button>}
+          {!avatarPreview && <label className="btn btn-light btn-sm mt-3 rc-avatar-upload"><i className="bi bi-camera me-2" />Adicionar foto<input type="file" accept="image/*" onChange={escolherAvatar} /></label>}
         </aside>
         <section className="rc-profile-form">
           <span className="rc-eyebrow">MINHA CONTA</span><h1>Editar perfil</h1><p className="text-muted mb-4">Atualize seus dados pessoais ou altere sua senha.</p>
@@ -92,6 +111,7 @@ export default function EditarPerfil() {
         </section>
       </div>
     </main>
+    {avatarToCrop && <AvatarCropper file={avatarToCrop} onConfirm={aplicarRecorte} onCancel={() => setAvatarToCrop(null)} />}
     <Footer />
   </div>;
 }

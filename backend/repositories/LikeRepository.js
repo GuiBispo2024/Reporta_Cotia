@@ -7,12 +7,15 @@ class LikeRepository {
   }
 
   // Conta quantos likes uma denúncia tem e lista os usuários que deram like
-  static async findByDenunciaId({denunciaId}) {
-    return Like.findAll({
+  static async findByDenunciaId({ denunciaId, page = null, limit = null }) {
+    const query = {
       where: { denunciaId },
       include: { model: User, attributes: ['id', 'username', 'avatarUrl'] },
       order: [['createdAt', 'DESC']]
-    })
+    }
+    if (!page || !limit) return Like.findAll(query)
+    const { rows, count } = await Like.findAndCountAll({ ...query, limit, offset: (page - 1) * limit, distinct: true })
+    return { data: rows, total: count, page, limit, totalPages: Math.ceil(count / limit) }
   }
 
   // Busca um like pelo usuário e denúncia

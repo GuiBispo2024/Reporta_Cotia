@@ -8,6 +8,7 @@ const cors = require('cors');
 const path = require('path');
 const errorHandler = require('./middlewares/errorHandler');
 const { securityHeaders, rateLimit } = require('./middlewares/security');
+const { sequelize } = require('./models/rel');
 
 const app = express();
 const { swaggerUi, swaggerSpec } = require('./utils/swagger');
@@ -35,9 +36,16 @@ app.use(cors({
   }
 }));
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), { maxAge: '7d', immutable: true }));
 
-app.get('/', (req, res) => res.json({ name: 'Reporta Cotia API', status: 'ok' }));
+app.get('/', async (req, res) => {
+  try {
+    await sequelize.authenticate();
+    res.json({ name: 'Reporta Cotia API', status: 'ok', database: 'connected', version: process.env.npm_package_version || '1.0.0' });
+  } catch {
+    res.status(503).json({ name: 'Reporta Cotia API', status: 'degraded', database: 'unavailable' });
+  }
+});
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/users', userController);

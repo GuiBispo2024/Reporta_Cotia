@@ -3,6 +3,7 @@ const router = express.Router()
 const UserService = require('../services/UserService')
 const auth = require('../middlewares/auth')
 const { upload, storeImage } = require('../utils/upload')
+const PasswordResetService = require('../services/PasswordResetService')
 
 /**
  * @swagger
@@ -109,7 +110,14 @@ router.post('/login', async (req, res) => {
 //Lista todos os usuários
 router.get('/', auth, async (req, res) => {
   try {
-    const users = await UserService.getAll()
+    const users = req.query.withCounts === 'true'
+      ? await UserService.getAllWithDenunciaCount(req.user.adm, {
+          page: Math.max(Number.parseInt(req.query.page || '1', 10), 1),
+          limit: Math.min(Math.max(Number.parseInt(req.query.limit || '20', 10), 1), 50),
+          search: req.query.search || '',
+          sort: req.query.sort || 'username'
+        })
+      : await UserService.getAll()
     res.status(200).json(users)
   } catch (error) {
     res.status(500).json({ message: error.message })
@@ -136,7 +144,10 @@ router.get('/', auth, async (req, res) => {
 //Lista todos os usuários com a contagem de denúncias feitas por cada um
 router.get('/denunciaCount', auth, async (req, res) => {
   try{
-    const resultado = await UserService.getAllWithDenunciaCount(req.user.adm);
+    const page = Math.max(Number.parseInt(req.query.page || '1', 10), 1)
+    const limit = Math.min(Math.max(Number.parseInt(req.query.limit || '20', 10), 1), 50)
+    const resultado = await UserService.getAllWithDenunciaCount(req.user.adm, { page, limit, search: req.query.search || '', sort: req.query.sort || 'username' });
+    res.set('Deprecation-Notice', 'Use GET /users?withCounts=true.');
     res.status(200).json(resultado);
   }catch(error){
     res.status(500).json({ message: error.message })
@@ -149,6 +160,26 @@ router.get('/me', auth, async (req, res) => {
   } catch (error) {
     res.status(404).json({ message: error.message })
   }
+})
+
+router.post('/password/forgot', async (req, res, next) => {
+  try {
+    res.status(200).json(await PasswordResetService.request(req.body.email, req))
+  } catch (error) { next(error) }
+})
+
+router.post('/password/reset', async (req, res, next) => {
+  try {
+    res.status(200).json(await PasswordResetService.reset(req.body.token, req.body.password, req))
+  } catch (error) { next(error) }
+})
+
+router.get('/password/history', auth, async (req, res, next) => {
+  try {
+    const page = Math.max(Number.parseInt(req.query.page || '1', 10), 1)
+    const limit = Math.min(Math.max(Number.parseInt(req.query.limit || '30', 10), 1), 50)
+    res.status(200).json(await PasswordResetService.history(req.user.adm, { page, limit }))
+  } catch (error) { next(error) }
 })
 
 /**
@@ -171,7 +202,7 @@ router.get('/me', auth, async (req, res) => {
  */
 
 //Procura um usuário específico
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const user = await UserService.getById(req.params.id)
     res.status(200).json(user)
@@ -304,7 +335,7 @@ router.put('/:id/adm', auth, async (req, res) => {
 //Logout de usuário(simbolico)
 router.post('/logout', auth, async (req, res) => {
   try {
-    const result = await UserService.logout()
+    const result = await UserService.logout(req.user.id)
     res.status(200).json(result)
   } catch (error) {
     res.status(401).json({ message: error.message })
@@ -331,7 +362,7 @@ router.post('/logout', auth, async (req, res) => {
 //Deleta um usuário
 router.delete('/delete',auth, async (req, res) => {
   try {
-    const result = await UserService.delete(req.user.id)
+    const result = await UserService.delete(req.user.id, (req.body || {}).senhaAtual)
     res.status(200).json(result)
   } catch (error) {
     res.status(404).json({ message: error.message })

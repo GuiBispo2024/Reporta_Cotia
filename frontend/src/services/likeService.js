@@ -6,8 +6,8 @@ const likeService = {
     return res.data
   },
 
-  async listarPorDenuncia(denunciaId) {
-    const res = await api.get(`/denuncia/${denunciaId}/likes`)
+  async listarPorDenuncia(denunciaId, params = {}) {
+    const res = await api.get(`/denuncia/${denunciaId}/likes`, { params })
     return res.data
   },
 

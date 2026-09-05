@@ -1,4 +1,4 @@
-const { Denuncia, User, Like, Share, sequelize } = require('../models/rel');
+const { Denuncia, User, Like, Share, Comment, sequelize } = require('../models/rel');
 const { Op } = require('sequelize');
 const dialect = sequelize.getDialect();
 const operator = dialect === 'sqlite' ? Op.like : Op.iLike;
@@ -43,14 +43,26 @@ class DenunciaRepository {
     });
   }
 
-  static async findAll({ page = null, limit = null } = {}) {
+  static async findAll({ page = null, limit = null, status, categoria, resolucaoStatus } = {}) {
     const order = [['createdAt', 'DESC']];
-    if (!page || !limit) return Denuncia.findAll(this.baseQueryConfig(order, true));
+    const where = {
+      ...(status ? { status } : {}),
+      ...(categoria ? { categoria } : {}),
+      ...(resolucaoStatus ? { resolucaoStatus } : {})
+    };
+    // A moderação não exibe o agregado de curtidas. Usar baseQueryConfig
+    // aqui fazia a paginação referenciar Likes.id antes do JOIN ser criado.
+    const query = {
+      where,
+      include: [{ model: User, attributes: ['id', 'username', 'avatarUrl'] }],
+      order
+    };
+    if (!page || !limit) return Denuncia.findAll(query);
 
     const offset = (page - 1) * limit;
     const [rows, total] = await Promise.all([
-      Denuncia.findAll({ ...this.baseQueryConfig(order, true), limit, offset }),
-      Denuncia.count()
+      Denuncia.findAll({ ...query, limit, offset }),
+      Denuncia.count({ where })
     ]);
     return { data: rows, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
@@ -247,6 +259,38 @@ class DenunciaRepository {
             likesCount:
                 likesMap[denuncia.id] || 0
         };
+    });
+  }
+
+  static async addEngagementStats(denuncias, userId = null) {
+    if (!denuncias.length) return [];
+    const ids = denuncias.map(denuncia => denuncia.id);
+    const countByReport = async model => model.findAll({
+      where: { denunciaId: { [Op.in]: ids } },
+      attributes: ['denunciaId', [sequelize.fn('COUNT', sequelize.col('id')), 'total']],
+      group: ['denunciaId'],
+      raw: true
+    });
+    const [likes, shares, comments, ownLikes] = await Promise.all([
+      countByReport(Like),
+      countByReport(Share),
+      countByReport(Comment),
+      userId ? Like.findAll({ where: { denunciaId: { [Op.in]: ids }, userId }, attributes: ['denunciaId'], raw: true }) : []
+    ]);
+    const asMap = rows => Object.fromEntries(rows.map(item => [Number(item.denunciaId), Number(item.total)]));
+    const likesMap = asMap(likes);
+    const sharesMap = asMap(shares);
+    const commentsMap = asMap(comments);
+    const likedIds = new Set(ownLikes.map(item => Number(item.denunciaId)));
+    return denuncias.map(denuncia => {
+      const data = denuncia.toJSON ? denuncia.toJSON() : denuncia;
+      return {
+        ...data,
+        likesCount: likesMap[Number(denuncia.id)] || 0,
+        sharesCount: sharesMap[Number(denuncia.id)] || 0,
+        commentsCount: commentsMap[Number(denuncia.id)] || 0,
+        likedByMe: likedIds.has(Number(denuncia.id))
+      };
     });
   }
 
@@ -454,6 +498,17 @@ class DenunciaRepository {
       attributes: { exclude: ['tituloOriginal', 'descricaoOriginal'] },
       order: [['createdAt', 'DESC']]
     });
+  }
+
+  static async findApprovedByUserId(userId, { page = 1, limit = 12 } = {}) {
+    const where = { userId, status: 'aprovada' };
+    const offset = (page - 1) * limit;
+    const [rows, total] = await Promise.all([
+      Denuncia.findAll({ where, attributes: { exclude: ['tituloOriginal', 'descricaoOriginal', 'motivoRejeicao'] }, order: [['createdAt', 'DESC']], limit, offset }),
+      Denuncia.count({ where })
+    ]);
+    const data = await this.addEngagementStats(rows);
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   static async update(id, data) {

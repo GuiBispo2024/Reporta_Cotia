@@ -37,7 +37,11 @@ const authService = {
     return !!localStorage.getItem("token")
   },
 
-  logout() {
+  async logoutRemote() {
+    await api.post('/users/logout')
+  },
+
+  clearSession() {
     localStorage.removeItem("token")
     localStorage.removeItem("user")
   }

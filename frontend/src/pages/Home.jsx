@@ -9,6 +9,7 @@ import Footer from "../components/Footer.jsx";
 import FilterAndSearch from "../components/FilterAndSearch.jsx";
 import Compartilhar from "../components/Compartilhar.jsx";
 import { friendlyError } from '../utils/errorMessage';
+import ImageCarousel from '../components/ImageCarousel.jsx';
 
 const RESOLUTION = {
   aberta: { label: 'Aberta', icon: 'bi-circle-fill', className: 'is-open' },
@@ -32,7 +33,6 @@ const Home = () => {
       setError(null);
       const response = await denunciaService.filtrar({
         ...customFilters,
-        status: "aprovada",
         page,
         limit: 12
       });
@@ -96,11 +96,11 @@ const Home = () => {
             {result.data.length === 0 ? (
               <div className="rc-empty">Nenhuma denúncia aprovada encontrada.</div>
             ) : (
-              <div className="row g-4">
+              <div className="row g-4 align-items-start rc-reports-grid">
                 {result.data.map((d) => (
-                  <div key={d.id} className="col-12 col-md-6 col-lg-4">
-                    <article className="card rc-card h-100">
-                      {d.imageUrl && <img src={d.imageUrl} className="rc-card-image" alt={`Evidência: ${d.titulo}`} />}
+                  <div key={d.id} className="col-12 col-md-6 col-lg-4 rc-report-column">
+                    <article className="card rc-card">
+                      <ImageCarousel images={d.imageUrls} fallback={d.imageUrl} alt={`Evidência: ${d.titulo}`} compact />
                       <div className="card-body">
                         <div className="rc-card-topline">
                           <span className="badge rc-category">{d.categoria || "Outros"}</span>
@@ -109,13 +109,14 @@ const Home = () => {
                         <h5 className="rc-card-title">{d.titulo}</h5>
                         <p className="rc-card-description">{d.descricao}</p>
                         <div className="rc-card-location"><i className="bi bi-geo-alt-fill" /><span>{d.localizacao}</span></div>
+                        {d.setorResponsavel && <div className="rc-card-sector"><i className="bi bi-building" /><span><small>Setor responsável</small>{d.setorResponsavel}</span></div>}
                         <div className="rc-card-meta"><span><i className="bi bi-person-circle" /> {d.User?.username || "Usuário não identificado"}</span><time><i className="bi bi-calendar3" /> {new Date(d.createdAt).toLocaleDateString("pt-BR")}</time></div>
                         <button className="rc-details-button" onClick={() => navigate(`/denuncia/${d.id}`)}><span>Ver detalhes</span><i className="bi bi-arrow-right" /></button>
                       </div>
-                      <div className="card-footer bg-white border-0">
-                        <Like denunciaId={d.id} />
-                        <Compartilhar denunciaId={d.id} titulo={d.titulo} />
-                        <Comentarios denunciaId={d.id} />
+                      <div className="card-footer bg-white border-0 rc-card-footer">
+                        <Like denunciaId={d.id} initialCount={d.likesCount} initialLiked={d.likedByMe} />
+                        <Compartilhar denunciaId={d.id} titulo={d.titulo} initialCount={d.sharesCount} />
+                        <Comentarios denunciaId={d.id} initialCount={d.commentsCount} preview />
                       </div>
                     </article>
                   </div>

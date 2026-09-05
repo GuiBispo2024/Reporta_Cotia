@@ -15,8 +15,8 @@ const CATEGORIAS = [
 export default function NovaDenuncia() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ titulo: "", descricao: "", localizacao: "", categoria: "Outros", latitude: "", longitude: "" });
-  const [imagem, setImagem] = useState(null);
-  const [preview, setPreview] = useState("");
+  const [imagens, setImagens] = useState([]);
+  const [previews, setPreviews] = useState([]);
   const [mensagem, setMensagem] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -52,20 +52,21 @@ export default function NovaDenuncia() {
   };
 
   const escolherImagem = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      setMensagem("A imagem deve ter no máximo 5 MB.");
+    const files = Array.from(e.target.files || []).slice(0, 4);
+    if (!files.length) return;
+    if (files.some(file => !file.type.startsWith('image/') || file.size > 5 * 1024 * 1024)) {
+      setMensagem("Cada arquivo deve ser uma imagem de no máximo 5 MB.");
       return;
     }
-    setImagem(file);
-    setPreview(URL.createObjectURL(file));
+    previews.forEach(URL.revokeObjectURL);
+    setImagens(files);
+    setPreviews(files.map(URL.createObjectURL));
   };
 
-  const removerImagem = () => {
-    if (preview) URL.revokeObjectURL(preview);
-    setImagem(null);
-    setPreview("");
+  const removerImagem = index => {
+    URL.revokeObjectURL(previews[index]);
+    setImagens(current => current.filter((_, itemIndex) => itemIndex !== index));
+    setPreviews(current => current.filter((_, itemIndex) => itemIndex !== index));
   };
 
   const handleSubmit = async (e) => {
@@ -75,7 +76,7 @@ export default function NovaDenuncia() {
     try {
       const data = new FormData();
       Object.entries(form).forEach(([key, value]) => data.append(key, value));
-      if (imagem) data.append("imagem", imagem);
+      imagens.forEach(imagem => data.append("imagens", imagem));
 
       await denunciaService.create(data);
       setMensagem("✅ Denúncia enviada! Ela passará pela moderação antes de aparecer publicamente.");
@@ -135,9 +136,9 @@ export default function NovaDenuncia() {
             </div>
 
             <div className="mb-4">
-              <label className="form-label fw-semibold">Foto do problema <span className="text-muted fw-normal">(até 5 MB)</span></label>
-              <input className="form-control" type="file" accept="image/*" capture="environment" onChange={escolherImagem} />
-              {preview && <div className="mt-3"><img src={preview} alt="Pré-visualização da evidência" className="rc-upload-preview" /><button type="button" className="btn btn-outline-danger btn-sm mt-2" onClick={removerImagem}><i className="bi bi-trash me-1" />Remover imagem</button></div>}
+              <label className="form-label fw-semibold">Fotos do problema <span className="text-muted fw-normal">(até 4 imagens, 5 MB cada)</span></label>
+              <input className="form-control" type="file" accept="image/*" multiple onChange={escolherImagem} />
+              {!!previews.length && <div className="rc-upload-gallery mt-3">{previews.map((preview, index) => <div key={preview}><img src={preview} alt={`Pré-visualização ${index + 1}`} /><button type="button" onClick={() => removerImagem(index)} aria-label={`Remover imagem ${index + 1}`}><i className="bi bi-x-lg" /></button></div>)}</div>}
             </div>
 
             <button className="btn btn-primary btn-lg w-100" disabled={loading}>

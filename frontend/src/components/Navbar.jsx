@@ -11,7 +11,7 @@ export default function Navbar() {
   return <nav className="navbar navbar-expand-lg navbar-dark rc-navbar sticky-top">
     <div className="container">
       <Link className="navbar-brand rc-brand" to="/">
-        <span className="rc-brand-mark"><i className="bi bi-geo-alt-fill" /></span>
+        <span className="rc-brand-mark"><img src="/reporta-cotia-logo.svg" alt="" /></span>
         <span><strong>Reporta Cotia</strong><small>Cidadania em ação</small></span>
       </Link>
 

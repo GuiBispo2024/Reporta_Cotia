@@ -29,7 +29,7 @@ export default function FilterAndSearch({ onFilter }) {
 
   return <section className="rc-search-section mb-4">
     <button className="rc-filter-mobile" onClick={() => setOpen(value => !value)}>
-      <span><i className="bi bi-sliders me-2" />Filtrar denúncias</span>
+      <span><i className="bi bi-sliders me-2" />Busca e filtros</span>
       {activeCount > 0 && <span className="rc-filter-badge">{activeCount}</span>}
       <i className={`bi bi-chevron-${open ? "up" : "down"}`} />
     </button>

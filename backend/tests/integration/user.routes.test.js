@@ -43,6 +43,19 @@ describe('Users routes (integration)', () => {
     idUsuario = loginRes.body.user.id;
   });
 
+  test('redefine senha com token de uso único', async () => {
+    const requested = await request(app).post('/users/password/forgot').send({ email: 'login@example.com' });
+    expect(requested.status).toBe(200);
+    expect(requested.body.resetToken).toBeTruthy();
+
+    const reset = await request(app).post('/users/password/reset').send({ token: requested.body.resetToken, password: 'novaSenha123' });
+    expect(reset.status).toBe(200);
+    expect((await request(app).post('/users/password/reset').send({ token: requested.body.resetToken, password: 'outraSenha123' })).status).toBe(400);
+    const login = await request(app).post('/users/login').send({ email: 'login@example.com', password: 'novaSenha123' });
+    expect(login.status).toBe(200);
+    tokenUsuario = login.body.token;
+  });
+
   // -------------------------------------------------------------------
   test("GET /users → lista todos os usuários (200)", async () => {
     console.log("➡️ Teste: listar usuários");
@@ -122,7 +135,8 @@ describe('Users routes (integration)', () => {
 
     const res = await request(app)
       .delete("/users/delete")
-      .set("Authorization", `Bearer ${tokenUsuario}`);
+      .set("Authorization", `Bearer ${tokenUsuario}`)
+      .send({ senhaAtual: 'novaSenha123' });
 
     console.log("Resposta:", res.statusCode, res.body);
 

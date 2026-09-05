@@ -3,7 +3,10 @@ const User = require('./Reporta_Cotia_Tables/User')
 const Denuncia = require('./Reporta_Cotia_Tables/Denuncia')
 const Comment = require('./Reporta_Cotia_Tables/Comment')
 const Like = require('./Reporta_Cotia_Tables/Like')
-const Share = require('./Reporta_Cotia_Tables/Share') 
+const Share = require('./Reporta_Cotia_Tables/Share')
+const DenunciaHistorico = require('./Reporta_Cotia_Tables/DenunciaHistorico')
+const PasswordResetToken = require('./Reporta_Cotia_Tables/PasswordResetToken')
+const PasswordResetHistorico = require('./Reporta_Cotia_Tables/PasswordResetHistorico')
 
 //User <-> Denuncia
 User.hasMany(Denuncia,{
@@ -13,6 +16,11 @@ User.hasMany(Denuncia,{
 Denuncia.belongsTo(User,{
     foreignKey: 'userId'
 })
+
+Denuncia.hasMany(DenunciaHistorico, { foreignKey: 'denunciaId', onDelete: 'CASCADE' })
+DenunciaHistorico.belongsTo(Denuncia, { foreignKey: 'denunciaId' })
+User.hasMany(DenunciaHistorico, { foreignKey: 'userId', onDelete: 'SET NULL' })
+DenunciaHistorico.belongsTo(User, { foreignKey: 'userId' })
 
 //User <-> Comentário
 User.hasMany(Comment,{
@@ -31,6 +39,14 @@ Denuncia.hasMany(Comment,{
 Comment.belongsTo(Denuncia,{
     foreignKey:'denunciaId'
 })
+
+Comment.hasMany(Comment, { as: 'Replies', foreignKey: 'parentCommentId', onDelete: 'CASCADE' })
+Comment.belongsTo(Comment, { as: 'ParentComment', foreignKey: 'parentCommentId' })
+
+User.hasMany(PasswordResetToken, { foreignKey: 'userId', onDelete: 'CASCADE' })
+PasswordResetToken.belongsTo(User, { foreignKey: 'userId' })
+User.hasMany(PasswordResetHistorico, { foreignKey: 'userId', onDelete: 'SET NULL' })
+PasswordResetHistorico.belongsTo(User, { foreignKey: 'userId' })
 
 // Like <-> User
 User.hasMany(Like,{ 
@@ -68,4 +84,4 @@ Share.belongsTo(Denuncia,{
     foreignKey: 'denunciaId'
 })
 
-module.exports = {sequelize,User,Denuncia,Comment,Like,Share}
+module.exports = {sequelize,User,Denuncia,Comment,Like,Share,DenunciaHistorico,PasswordResetToken,PasswordResetHistorico}

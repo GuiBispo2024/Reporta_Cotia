@@ -197,13 +197,14 @@ describe('UserService (unit)', () => {
   test('delete: exclui usuário corretamente', async () => {
     console.log("➡️ Iniciando teste: delete()");
 
-    UserRepository.findById.mockResolvedValue({ id: 1 });
+    const password = await bcrypt.hash('123456', 10);
+    UserRepository.findById.mockResolvedValue({ id: 1, password });
     UserRepository.delete.mockImplementation((id) => {
       console.log("🗑️ Chamado delete:", id);
       return Promise.resolve(true);
     });
 
-    const res = await UserService.delete(1);
+    const res = await UserService.delete(1, '123456');
 
     console.log("✅ Resultado:", res);
 

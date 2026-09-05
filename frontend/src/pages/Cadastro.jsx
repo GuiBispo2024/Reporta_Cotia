@@ -5,6 +5,7 @@ import authService from "../services/authService";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { friendlyError } from '../utils/errorMessage';
+import AvatarCropper from '../components/AvatarCropper';
 
 export default function Cadastro() {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export default function Cadastro() {
   const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [avatar, setAvatar] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState("");
+  const [avatarToCrop, setAvatarToCrop] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -28,10 +30,16 @@ export default function Cadastro() {
       e.target.value = "";
       return;
     }
+    setAvatarToCrop(file);
+    setError("");
+    e.target.value = "";
+  };
+
+  const aplicarRecorte = file => {
     if (avatarPreview) URL.revokeObjectURL(avatarPreview);
     setAvatar(file);
     setAvatarPreview(URL.createObjectURL(file));
-    setError("");
+    setAvatarToCrop(null);
   };
 
   const removerAvatar = () => {
@@ -99,6 +107,7 @@ export default function Cadastro() {
         </section>
       </div>
     </main>
+    {avatarToCrop && <AvatarCropper file={avatarToCrop} onConfirm={aplicarRecorte} onCancel={() => setAvatarToCrop(null)} />}
     <Footer />
   </div>;
 }

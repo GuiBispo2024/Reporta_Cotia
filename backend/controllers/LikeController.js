@@ -33,19 +33,11 @@ const auth = require('../middlewares/auth')
  */
 
 // Dá like
-router.post('/:denunciaId/like',auth, async (req, res) => {
+router.post('/:denunciaId/like',auth, async (req, res, next) => {
   try {
     const result = await LikeService.curtir({ denunciaId: req.params.denunciaId }, req.user)
     res.status(201).json(result)
-  } catch (error) {
-    if (error.message.includes('Usuário já curtiu')) {
-      return res.status(400).json({ message: error.message })
-    }
-    if (error.message.includes('Usuário') || error.message.includes('Denúncia')) {
-      return res.status(404).json({ message: error.message })
-    }
-    res.status(500).json({ message: error.message })
-  }
+  } catch (error) { next(error) }
 })
 
 /**
@@ -67,16 +59,13 @@ router.post('/:denunciaId/like',auth, async (req, res) => {
  */
 
 // Lista likes de uma denúncia
-router.get('/:denunciaId/likes', async (req, res) => {
+router.get('/:denunciaId/likes', async (req, res, next) => {
   try {
-    const denunciaLikes = await LikeService.listarPorDenuncia(req.params.denunciaId)
+    const page = req.query.page ? Math.max(Number(req.query.page), 1) : null
+    const limit = req.query.limit ? Math.min(Math.max(Number(req.query.limit), 1), 50) : null
+    const denunciaLikes = await LikeService.listarPorDenuncia(req.params.denunciaId, { page, limit })
     res.status(200).json(denunciaLikes)
-  } catch (error) {
-    if (error.message.includes('Denúncia não encontrada')) {
-      return res.status(404).json({ message: error.message })
-    }
-    res.status(500).json({ message: error.message })
-  }
+  } catch (error) { next(error) }
 })
 
 /**
@@ -102,16 +91,11 @@ router.get('/:denunciaId/likes', async (req, res) => {
  */
 
 // Remove like
-router.delete('/:denunciaId/like',auth, async (req, res) => {
+router.delete('/:denunciaId/like',auth, async (req, res, next) => {
   try {
     const result = await LikeService.descurtir({ denunciaId: req.params.denunciaId }, req.user)
     res.status(200).json(result)
-  } catch (error) {
-    if (error.message.includes('Like não encontrado')) {
-      return res.status(404).json({ message: error.message })
-    }
-    res.status(500).json({ message: error.message })
-  }
+  } catch (error) { next(error) }
 })
 
 module.exports = router

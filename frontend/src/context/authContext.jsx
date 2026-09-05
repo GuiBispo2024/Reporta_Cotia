@@ -15,13 +15,14 @@ export const AuthProvider = ({children}) => {
     return { token, user }
     }
 
-    const logout = () => {
-        authService.logout()
-        setUser(null)
-        setToken(null)
-        // Navegação completa para eliminar qualquer estado autenticado mantido
-        // pelos componentes da página atual.
-        window.location.assign("/")
+    const logout = async () => {
+        try { await authService.logoutRemote() } catch { /* A sessão local ainda deve ser encerrada. */ }
+        finally {
+            authService.clearSession()
+            setUser(null)
+            setToken(null)
+            window.location.assign("/")
+        }
     }
 
     const isAuthenticated = !!token
@@ -54,7 +55,7 @@ export const AuthProvider = ({children}) => {
                 // Falhas temporárias de rede ou limite não invalidam a sessão.
                 // O interceptor global cuida exclusivamente de respostas 401.
                 if (error.response?.status === 401) {
-                    authService.logout();
+                    authService.clearSession();
                     setUser(null);
                     setToken(null);
                 }
@@ -64,7 +65,7 @@ export const AuthProvider = ({children}) => {
     }, [token]);
 
     return (
-        <AuthContext.Provider value={{ user, setUser, token, isAuthenticated, login, logout }}>
+        <AuthContext.Provider value={{ user, setUser, token, setToken, isAuthenticated, login, logout }}>
             {children}
         </AuthContext.Provider>
     )

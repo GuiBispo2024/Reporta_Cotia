@@ -13,8 +13,8 @@ const denunciaService = {
     const res = await api.patch(`/denuncia/${id}/censura`, { field, manterCensura });
     return res.data;
   },
-  async atualizarResolucao(id, resolucaoStatus) {
-    const res = await api.patch(`/denuncia/${id}/resolucao`, { resolucaoStatus });
+  async atualizarResolucao(id, resolucaoStatus, details = {}) {
+    const res = await api.patch(`/denuncia/${id}/resolucao`, { resolucaoStatus, ...details });
     return res.data;
   },
   async listarTodas(params = {}) {
@@ -26,15 +26,23 @@ const denunciaService = {
     return res.data;
   },
   async filtrar(params = {}) {
-    const res = await api.get("/denuncia/filter", { params });
+    const res = await api.get("/denuncia", { params });
     return res.data;
   },
   async buscarPorId(id) {
     const res = await api.get(`/denuncia/${id}`);
     return res.data;
   },
+  async buscarHistorico(id) {
+    const res = await api.get(`/denuncia/${id}/historico`);
+    return res.data;
+  },
   async buscarPorUsuario(userId) {
     const res = await api.get(`/denuncia/user/${userId}`);
+    return res.data;
+  },
+  async buscarPublicadasPorUsuario(userId, params = {}) {
+    const res = await api.get(`/denuncia/public/user/${userId}`, { params });
     return res.data;
   },
   async atualizar(id, data) {

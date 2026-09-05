@@ -6,8 +6,8 @@ const userService = {
     return res.data
   },
 
-  async getAllWithDenunciaCount() {
-    const res = await api.get("/users/denunciaCount")
+  async getAllWithDenunciaCount(params = {}) {
+    const res = await api.get("/users", { params: { ...params, withCounts: true } })
     return res.data
   },
 
@@ -33,8 +33,8 @@ const userService = {
     return res.data
   },
 
-  async delete() {
-    const res = await api.delete("/users/delete")
+  async delete(senhaAtual) {
+    const res = await api.delete("/users/delete", { data: { senhaAtual } })
     return res.data
   },
 

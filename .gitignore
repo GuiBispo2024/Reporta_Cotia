@@ -1,0 +1,4 @@
+# A documentação consolidada fica nos arquivos README.md.
+*.md
+!README.md
+!**/README.md

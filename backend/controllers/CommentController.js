@@ -46,15 +46,13 @@ const optionalAuth = require('../middlewares/optionalAuth')
  */
 
 // Cria comentário
-router.post('/:denunciaId/comentario',auth, async (req, res) => {
+router.post('/:denunciaId/comentario',auth, async (req, res, next) => {
    try {
     const { denunciaId } = req.params
-    const { comentario } = req.body
-    const result = await CommentService.create({ comentario, denunciaId }, req.user)
+    const { comentario, parentCommentId } = req.body
+    const result = await CommentService.create({ comentario, denunciaId, parentCommentId }, req.user)
     res.status(201).json({comentario: result.Comentario})
-  } catch (error) {
-    res.status(400).json({ message: error.message })
-  }
+  } catch (error) { next(error) }
 }) 
 
 /**
@@ -76,13 +74,13 @@ router.post('/:denunciaId/comentario',auth, async (req, res) => {
  */
 
 // Lista comentários de uma denúncia
-router.get('/:denunciaId/comentarios', optionalAuth, async (req, res) => {
+router.get('/:denunciaId/comentarios', optionalAuth, async (req, res, next) => {
   try {
-    const comentarios = await CommentService.listarPorDenuncia(req.params.denunciaId, Boolean(req.user?.adm))
+    const page = req.query.page ? Math.max(Number(req.query.page), 1) : null
+    const limit = req.query.limit ? Math.min(Math.max(Number(req.query.limit), 1), 50) : null
+    const comentarios = await CommentService.listarPorDenuncia(req.params.denunciaId, Boolean(req.user?.adm), { page, limit })
     res.status(200).json(comentarios)
-  } catch (error) {
-    res.status(500).json({ message: error.message })
-  }
+  } catch (error) { next(error) }
 })
 
 router.patch('/comentario/:id/censura', auth, async (req, res) => {
@@ -128,13 +126,11 @@ router.patch('/comentario/:id/censura', auth, async (req, res) => {
  */
 
 //Altera um comentário
-router.put('/comentario/:id',auth, async (req, res) => {
+router.put('/comentario/:id',auth, async (req, res, next) => {
   try {
     const result = await CommentService.atualizar(req.params.id, req.body, req.user.id)
     res.status(200).json(result)
-  } catch (error) {
-    res.status(403).json({ message: error.message })
-  }
+  } catch (error) { next(error) }
 })
 
 /**
@@ -162,13 +158,11 @@ router.put('/comentario/:id',auth, async (req, res) => {
  */
 
 // Deleta comentário
-router.delete('/comentario/:id',auth, async (req, res) => {
+router.delete('/comentario/:id',auth, async (req, res, next) => {
   try {
     const result = await CommentService.deletar(req.params.id, req.user.id, req.user.adm)
     res.status(200).json(result)
-  } catch (error) {
-    res.status(403).json({ message: error.message })
-  }
+  } catch (error) { next(error) }
 })
 
 module.exports = router
