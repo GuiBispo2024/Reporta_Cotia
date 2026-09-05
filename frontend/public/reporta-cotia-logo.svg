@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Reporta Cotia</title>
+  <rect width="64" height="64" rx="16" fill="#e6b84a"/>
+  <path d="M32 10c-10.5 0-19 8.2-19 18.4C13 42 32 55 32 55s19-13 19-26.6C51 18.2 42.5 10 32 10Z" fill="#0f4f39"/>
+  <path d="M22 24.5h20v14H29l-7 5v-19Z" fill="#fff"/>
+  <circle cx="27" cy="31.5" r="1.8" fill="#176b4d"/><circle cx="32" cy="31.5" r="1.8" fill="#176b4d"/><circle cx="37" cy="31.5" r="1.8" fill="#176b4d"/>
+</svg>
