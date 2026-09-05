@@ -1,10 +1,11 @@
-import { useEffect, useState, useContext } from "react";
+import { useCallback, useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import denunciasService from "../services/denunciaService";
 import { AuthContext } from "../context/authContext";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import ResolutionTimeline from "../components/ResolutionTimeline";
+import ImageCarousel from '../components/ImageCarousel';
 import { friendlyError } from '../utils/errorMessage';
 
 const modBadge = (status) => ({
@@ -18,7 +19,7 @@ export default function MinhasDenuncias() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const carregar = async () => {
+  const carregar = useCallback(async () => {
     try {
       setLoading(true);
       setDenuncias(await denunciasService.buscarPorUsuario(user.id));
@@ -26,9 +27,9 @@ export default function MinhasDenuncias() {
       setError(err.response?.status === 404 ? null : friendlyError(err, "Não foi possível carregar suas denúncias. Atualize a página para tentar novamente."));
       setDenuncias([]);
     } finally { setLoading(false); }
-  };
+  }, [user]);
 
-  useEffect(() => { if (user) carregar(); }, [user]);
+  useEffect(() => { if (user) carregar(); }, [user, carregar]);
 
   const handleExcluir = async (id) => {
     if (!window.confirm("Excluir esta denúncia permanentemente? Comentários, curtidas e demais dados relacionados também serão removidos.")) return;
@@ -55,7 +56,7 @@ export default function MinhasDenuncias() {
           {denuncias.map(d => (
             <div className="col-12 col-md-6" key={d.id}>
               <article className="card rc-card h-100">
-                {d.imageUrl && <img src={d.imageUrl} className="rc-card-image" alt={d.titulo} />}
+                <ImageCarousel images={d.imageUrls} fallback={d.imageUrl} alt={d.titulo} compact />
                 <div className="card-body">
                   <div className="d-flex justify-content-between align-items-start gap-2">
                     <h5 className="fw-bold">{d.titulo}</h5>
@@ -71,6 +72,7 @@ export default function MinhasDenuncias() {
                       <hr />
                       <div className="small text-muted mb-2">Progresso da solução</div>
                       <ResolutionTimeline status={d.resolucaoStatus} />
+                      {d.setorResponsavel && <p className="small mt-2 mb-0"><i className="bi bi-building me-1" /><strong>Setor responsável:</strong> {d.setorResponsavel}</p>}
                     </>
                   )}
 
@@ -81,7 +83,7 @@ export default function MinhasDenuncias() {
                 <div className="card-footer bg-white border-0 d-flex gap-2">
                   <button className="btn btn-outline-primary btn-sm" onClick={() => navigate(`/denuncia/${d.id}`)}>Detalhes</button>
                   {d.status === "rejeitada" && <button className="btn btn-warning btn-sm" onClick={() => navigate(`/editar-denuncia/${d.id}`)}>Editar</button>}
-                  {d.status === "rejeitada" && <button className="btn btn-outline-danger btn-sm" onClick={() => handleExcluir(d.id)}>Excluir</button>}
+                  {d.status !== "aprovada" && <button className="btn btn-outline-danger btn-sm" onClick={() => handleExcluir(d.id)}>Excluir</button>}
                 </div>
               </article>
             </div>

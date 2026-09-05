@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import denunciaService from "../services/denunciaService";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import ResolutionTimeline from "../components/ResolutionTimeline";
 import { friendlyError } from '../utils/errorMessage';
 import { formatAddress } from '../utils/formatAddress';
+import Like from '../components/Likes';
+import Compartilhar from '../components/Compartilhar';
+import Comentarios from '../components/Comentarios';
+import ImageCarousel from '../components/ImageCarousel';
 
 export default function DetalheDenuncia() {
   const { id } = useParams();
@@ -14,6 +18,7 @@ export default function DetalheDenuncia() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [resolvedAddress, setResolvedAddress] = useState("");
+  const [history, setHistory] = useState([]);
 
   const mapUrl = denuncia?.latitude && denuncia?.longitude
     ? (() => {
@@ -27,7 +32,10 @@ export default function DetalheDenuncia() {
 
   useEffect(() => {
     denunciaService.buscarPorId(id)
-      .then(setDenuncia)
+      .then(report => {
+        setDenuncia(report);
+        return denunciaService.buscarHistorico(id).then(setHistory).catch(() => setHistory([]));
+      })
       .catch(err => setError(friendlyError(err, "Não foi possível abrir esta denúncia. Ela pode ter sido removida ou estar temporariamente indisponível.")))
       .finally(() => setLoading(false));
   }, [id]);
@@ -66,8 +74,8 @@ export default function DetalheDenuncia() {
         {loading ? <div className="text-center py-5"><div className="spinner-border text-primary" /></div>
         : error ? <div className="alert alert-danger">{error}</div>
         : <article className="rc-detail mx-auto">
-          <button className="btn btn-link px-0 mb-3" onClick={() => navigate(-1)}>← Voltar</button>
-          {denuncia.imageUrl && <img src={denuncia.imageUrl} className="rc-detail-image" alt={`Evidência de ${denuncia.titulo}`} />}
+          <button className="btn btn-link px-0 mb-3" onClick={() => navigate('/', { replace: true })}>← Voltar para a página inicial</button>
+          <ImageCarousel images={denuncia.imageUrls} fallback={denuncia.imageUrl} alt={`Evidência de ${denuncia.titulo}`} />
           <div className="d-flex flex-wrap justify-content-between gap-2 mt-4">
             <span className="badge rc-category">{denuncia.categoria || "Outros"}</span>
             <span className={`badge ${denuncia.status === "aprovada" ? "bg-success" : denuncia.status === "rejeitada" ? "bg-danger" : "bg-warning text-dark"}`}>
@@ -78,13 +86,27 @@ export default function DetalheDenuncia() {
           <p className="lead text-secondary">{denuncia.descricao}</p>
           <div className="rc-detail-location"><span><i className="bi bi-geo-alt-fill" /></span><div><small>Localização da denúncia</small><strong>{resolvedAddress || denuncia.localizacao || 'Endereço não informado'}</strong></div></div>
 
+          <section className="rc-detail-engagement mt-4" aria-labelledby="detail-engagement-title">
+            <div>
+              <h2 id="detail-engagement-title">Atividade da denúncia</h2>
+              <p>Veja todas as pessoas que apoiaram ou compartilharam esta publicação.</p>
+            </div>
+            <nav aria-label="Históricos da denúncia">
+              <Link to={`/denuncia/${id}/curtidas`}><i className="bi bi-hand-thumbs-up-fill" /><span><strong>Histórico de curtidas</strong><small>Ver todas as curtidas</small></span><i className="bi bi-chevron-right" /></Link>
+              <Link to={`/denuncia/${id}/compartilhamentos`}><i className="bi bi-share-fill" /><span><strong>Histórico de compartilhamentos</strong><small>Ver todos os compartilhamentos</small></span><i className="bi bi-chevron-right" /></Link>
+            </nav>
+            {denuncia.status === 'aprovada' && <div className="rc-detail-social-actions"><Like denunciaId={denuncia.id} initialCount={denuncia.likesCount} initialLiked={denuncia.likedByMe} /><Compartilhar denunciaId={denuncia.id} titulo={denuncia.titulo} initialCount={denuncia.sharesCount} /></div>}
+          </section>
+
           {denuncia.status === "aprovada" && (
             <section className="rc-progress mt-4">
               <h5 className="fw-bold">Acompanhamento da solução</h5>
               <ResolutionTimeline status={denuncia.resolucaoStatus} />
+              {denuncia.setorResponsavel && <div className="rc-responsible-sector"><i className="bi bi-building" /><div><small>Setor responsável</small><strong>{denuncia.setorResponsavel}</strong></div></div>}
               {denuncia.resolucaoAtualizadaEm && (
                 <small className="text-muted">Última atualização: {new Date(denuncia.resolucaoAtualizadaEm).toLocaleString("pt-BR")}</small>
               )}
+              {history.filter(item => item.tipo === 'resolucao').length > 0 && <div className="rc-resolution-history">{history.filter(item => item.tipo === 'resolucao').map(item => <article key={item.id}><span className="badge rc-category">{item.statusNovo?.replace('_', ' ')}</span><div><strong>{item.responsavel || 'Setor ainda não definido'}</strong><time>{new Date(item.createdAt).toLocaleString('pt-BR')}</time></div></article>)}</div>}
             </section>
           )}
 
@@ -96,6 +118,14 @@ export default function DetalheDenuncia() {
             </section>
           ) : (
             <div className="rc-map-unavailable mt-4"><i className="bi bi-map" /><div><strong>Mapa indisponível</strong><span>Esta denúncia não possui coordenadas geográficas.</span></div></div>
+          )}
+
+          {denuncia.status === 'aprovada' && (
+            <section className="rc-detail-comments mt-4">
+              <h2>Comentários</h2>
+              <p>Acompanhe e participe da conversa sobre esta denúncia.</p>
+              <Comentarios denunciaId={denuncia.id} initialCount={denuncia.commentsCount} initiallyOpen />
+            </section>
           )}
         </article>}
       </main>
