@@ -1,78 +1,73 @@
 const CommentRepository = require('../repositories/CommentRepository')
 const { Denuncia } = require('../models/rel')
 const filterBadWords = require('../utils/filterBadWords')
+const AppError = require('../utils/AppError')
+
+async function requirePublicReport(denunciaId) {
+  const denuncia = await Denuncia.findByPk(denunciaId)
+  if (!denuncia || denuncia.status !== 'aprovada') throw new AppError('Denúncia não encontrada.', 404, 'NOT_FOUND')
+}
 
 class CommentService {
-    
-  // Cria um novo comentário
-  static async create({ comentario, denunciaId },user) {
-    const { id: userId } = user
-    const denuncia = await Denuncia.findByPk(denunciaId)
-    if (!denuncia) throw new Error('Denúncia não existe.')
-
-    const { hasBadWord, filteredText } = filterBadWords(comentario)
+  static async create({ comentario, denunciaId, parentCommentId = null }, user) {
+    await requirePublicReport(denunciaId)
+    if (typeof comentario !== 'string' || !comentario.trim()) throw new AppError('Comentário não pode ficar vazio.', 400, 'VALIDATION_ERROR')
+    if (comentario.trim().length > 255) throw new AppError('Comentário deve ter no máximo 255 caracteres.', 400, 'VALIDATION_ERROR')
+    const { hasBadWord, filteredText } = filterBadWords(comentario.trim())
+    let parent = null
+    if (parentCommentId) {
+      parent = await CommentRepository.findById(parentCommentId)
+      if (!parent || Number(parent.denunciaId) !== Number(denunciaId)) throw new AppError('Comentário original não encontrado.', 404, 'NOT_FOUND')
+      if (parent.parentCommentId) throw new AppError('Respostas podem ter somente um nível.', 400, 'NESTING_LIMIT')
+    }
     const Comentario = await CommentRepository.create({
       comentario: filteredText,
       comentarioOriginal: hasBadWord ? comentario.trim() : null,
       censurado: hasBadWord,
       censuraRevisada: false,
-      userId,
-      denunciaId
+      userId: user.id,
+      denunciaId,
+      parentCommentId: parent?.id || null
     })
-
-    return {
-      message: hasBadWord
-        ? 'Comentário publicado (palavras censuradas)'
-        : 'Comentário publicado com sucesso',
-      Comentario
-    }
+    return { message: hasBadWord ? 'Comentário publicado (palavras censuradas)' : 'Comentário publicado com sucesso', Comentario }
   }
 
-  // Lista todos os comentários de uma denúncia
-  static async listarPorDenuncia(denunciaId, includeSensitive = false) {
-    const comentarios = await CommentRepository.findByDenunciaId(denunciaId, includeSensitive)
-    return comentarios
+  static async listarPorDenuncia(denunciaId, includeSensitive = false, options = {}) {
+    await requirePublicReport(denunciaId)
+    return CommentRepository.findByDenunciaId(denunciaId, includeSensitive, options)
   }
 
-  //Altera um comentário(somente usuário que criou pode alterar)
- static async atualizar(id, data, userId) {
+  static async atualizar(id, data, userId) {
     const comment = await CommentRepository.findById(id)
-    if (!comment) throw new Error('Comentário não encontrado.')
-    if (comment.userId !== userId) {
-      throw new Error('Você não tem permissão para atualizar este comentário.')
-    }
-    if (!data.comentario || !data.comentario.trim()) throw new Error('Comentário não pode ficar vazio.')
+    if (!comment) throw new AppError('Comentário não encontrado.', 404, 'NOT_FOUND')
+    if (Number(comment.userId) !== Number(userId)) throw new AppError('Você não tem permissão para atualizar este comentário.', 403, 'FORBIDDEN')
+    if (!data.comentario || !data.comentario.trim()) throw new AppError('Comentário não pode ficar vazio.', 400, 'VALIDATION_ERROR')
+    if (data.comentario.trim().length > 255) throw new AppError('Comentário deve ter no máximo 255 caracteres.', 400, 'VALIDATION_ERROR')
     const result = filterBadWords(data.comentario.trim())
-    const [rowsUpdate] = await CommentRepository.update(id, {
+    await CommentRepository.update(id, {
       comentario: result.filteredText,
       comentarioOriginal: result.hasBadWord ? data.comentario.trim() : null,
       censurado: result.hasBadWord,
       censuraRevisada: false
     })
-    if (!rowsUpdate) throw new Error('Falha ao atualizar o comentário.')
     return { message: 'Comentário atualizado com sucesso.' }
   }
 
   static async revisarCensura(id, manterCensura, adm) {
-    if (!adm) throw new Error('Apenas administradores podem revisar a censura.')
-    if (typeof manterCensura !== 'boolean') throw new Error('Informe uma decisão de censura válida.')
+    if (!adm) throw new AppError('Apenas administradores podem revisar a censura.', 403, 'FORBIDDEN')
+    if (typeof manterCensura !== 'boolean') throw new AppError('Informe uma decisão de censura válida.', 400, 'VALIDATION_ERROR')
     const comment = await CommentRepository.findById(id)
-    if (!comment) throw new Error('Comentário não encontrado.')
-    if (!comment.comentarioOriginal) throw new Error('Este comentário não possui conteúdo censurado para revisão.')
-    const comentario = manterCensura
-      ? filterBadWords(comment.comentarioOriginal).filteredText
-      : comment.comentarioOriginal
+    if (!comment) throw new AppError('Comentário não encontrado.', 404, 'NOT_FOUND')
+    if (!comment.comentarioOriginal) throw new AppError('Este comentário não possui conteúdo censurado para revisão.', 409, 'NOT_CENSORED')
+    const comentario = manterCensura ? filterBadWords(comment.comentarioOriginal).filteredText : comment.comentarioOriginal
     await CommentRepository.update(id, { comentario, censurado: manterCensura, censuraRevisada: true })
     return { message: manterCensura ? 'A censura do comentário foi mantida.' : 'A censura do comentário foi removida.', comentario, censurado: manterCensura }
   }
 
-  // Deleta um comentário(user que criou ou adm pode deletar)
-  static async deletar(id,userId,adm) {
+  static async deletar(id, userId, adm) {
     const comment = await CommentRepository.findById(id)
-    if (!comment) throw new Error('Comentário não encontrado.')
-    if (comment.userId !== userId && !adm) {
-      throw new Error('Você não tem permissão para excluir este comentário.')
-    }
+    if (!comment) throw new AppError('Comentário não encontrado.', 404, 'NOT_FOUND')
+    if (Number(comment.userId) !== Number(userId) && !adm) throw new AppError('Você não tem permissão para excluir este comentário.', 403, 'FORBIDDEN')
     await CommentRepository.delete(id)
     return { message: 'Comentário excluído com sucesso.' }
   }

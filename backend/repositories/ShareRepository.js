@@ -8,13 +8,18 @@ class ShareRepository {
   }
 
   // Lista todos os compartilhamentos de uma denúncia
-  static async findByDenunciaId(denunciaId) {
-    const shares = await Share.findAll({
+  static async findByDenunciaId(denunciaId, { page = null, limit = null } = {}) {
+    const query = {
       where: { denunciaId },
       include: { model: User, attributes: ['id', 'username', 'avatarUrl'] },
       order: [['createdAt', 'DESC']]
-    })
-    return { totalShares: shares.length, shares }
+    }
+    if (!page || !limit) {
+      const shares = await Share.findAll(query)
+      return { totalShares: shares.length, shares }
+    }
+    const { rows, count } = await Share.findAndCountAll({ ...query, limit, offset: (page - 1) * limit, distinct: true })
+    return { totalShares: count, shares: rows, page, limit, totalPages: Math.ceil(count / limit) }
   }
 
   // Busca um compartilhamento pelo ID

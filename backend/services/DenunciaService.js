@@ -1,12 +1,15 @@
 const DenunciaRepository = require('../repositories/DenunciaRepository');
+const { DenunciaHistorico, User } = require('../models/rel');
 const filterBadWords = require('../utils/filterBadWords');
 const AppError = require('../utils/AppError');
 const { validateDenuncia } = require('../utils/validateDenuncia');
+const { deleteImage } = require('../utils/upload');
 
 class DenunciaService {
   static async create(data, user) {
     validateDenuncia(data);
-    const { titulo, descricao, localizacao, categoria = 'Outros', latitude, longitude, imageUrl } = data;
+    const { titulo, descricao, localizacao, categoria = 'Outros', latitude, longitude, imageUrl, imageUrls = [] } = data;
+    if (!Array.isArray(imageUrls) || imageUrls.length > 4) throw new AppError('Envie no máximo 4 imagens.', 400, 'IMAGE_LIMIT');
     const { id: userId } = user;
 
     const { hasBadWord: hasBadWordTitulo, filteredText: tituloFiltrado } = filterBadWords(titulo);
@@ -24,6 +27,7 @@ class DenunciaService {
       latitude: latitude === '' ? null : latitude,
       longitude: longitude === '' ? null : longitude,
       imageUrl: imageUrl || null,
+      imageUrls,
       userId,
       status: 'pendente',
       resolucaoStatus: 'aberta'
@@ -38,7 +42,7 @@ class DenunciaService {
     };
   }
 
-  static async moderar(id, status, isAdm, motivoRejeicao = null) {
+  static async moderar(id, status, isAdm, motivoRejeicao = null, moderatorId = null) {
     if (!isAdm) throw new AppError('Acesso negado. Apenas administradores podem moderar denúncias.', 403, 'FORBIDDEN');
     if (!['pendente', 'aprovada', 'rejeitada'].includes(status)) {
       throw new AppError('Status de moderação inválido.', 400, 'VALIDATION_ERROR');
@@ -47,10 +51,13 @@ class DenunciaService {
     const denuncia = await DenunciaRepository.findById(id);
     if (!denuncia) throw new AppError('Denúncia não encontrada.', 404, 'NOT_FOUND');
 
-    const motivo = status === 'rejeitada' && motivoRejeicao?.trim()
-      ? motivoRejeicao.trim().slice(0, 1000)
-      : null;
+    if (status === 'rejeitada' && !motivoRejeicao?.trim()) {
+      throw new AppError('Informe o motivo da rejeição.', 400, 'REJECTION_REASON_REQUIRED');
+    }
+    const motivo = status === 'rejeitada' ? motivoRejeicao.trim().slice(0, 1000) : null;
+    const statusAnterior = denuncia.status;
     await DenunciaRepository.update(id, { status, motivoRejeicao: motivo });
+    if (moderatorId) await DenunciaHistorico.create({ tipo: 'moderacao', statusAnterior, statusNovo: status, motivo, denunciaId: id, userId: moderatorId });
     denuncia.status = status;
     denuncia.motivoRejeicao = motivo;
     return { message: status === 'rejeitada' ? 'Denúncia rejeitada. O autor poderá consultar o motivo e corrigir o registro.' : `Denúncia marcada como ${status}.`, denuncia };
@@ -72,7 +79,7 @@ class DenunciaService {
     return { message: manterCensura ? 'A censura foi mantida.' : 'A censura foi removida após revisão.', field, value, censurado: manterCensura };
   }
 
-  static async atualizarResolucao(id, resolucaoStatus, isAdm) {
+  static async atualizarResolucao(id, resolucaoStatus, isAdm, details = {}, moderatorId = null) {
     if (!isAdm) throw new AppError('Apenas administradores podem atualizar a resolução.', 403, 'FORBIDDEN');
     if (!['aberta', 'em_andamento', 'resolvida'].includes(resolucaoStatus)) {
       throw new AppError('Status de resolução inválido.', 400, 'VALIDATION_ERROR');
@@ -81,12 +88,54 @@ class DenunciaService {
     const denuncia = await DenunciaRepository.findById(id);
     if (!denuncia) throw new AppError('Denúncia não encontrada.', 404, 'NOT_FOUND');
 
+    const setoresPermitidos = [
+      'Secretaria de Infraestrutura e Obras',
+      'Secretaria de Mobilidade e Trânsito',
+      'Secretaria do Verde e Meio Ambiente',
+      'Secretaria de Saúde',
+      'Secretaria de Educação',
+      'Secretaria de Segurança Pública',
+      'Serviço de Iluminação Pública',
+      'Limpeza Urbana e Zeladoria',
+      'Defesa Civil',
+      'A definir'
+    ];
+    const statusAnterior = denuncia.resolucaoStatus;
+    const setorResponsavel = typeof details.setorResponsavel === 'string'
+      ? details.setorResponsavel.trim().slice(0, 120)
+      : '';
+    if (setorResponsavel && !setoresPermitidos.includes(setorResponsavel)) {
+      throw new AppError('Selecione um setor responsável válido.', 400, 'VALIDATION_ERROR');
+    }
+    const setorAtual = denuncia.setorResponsavel || '';
+    if (denuncia.resolucaoStatus === resolucaoStatus && setorAtual === setorResponsavel) {
+      return {
+        message: 'Nenhuma alteração para salvar.',
+        resolucaoStatus: denuncia.resolucaoStatus,
+        setorResponsavel: denuncia.setorResponsavel || null,
+        changed: false
+      };
+    }
     await DenunciaRepository.update(id, {
       resolucaoStatus,
+      setorResponsavel: setorResponsavel || null,
       resolucaoAtualizadaEm: new Date()
     });
+    if (moderatorId) await DenunciaHistorico.create({
+      tipo: 'resolucao',
+      statusAnterior,
+      statusNovo: resolucaoStatus,
+      responsavel: setorResponsavel || null,
+      denunciaId: id,
+      userId: moderatorId
+    });
 
-    return { message: `Resolução atualizada para ${resolucaoStatus}.` };
+    return {
+      message: 'Andamento e setor responsável atualizados com sucesso.',
+      resolucaoStatus,
+      setorResponsavel: setorResponsavel || null,
+      changed: true
+    };
   }
 
   static async listarTodas(options = {}) {
@@ -97,12 +146,14 @@ class DenunciaService {
     return DenunciaRepository.findApproved(options);
   }
 
-  static async getFiltered(options) {
+  static async getFiltered(options, requester = null) {
     const allowedResolutionStatuses = ['aberta', 'em_andamento', 'resolvida'];
     if (options.resolucaoStatus && !allowedResolutionStatuses.includes(options.resolucaoStatus)) {
       throw new AppError('Selecione um status de resolução válido.', 400, 'VALIDATION_ERROR');
     }
-    return DenunciaRepository.findWithFilters(options);
+    const result = await DenunciaRepository.findWithFilters(options);
+    result.data = await DenunciaRepository.addEngagementStats(result.data, requester?.id);
+    return result;
   }
 
   static async buscarPorId(id, requester = null) {
@@ -114,15 +165,36 @@ class DenunciaService {
     if (denuncia.status !== 'aprovada' && !canSeePrivate) {
       throw new AppError('Denúncia não encontrada.', 404, 'NOT_FOUND');
     }
-    if (requester?.adm) return denuncia;
-    const plain = denuncia.get ? denuncia.get({ plain: true }) : { ...denuncia };
-    delete plain.tituloOriginal;
-    delete plain.descricaoOriginal;
-    return plain;
+    const visible = denuncia.get ? denuncia.get({ plain: true }) : { ...denuncia };
+    if (!requester?.adm) {
+      delete visible.tituloOriginal;
+      delete visible.descricaoOriginal;
+    }
+    if (denuncia.status === 'aprovada') {
+      const enriched = await DenunciaRepository.addEngagementStats([visible], requester?.id);
+      return enriched?.[0] || visible;
+    }
+    return visible;
+  }
+
+  static async buscarHistorico(id, requester = null) {
+    const denuncia = await DenunciaRepository.findById(id);
+    if (!denuncia) throw new AppError('Denúncia não encontrada.', 404, 'NOT_FOUND');
+    const canSee = denuncia.status === 'aprovada' || requester?.adm || Number(requester?.id) === Number(denuncia.userId);
+    if (!canSee) throw new AppError('Denúncia não encontrada.', 404, 'NOT_FOUND');
+    return DenunciaHistorico.findAll({
+      where: { denunciaId: id },
+      include: [{ model: User, attributes: ['id', 'username', 'avatarUrl'] }],
+      order: [['createdAt', 'DESC']]
+    });
   }
 
   static async buscarPorUsuario(userId) {
     return DenunciaRepository.findByUserId(userId);
+  }
+
+  static async buscarPublicadasPorUsuario(userId, options) {
+    return DenunciaRepository.findApprovedByUserId(userId, options);
   }
 
   static async atualizar(id, data, userIdToken) {
@@ -136,10 +208,11 @@ class DenunciaService {
     }
     validateDenuncia(data, { partial: true });
 
-    const allowed = ['titulo', 'descricao', 'localizacao', 'categoria', 'latitude', 'longitude', 'imageUrl'];
+    const allowed = ['titulo', 'descricao', 'localizacao', 'categoria', 'latitude', 'longitude', 'imageUrl', 'imageUrls'];
     const dadosAtualizados = Object.fromEntries(
       Object.entries(data).filter(([key]) => allowed.includes(key))
     );
+    if (dadosAtualizados.imageUrls && (!Array.isArray(dadosAtualizados.imageUrls) || dadosAtualizados.imageUrls.length > 4)) throw new AppError('Envie no máximo 4 imagens.', 400, 'IMAGE_LIMIT');
     if (data.titulo !== undefined) {
       const result = filterBadWords(data.titulo);
       dadosAtualizados.titulo = result.filteredText;
@@ -165,7 +238,12 @@ class DenunciaService {
     if (Number(denuncia.userId) !== Number(userId)) {
       throw new AppError('Você não tem permissão para excluir esta denúncia.', 403, 'FORBIDDEN');
     }
+    if (denuncia.status === 'aprovada') {
+      throw new AppError('Denúncias publicadas são preservadas no histórico público.', 409, 'INVALID_STATUS');
+    }
     await DenunciaRepository.delete(id);
+    const images = denuncia.imageUrls?.length ? denuncia.imageUrls : [denuncia.imageUrl];
+    await Promise.all(images.filter(Boolean).map(url => deleteImage(url).catch(() => {})));
     return { message: 'Denúncia excluída com sucesso.' };
   }
 }

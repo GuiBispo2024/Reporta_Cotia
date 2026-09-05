@@ -42,17 +42,12 @@ const auth = require('../middlewares/auth')
  */
 
 // Compartilha denúncia
-router.post('/:denunciaId/share',auth, async (req, res) => {
+router.post('/:denunciaId/share',auth, async (req, res, next) => {
   try {
     const { comentario } = req.body
     const result = await ShareService.compartilhar({ denunciaId: req.params.denunciaId, comentario }, req.user)
     res.status(201).json(result)
-  } catch (error) {
-    if (error.message.includes('Usuário') || error.message.includes('Denúncia')) {
-      return res.status(404).json({ message: error.message })
-    }
-    res.status(500).json({ message: error.message })
-  }
+  } catch (error) { next(error) }
 })
 
 /**
@@ -74,13 +69,13 @@ router.post('/:denunciaId/share',auth, async (req, res) => {
  */
 
 // Lista compartilhamentos de uma denúncia
-router.get('/:denunciaId/shares', async (req, res) => {
+router.get('/:denunciaId/shares', async (req, res, next) => {
   try {
-    const shares = await ShareService.listarPorDenuncia(req.params.denunciaId)
+    const page = req.query.page ? Math.max(Number(req.query.page), 1) : null
+    const limit = req.query.limit ? Math.min(Math.max(Number(req.query.limit), 1), 50) : null
+    const shares = await ShareService.listarPorDenuncia(req.params.denunciaId, { page, limit })
     res.status(200).json(shares)
-  } catch (error) {
-    res.status(500).json({ message: error.message })
-  }
+  } catch (error) { next(error) }
 })
 
 /**
@@ -108,19 +103,11 @@ router.get('/:denunciaId/shares', async (req, res) => {
  */
 
 // Deleta compartilhamento
-router.delete('/share/:id',auth, async (req, res) => {
+router.delete('/share/:id',auth, async (req, res, next) => {
   try {
     const result = await ShareService.deletar(req.params.id, req.user.id)
     res.status(200).json(result)
-  } catch (error) {
-    if (error.message.includes('Compartilhamento não encontrado')) {
-      return res.status(404).json({ message: error.message })
-    }
-    if (error.message.includes('permissão')) {
-      return res.status(403).json({ message: error.message })
-    }
-    res.status(500).json({ message: error.message })
-  }
+  } catch (error) { next(error) }
 })
 
 module.exports = router

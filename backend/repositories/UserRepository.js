@@ -1,4 +1,5 @@
 const {User, Denuncia, sequelize} = require('../models/rel')
+const { Op } = require('sequelize')
 
 class UserRepository{
 
@@ -23,8 +24,14 @@ class UserRepository{
     }
 
     //Lista todos os usuários com a contagem de denúncias feitas por cada um
-    static async findAllUsersWithDenuniaCount(includeEmail = false) {
-        return User.findAll({
+    static async findAllUsersWithDenuniaCount(includeEmail = false, { page = 1, limit = 20, search = '', sort = 'username' } = {}) {
+        const where = search ? { username: { [sequelize.getDialect() === 'sqlite' ? Op.like : Op.iLike]: `%${search}%` } } : {}
+        const order = sort === 'contributions'
+          ? [[sequelize.literal('"totalDenuncias"'), 'DESC']]
+          : [['username', 'ASC']]
+        const offset = (page - 1) * limit
+        const [rows, total] = await Promise.all([User.findAll({
+            where,
             include: [{
                 model: Denuncia,
                 attributes: [],
@@ -41,8 +48,13 @@ class UserRepository{
                 ...(includeEmail ? ["email"] : []),
                 [sequelize.fn("COUNT", sequelize.col("Denuncia.id")), "totalDenuncias"]
             ],
-            group: ["User.id"]
-         });
+            group: ["User.id"],
+            order,
+            limit,
+            offset,
+            subQuery: false
+         }), User.count({ where })])
+        return { data: rows, total, page, limit, totalPages: Math.ceil(total / limit) }
     }
 
     //Busca um usuário específico

@@ -4,7 +4,7 @@ const auth = require('../middlewares/auth');
 const optionalAuth = require('../middlewares/optionalAuth');
 const AppError = require('../utils/AppError');
 const DenunciaService = require('../services/DenunciaService');
-const { upload, storeImage } = require('../utils/upload');
+const { upload, storeImage, deleteImage } = require('../utils/upload');
 
 function pagination(req) {
   const hasPagination = req.query.page !== undefined || req.query.limit !== undefined;
@@ -29,10 +29,10 @@ function pagination(req) {
  *     security:
  *       - bearerAuth: []
  */
-router.post('/', auth, upload.single('imagem'), async (req, res, next) => {
+router.post('/', auth, upload.array('imagens', 4), async (req, res, next) => {
   try {
-    const imageUrl = await storeImage(req.file);
-    res.status(201).json(await DenunciaService.create({ ...req.body, imageUrl }, req.user));
+    const imageUrls = await Promise.all((req.files || []).map(file => storeImage(file)));
+    res.status(201).json(await DenunciaService.create({ ...req.body, imageUrls, imageUrl: imageUrls[0] || null }, req.user));
   } catch (error) { next(error); }
 });
 
@@ -47,7 +47,7 @@ router.post('/', auth, upload.single('imagem'), async (req, res, next) => {
  */
 router.patch('/:id/moderar', auth, async (req, res, next) => {
   try {
-    res.status(200).json(await DenunciaService.moderar(req.params.id, req.body.status, req.user.adm, req.body.motivoRejeicao));
+    res.status(200).json(await DenunciaService.moderar(req.params.id, req.body.status, req.user.adm, req.body.motivoRejeicao, req.user.id));
   } catch (error) { next(error); }
 });
 
@@ -71,7 +71,7 @@ router.patch('/:id/censura', auth, async (req, res, next) => {
 router.patch('/:id/resolucao', auth, async (req, res, next) => {
   try {
     res.status(200).json(
-      await DenunciaService.atualizarResolucao(req.params.id, req.body.resolucaoStatus, req.user.adm)
+      await DenunciaService.atualizarResolucao(req.params.id, req.body.resolucaoStatus, req.user.adm, req.body, req.user.id)
     );
   } catch (error) { next(error); }
 });
@@ -90,10 +90,15 @@ router.patch('/:id/resolucao', auth, async (req, res, next) => {
  *         name: limit
  *         schema: { type: integer, minimum: 1, maximum: 50 }
  */
-router.get('/', async (req, res, next) => {
+router.get('/', optionalAuth, async (req, res, next) => {
   try {
+    const filterKeys = ['titulo', 'descricao', 'localizacao', 'user', 'sort', 'categoria', 'resolucaoStatus'];
+    const hasFilters = filterKeys.some(key => req.query[key] !== undefined);
     const { hasPagination, page, limit } = pagination(req);
-    const result = await DenunciaService.listarPublicadas(hasPagination ? { page, limit } : {});
+    const result = hasFilters || hasPagination
+      ? await DenunciaService.getFiltered({ ...Object.fromEntries(filterKeys.map(key => [key, req.query[key]])), page, limit }, req.user)
+      : await DenunciaService.listarPublicadas();
+    res.set('Deprecation-Notice', 'Use GET /denuncia; GET /denuncia/filter será removido em versão futura.');
     res.status(200).json(result);
   } catch (error) { next(error); }
 });
@@ -102,7 +107,9 @@ router.get('/moderacao', auth, async (req, res, next) => {
   try {
     if (!req.user.adm) throw new AppError('Acesso negado.', 403, 'FORBIDDEN');
     const { hasPagination, page, limit } = pagination(req);
-    const result = await DenunciaService.listarTodas(hasPagination ? { page, limit } : {});
+    const { status, categoria, resolucaoStatus } = req.query;
+    if (status && !['pendente', 'aprovada', 'rejeitada'].includes(status)) throw new AppError('Status de moderação inválido.', 400, 'VALIDATION_ERROR');
+    const result = await DenunciaService.listarTodas({ status, categoria, resolucaoStatus, ...(hasPagination ? { page, limit } : {}) });
     res.status(200).json(result);
   } catch (error) { next(error); }
 });
@@ -114,15 +121,24 @@ router.get('/moderacao', auth, async (req, res, next) => {
  *     summary: Lista denúncias com filtros
  *     tags: [Denúncias]
  */
-router.get('/filter', async (req, res, next) => {
+router.get('/filter', optionalAuth, async (req, res, next) => {
   try {
     const { titulo, descricao, localizacao, user, sort, categoria, status, resolucaoStatus } = req.query;
     const { hasPagination, page, limit } = pagination(req);
+    if (status && status !== 'aprovada') throw new AppError('A consulta pública permite apenas denúncias aprovadas.', 400, 'INVALID_PUBLIC_STATUS');
     const result = await DenunciaService.getFiltered({
-      titulo, descricao, localizacao, user, sort, categoria, status, resolucaoStatus,
+      titulo, descricao, localizacao, user, sort, categoria, resolucaoStatus,
       ...(hasPagination ? { page, limit } : {})
-    });
+    }, req.user);
     res.status(200).json(result);
+  } catch (error) { next(error); }
+});
+
+router.get('/public/user/:userId', async (req, res, next) => {
+  try {
+    const page = Math.max(Number.parseInt(req.query.page || '1', 10), 1);
+    const limit = Math.min(Math.max(Number.parseInt(req.query.limit || '12', 10), 1), 50);
+    res.status(200).json(await DenunciaService.buscarPublicadasPorUsuario(req.params.userId, { page, limit }));
   } catch (error) { next(error); }
 });
 
@@ -135,23 +151,34 @@ router.get('/user/:userId', auth, async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+router.get('/:id/historico', optionalAuth, async (req, res, next) => {
+  try {
+    res.status(200).json(await DenunciaService.buscarHistorico(req.params.id, req.user));
+  } catch (error) { next(error); }
+});
+
 router.get('/:id', optionalAuth, async (req, res, next) => {
   try {
     res.status(200).json(await DenunciaService.buscarPorId(req.params.id, req.user));
   } catch (error) { next(error); }
 });
 
-router.put('/:id', auth, upload.single('imagem'), async (req, res, next) => {
+router.put('/:id', auth, upload.array('imagens', 4), async (req, res, next) => {
   try {
-    const imageUrl = req.file
-      ? await storeImage(req.file)
-      : req.body.removeImage === 'true' || req.body.removeImage === true
-        ? null
-        : undefined;
+    const current = await DenunciaService.buscarPorId(req.params.id, req.user);
+    const newUrls = await Promise.all((req.files || []).map(file => storeImage(file)));
+    const removeRequested = req.body.removeImages === 'true' || req.body.removeImage === 'true' || req.body.removeImage === true;
+    const replaceImages = newUrls.length > 0 || removeRequested;
     const data = { ...req.body };
+    delete data.removeImages;
     delete data.removeImage;
-    if (imageUrl !== undefined) data.imageUrl = imageUrl;
-    res.status(200).json(await DenunciaService.atualizar(req.params.id, data, req.user.id));
+    if (replaceImages) {
+      data.imageUrls = newUrls;
+      data.imageUrl = newUrls[0] || null;
+    }
+    const result = await DenunciaService.atualizar(req.params.id, data, req.user.id);
+    if (replaceImages) await Promise.all((current.imageUrls?.length ? current.imageUrls : [current.imageUrl]).filter(Boolean).map(deleteImage));
+    res.status(200).json(result);
   } catch (error) { next(error); }
 });
 

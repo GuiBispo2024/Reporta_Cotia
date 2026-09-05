@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const UserRepository = require('../repositories/UserRepository')
 const SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'reporta-cotia-test-secret' : undefined)
+const { deleteImage } = require('../utils/upload')
 
 class UserService {
     
@@ -15,7 +16,7 @@ class UserService {
     const hashed = await bcrypt.hash(password, 10)
     const created = await UserRepository.create({ username, email, password: hashed, avatarUrl })
     const plain = created.get ? created.get({ plain: true }) : created
-    const { password: _password, ...safeUser } = plain
+    const { password: _password, tokenVersion: _tokenVersion, ...safeUser } = plain
     return safeUser
   }
 
@@ -27,7 +28,7 @@ class UserService {
     const valid = await bcrypt.compare(password, user.password)
     if (!valid) throw new Error('Senha incorreta.')
 
-    const token = jwt.sign({ id: user.id, adm: user.adm }, SECRET, { expiresIn: '30m' })
+    const token = jwt.sign({ id: user.id, adm: user.adm, v: user.tokenVersion || 0 }, SECRET, { expiresIn: '30m' })
 
     return {
       message: 'Login bem-sucedido',
@@ -42,8 +43,8 @@ class UserService {
   }
 
   //Lista todos os usuários com a contagem de denúncias feitas por cada um
-  static async getAllWithDenunciaCount(isAdm = false) {
-    return UserRepository.findAllUsersWithDenuniaCount(isAdm);
+  static async getAllWithDenunciaCount(isAdm = false, options = {}) {
+    return UserRepository.findAllUsersWithDenuniaCount(isAdm, options);
   }
 
   // Buscar um usuário
@@ -57,19 +58,17 @@ class UserService {
     const user = await UserRepository.findById(id)
     if (!user) throw new Error('Usuário não encontrado.')
     const plain = user.get ? user.get({ plain: true }) : user
-    const { password, ...safeUser } = plain
+    const { password, tokenVersion, ...safeUser } = plain
     return safeUser
   }
 
   // Atualizar
   static async update(data,userIdToken) {
-    
-    // Impedir alteração de ADM por este método
-    delete data.adm;
-
-    // Buscar o usuário atual no banco
     const userDb = await UserRepository.findById(userIdToken);
     if (!userDb) throw new Error("Usuário não encontrado.");
+    const updates = {};
+    if (typeof data.username === 'string' && data.username.trim()) updates.username = data.username.trim();
+    if (typeof data.email === 'string' && data.email.trim()) updates.email = data.email.trim().toLowerCase();
 
     // --- TROCA DE SENHA ---
     if (data.senhaAtual || data.novaSenha) {
@@ -85,15 +84,11 @@ class UserService {
       }
 
       // Cria o hash da nova senha
-      data.password = await bcrypt.hash(data.novaSenha, 10);
+      if (data.novaSenha.length < 6) throw new Error('A nova senha deve ter pelo menos 6 caracteres.');
+      updates.password = await bcrypt.hash(data.novaSenha, 10);
     }
 
-    // Remover campos desnecessários antes de enviar ao banco
-    delete data.senhaAtual;
-    delete data.novaSenha;
-
-    // Atualiza usuário
-    const [rowsUpdate] = await UserRepository.update(userIdToken, data);
+    const [rowsUpdate] = await UserRepository.update(userIdToken, updates);
     if (!rowsUpdate) throw new Error("Usuário não encontrado.");
 
     // Busca usuário atualizado
@@ -101,11 +96,11 @@ class UserService {
 
     // Remove password antes de mandar para o front
     const plainUser = updatedUser.get ? updatedUser.get({ plain: true }) : updatedUser;
-    const { password, ...userWithoutPassword } = plainUser;
+    const { password, tokenVersion, ...userWithoutPassword } = plainUser;
 
     // Gera novo token
     const token = jwt.sign(
-      { id: updatedUser.id, adm: updatedUser.adm },
+      { id: updatedUser.id, adm: updatedUser.adm, v: updatedUser.tokenVersion || 0 },
       SECRET,
       { expiresIn: "30m" }
     );
@@ -121,9 +116,10 @@ class UserService {
     const user = await UserRepository.findById(userId)
     if (!user) throw new Error('Usuário não encontrado.')
     await UserRepository.update(userId, { avatarUrl })
+    if (user.avatarUrl && user.avatarUrl !== avatarUrl) await deleteImage(user.avatarUrl).catch(() => {})
     const updatedUser = await UserRepository.findById(userId)
     const plain = updatedUser.get ? updatedUser.get({ plain: true }) : updatedUser
-    const { password, ...safeUser } = plain
+    const { password, tokenVersion, ...safeUser } = plain
     return { message: 'Foto de perfil atualizada com sucesso.', user: safeUser }
   }
 
@@ -131,9 +127,10 @@ class UserService {
     const user = await UserRepository.findById(userId)
     if (!user) throw new Error('Usuário não encontrado.')
     await UserRepository.update(userId, { avatarUrl: null })
+    if (user.avatarUrl) await deleteImage(user.avatarUrl).catch(() => {})
     const updatedUser = await UserRepository.findById(userId)
     const plain = updatedUser.get ? updatedUser.get({ plain: true }) : updatedUser
-    const { password, ...safeUser } = plain
+    const { password, tokenVersion, ...safeUser } = plain
     return { message: 'Foto de perfil removida com sucesso.', user: safeUser }
   }
 
@@ -160,12 +157,18 @@ class UserService {
   }
 
   // Logout (invalidação simbólica)
-  static async logout() {
+  static async logout(userId) {
+    const user = await UserRepository.findById(userId)
+    if (!user) throw new Error('Usuário não encontrado.')
+    await UserRepository.update(userId, { tokenVersion: (user.tokenVersion || 0) + 1 })
     return { message: 'Logout realizado com sucesso' }
   }
 
   // Deletar
-  static async delete(userIdToken) {
+  static async delete(userIdToken, senhaAtual) {
+    const user = await UserRepository.findById(userIdToken)
+    if (!user) throw new Error('Usuário não encontrado.')
+    if (!senhaAtual || !(await bcrypt.compare(senhaAtual, user.password))) throw new Error('Senha atual incorreta.')
     const rowsDel = await UserRepository.delete(userIdToken)
     if (!rowsDel) throw new Error('Usuário não encontrado.')
     return { message: 'Usuário excluído com sucesso' }

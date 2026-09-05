@@ -31,6 +31,11 @@ const Denuncia = sequelize.define('Denuncia', {
     type: DataTypes.STRING(1000),
     allowNull: true
   },
+  imageUrls: {
+    type: DataTypes.JSON,
+    allowNull: false,
+    defaultValue: []
+  },
   status: {
     type: DataTypes.ENUM('pendente', 'aprovada', 'rejeitada'),
     defaultValue: 'pendente',
@@ -43,6 +48,10 @@ const Denuncia = sequelize.define('Denuncia', {
   },
   resolucaoAtualizadaEm: {
     type: DataTypes.DATE,
+    allowNull: true
+  },
+  setorResponsavel: {
+    type: DataTypes.STRING(120),
     allowNull: true
   },
   tituloOriginal: { type: DataTypes.STRING(120), allowNull: true },
