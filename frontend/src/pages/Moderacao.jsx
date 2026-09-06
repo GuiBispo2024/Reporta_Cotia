@@ -33,6 +33,7 @@ export default function Moderacao() {
   const [approvedMeta, setApprovedMeta] = useState({ page: 1, totalPages: 1 });
   const [resolutionDetails, setResolutionDetails] = useState({});
   const [savingResolution, setSavingResolution] = useState(null);
+  const [selectedReport, setSelectedReport] = useState(null);
 
   const hasResolutionChanges = report => {
     const draft = resolutionDetails[report.id] || {};
@@ -81,6 +82,7 @@ export default function Moderacao() {
           ...prev
         ]);
       }
+      setSelectedReport(null);
     } catch (err) {
       alert(
         friendlyError(err, "Não foi possível atualizar a moderação. A denúncia permaneceu no estado anterior.")
@@ -124,6 +126,11 @@ export default function Moderacao() {
             : d
         )
       );
+      setSelectedReport(current => current?.id === id ? {
+        ...current,
+        resolucaoStatus: result.resolucaoStatus,
+        setorResponsavel: result.setorResponsavel
+      } : current);
     } catch (err) {
       alert(
         friendlyError(err, "Não foi possível atualizar o andamento. O status anterior foi mantido.")
@@ -135,6 +142,7 @@ export default function Moderacao() {
     if (!window.confirm('Reenviar esta denúncia para a fila de moderação?')) return;
     try {
       await denunciaService.moderar(id, { status: 'pendente' });
+      setSelectedReport(null);
       await carregar(pendingMeta.page, approvedMeta.page);
     } catch (err) {
       alert(friendlyError(err, 'Não foi possível reabrir a moderação.'));
@@ -173,6 +181,7 @@ export default function Moderacao() {
                   </div>}
                   <p className="small"><strong>Local:</strong> {d.localizacao}</p>
                   <p className="small"><strong>Usuário:</strong> {d.User?.username || "Desconhecido"}</p>
+                  <button className="btn btn-outline-primary btn-sm w-100 mb-2" onClick={() => setSelectedReport({ ...d, queue: 'pending' })}><i className="bi bi-eye me-1" />Ver detalhes da denúncia</button>
                   <label className="form-label small fw-semibold mt-2">Motivo da rejeição <span className="text-danger">(obrigatório para rejeitar)</span></label>
                   <textarea className="form-control form-control-sm" rows="2" maxLength="1000" placeholder="Explique o que o cidadão pode corrigir..." value={motivos[d.id] || ''} onChange={e => setMotivos(prev => ({ ...prev, [d.id]: e.target.value }))} />
                   <div className="d-flex gap-2 mt-3">
@@ -233,6 +242,8 @@ export default function Moderacao() {
                     status={d.resolucaoStatus}
                   />
 
+                  <button className="btn btn-outline-primary btn-sm w-100 mt-2" onClick={() => setSelectedReport({ ...d, queue: 'approved' })}><i className="bi bi-eye me-1" />Ver detalhes e atualizar</button>
+
                   <label
                     className="form-label mt-3 fw-semibold"
                   >
@@ -283,6 +294,44 @@ export default function Moderacao() {
         {approvedMeta.totalPages > 1 && <div className="d-flex justify-content-center gap-3 mt-3"><button className="btn btn-outline-primary" disabled={approvedMeta.page <= 1} onClick={() => carregar(pendingMeta.page, approvedMeta.page - 1)}>Anterior</button><span className="align-self-center">Página {approvedMeta.page} de {approvedMeta.totalPages}</span><button className="btn btn-outline-primary" disabled={approvedMeta.page >= approvedMeta.totalPages} onClick={() => carregar(pendingMeta.page, approvedMeta.page + 1)}>Próxima</button></div>}
       </section>
       </main>
+      {selectedReport && <div className="rc-moderation-detail-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedReport(null); }}>
+        <section className="rc-moderation-detail" role="dialog" aria-modal="true" aria-labelledby="moderation-detail-title">
+          <header className="rc-moderation-detail-header">
+            <div><span className="rc-eyebrow">DENÚNCIA #{selectedReport.id}</span><h2 id="moderation-detail-title">Detalhes para moderação</h2></div>
+            <button type="button" onClick={() => setSelectedReport(null)} aria-label="Fechar detalhes"><i className="bi bi-x-lg" /></button>
+          </header>
+          <div className="rc-moderation-detail-grid">
+            <div className="rc-moderation-detail-content">
+              <ImageCarousel images={selectedReport.imageUrls} fallback={selectedReport.imageUrl} alt={selectedReport.titulo} />
+              <div className="rc-moderation-detail-badges"><span className="badge rc-category">{selectedReport.categoria || 'Outros'}</span><span className={`badge ${selectedReport.status === 'aprovada' ? 'bg-success' : 'bg-warning text-dark'}`}>{selectedReport.status}</span></div>
+              <h3>{selectedReport.titulo}</h3>
+              <p className="rc-moderation-description">{selectedReport.descricao}</p>
+              <dl className="rc-moderation-metadata">
+                <div><dt><i className="bi bi-geo-alt" /> Localização</dt><dd>{selectedReport.localizacao}</dd></div>
+                <div><dt><i className="bi bi-person" /> Publicado por</dt><dd>{selectedReport.User?.username || 'Usuário não identificado'}</dd></div>
+                <div><dt><i className="bi bi-calendar3" /> Enviado em</dt><dd>{new Date(selectedReport.createdAt).toLocaleString('pt-BR')}</dd></div>
+              </dl>
+            </div>
+            <aside className="rc-moderation-detail-actions">
+              <h3>{selectedReport.queue === 'approved' ? 'Atualizar encaminhamento' : 'Decisão da moderação'}</h3>
+              <p>{selectedReport.queue === 'approved' ? 'Defina o andamento e o serviço que ficará responsável pela denúncia.' : 'Revise todos os dados antes de aprovar ou rejeitar esta publicação.'}</p>
+              {selectedReport.queue === 'approved' ? <>
+                <ResolutionTimeline status={resolutionDetails[selectedReport.id]?.resolucaoStatus || selectedReport.resolucaoStatus} />
+                <label className="form-label fw-semibold mt-3">Andamento</label>
+                <select className="form-select" value={resolutionDetails[selectedReport.id]?.resolucaoStatus || selectedReport.resolucaoStatus || 'aberta'} onChange={event => setResolutionDetails(current => ({ ...current, [selectedReport.id]: { ...current[selectedReport.id], resolucaoStatus: event.target.value } }))}><option value="aberta">Aberta</option><option value="em_andamento">Em andamento</option><option value="resolvida">Resolvida</option></select>
+                <label className="form-label fw-semibold mt-3">Setor responsável</label>
+                <select className="form-select" value={resolutionDetails[selectedReport.id]?.setorResponsavel || ''} onChange={event => setResolutionDetails(current => ({ ...current, [selectedReport.id]: { ...current[selectedReport.id], setorResponsavel: event.target.value } }))}><option value="">Selecione um setor</option>{SETORES.map(setor => <option value={setor} key={setor}>{setor}</option>)}</select>
+                <button className="btn btn-primary w-100 mt-3" disabled={savingResolution === selectedReport.id || !hasResolutionChanges(selectedReport)} onClick={() => atualizarResolucao(selectedReport.id)}><i className="bi bi-check2-circle me-1" />{savingResolution === selectedReport.id ? 'Salvando...' : 'Salvar mudanças'}</button>
+                <button className="btn btn-outline-secondary btn-sm w-100 mt-2" onClick={() => navigate(`/moderacao/denuncia/${selectedReport.id}/historico`)}><i className="bi bi-clock-history me-1" />Histórico de alterações</button>
+              </> : <>
+                <label className="form-label fw-semibold">Motivo da rejeição <span className="text-danger">(obrigatório para rejeitar)</span></label>
+                <textarea className="form-control" rows="4" maxLength="1000" placeholder="Explique o que o cidadão pode corrigir..." value={motivos[selectedReport.id] || ''} onChange={event => setMotivos(current => ({ ...current, [selectedReport.id]: event.target.value }))} />
+                <div className="d-grid gap-2 mt-3"><button className="btn btn-success" onClick={() => moderar(selectedReport.id, 'aprovada')}><i className="bi bi-check-circle me-1" />Aprovar denúncia</button><button className="btn btn-danger" disabled={!motivos[selectedReport.id]?.trim()} onClick={() => moderar(selectedReport.id, 'rejeitada')}><i className="bi bi-x-circle me-1" />Rejeitar denúncia</button></div>
+              </>}
+            </aside>
+          </div>
+        </section>
+      </div>}
       <Footer />
     </div>
   );
