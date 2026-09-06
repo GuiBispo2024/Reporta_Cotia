@@ -16,10 +16,16 @@ export default function CurtidasDenuncia() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([denunciaService.buscarPorId(id), likeService.listarPorDenuncia(id)])
-      .then(([report, result]) => {
+    denunciaService.buscarPorId(id)
+      .then(async report => {
         if (!active) return;
         setDenuncia(report);
+        if (report.status !== 'aprovada') {
+          setError('O histórico de curtidas está disponível somente para denúncias aprovadas.');
+          return;
+        }
+        const result = await likeService.listarPorDenuncia(id);
+        if (!active) return;
         setLikes(Array.isArray(result) ? result : []);
       })
       .catch(err => active && setError(friendlyError(err, 'Não foi possível carregar o histórico de curtidas.')))

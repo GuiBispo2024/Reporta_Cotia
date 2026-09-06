@@ -17,11 +17,13 @@ export default function CompartilhamentosDenuncia() {
   const [error, setError] = useState('');
 
   const carregar = useCallback(async () => {
-    const [report, result] = await Promise.all([
-      denunciaService.buscarPorId(id),
-      shareService.listarPorDenuncia(id)
-    ]);
+    const report = await denunciaService.buscarPorId(id);
     setDenuncia(report);
+    if (report.status !== 'aprovada') {
+      setError('O histórico de compartilhamentos está disponível somente para denúncias aprovadas.');
+      return;
+    }
+    const result = await shareService.listarPorDenuncia(id);
     setShares(result.shares || []);
   }, [id]);
 

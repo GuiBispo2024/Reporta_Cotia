@@ -183,12 +183,17 @@ describe("Denúncias routes (integration)", () => {
         titulo: "Buraco ainda maior",
         descricao: "Agora está perigoso",
         localizacao: "Rua das Flores, nº 200",
+        latitude: "",
+        longitude: "",
       });
 
     console.log("Resposta:", res.statusCode, res.body);
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty("message", "Denúncia atualizada e reenviada para moderação.");
+    const updated = await Denuncia.findByPk(denunciaId);
+    expect(updated.latitude).toBeNull();
+    expect(updated.longitude).toBeNull();
   });
 
   test("PUT /denuncia/:id remove a imagem da denúncia no banco", async () => {

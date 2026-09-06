@@ -150,9 +150,10 @@ describe('DenunciaService (unit)', () => {
 
     DenunciaRepository.update.mockResolvedValue();
 
-    const res = await DenunciaService.atualizar(1, { titulo: "novo" }, 10);
+    const res = await DenunciaService.atualizar(1, { titulo: "novo", latitude: "", longitude: "   " }, 10);
 
     expect(res.message).toBe("Denúncia atualizada e reenviada para moderação.");
+    expect(DenunciaRepository.update).toHaveBeenCalledWith(1, expect.objectContaining({ latitude: null, longitude: null }));
   });
 
   test('atualizar: erro se não existe', async () => {

@@ -63,6 +63,18 @@ describe('Interações sociais e sessões', () => {
     expect((await request(app).delete(`/denuncia/share/${created.body.share.id}`).set('Authorization', `Bearer ${token}`)).status).toBe(200)
   })
 
+  test('remove curtidas e compartilhamentos quando a denúncia deixa de ser aprovada', async () => {
+    const report = await Denuncia.create({ titulo: 'Registro para rejeitar', descricao: 'Descrição válida', localizacao: 'Rua C', categoria: 'Outros', status: 'aprovada', userId: 1 })
+    await request(app).post(`/denuncia/${report.id}/like`).set('Authorization', `Bearer ${token}`)
+    await request(app).post(`/denuncia/${report.id}/share`).set('Authorization', `Bearer ${token}`).send({ comentario: 'Registro anterior' })
+
+    const rejected = await request(app).patch(`/denuncia/${report.id}/moderar`).set('Authorization', `Bearer ${token}`).send({ status: 'rejeitada', motivoRejeicao: 'Precisa de correção.' })
+
+    expect(rejected.status).toBe(200)
+    expect(await sequelize.models.Like.count({ where: { denunciaId: report.id } })).toBe(0)
+    expect(await sequelize.models.Share.count({ where: { denunciaId: report.id } })).toBe(0)
+  })
+
   test('bloqueia interação em denúncia pendente', async () => {
     const report = await Denuncia.create({ titulo: 'Pendente', descricao: 'Ainda em análise', localizacao: 'Rua A', status: 'pendente', userId: 1 })
     expect((await request(app).get(`/denuncia/${report.id}/likes`)).status).toBe(404)

@@ -524,6 +524,13 @@ class DenunciaRepository {
     return Denuncia.update(data, { where: { id } });
   }
 
+  static async clearSocialHistory(denunciaId) {
+    return Promise.all([
+      Like.destroy({ where: { denunciaId } }),
+      Share.destroy({ where: { denunciaId } })
+    ]);
+  }
+
   static async delete(id) {
     return Denuncia.destroy({ where: { id } });
   }

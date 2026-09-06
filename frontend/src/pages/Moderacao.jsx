@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext } from "react";
+import { useCallback, useEffect, useState, useContext } from "react";
 import { useNavigate } from 'react-router-dom';
 import denunciaService from "../services/denunciaService";
 import Navbar from "../components/Navbar";
@@ -26,11 +26,15 @@ export default function Moderacao() {
   const navigate = useNavigate();
   const [denuncias, setDenuncias] = useState([]);
   const [aprovadas, setAprovadas] = useState([]);
+  const [rejeitadas, setRejeitadas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [motivos, setMotivos] = useState({});
   const [pendingMeta, setPendingMeta] = useState({ page: 1, totalPages: 1 });
   const [approvedMeta, setApprovedMeta] = useState({ page: 1, totalPages: 1 });
+  const [rejectedMeta, setRejectedMeta] = useState({ page: 1, totalPages: 1 });
+  const [statusFilter, setStatusFilter] = useState('todos');
+  const [resolutionFilter, setResolutionFilter] = useState('');
   const [resolutionDetails, setResolutionDetails] = useState({});
   const [savingResolution, setSavingResolution] = useState(null);
   const [selectedReport, setSelectedReport] = useState(null);
@@ -41,15 +45,17 @@ export default function Moderacao() {
       (draft.setorResponsavel || '') !== (report.setorResponsavel || '');
   };
 
-  const carregar = async (pendingPage = 1, approvedPage = 1) => {
+  const carregar = useCallback(async (pendingPage = 1, approvedPage = 1, rejectedPage = 1, approvedResolution = resolutionFilter) => {
     try {
       setLoading(true);
-      const [pending, approved] = await Promise.all([
+      const [pending, approved, rejected] = await Promise.all([
         denunciaService.listarParaModeracao({ status: 'pendente', page: pendingPage, limit: 12 }),
-        denunciaService.listarParaModeracao({ status: 'aprovada', page: approvedPage, limit: 12 })
+        denunciaService.listarParaModeracao({ status: 'aprovada', ...(approvedResolution ? { resolucaoStatus: approvedResolution } : {}), page: approvedPage, limit: 12 }),
+        denunciaService.listarParaModeracao({ status: 'rejeitada', page: rejectedPage, limit: 12 })
       ]);
       setDenuncias(pending.data || []);
       setAprovadas(approved.data || []);
+      setRejeitadas(rejected.data || []);
       setResolutionDetails(current => Object.fromEntries((approved.data || []).map(report => [
         report.id,
         current[report.id] || {
@@ -59,11 +65,12 @@ export default function Moderacao() {
       ])));
       setPendingMeta({ page: pending.page || 1, totalPages: pending.totalPages || 1 });
       setApprovedMeta({ page: approved.page || 1, totalPages: approved.totalPages || 1 });
+      setRejectedMeta({ page: rejected.page || 1, totalPages: rejected.totalPages || 1 });
     } catch (error) { setError(friendlyError(error, "Não foi possível carregar o painel de moderação. Atualize a página para tentar novamente.")); }
     finally { setLoading(false); }
-  };
+  }, [resolutionFilter]);
 
-  useEffect(() => { if (user?.adm) carregar(); }, [user]);
+  useEffect(() => { if (user?.adm) carregar(); }, [user, carregar]);
 
   const moderar = async (id, status) => {
     try {
@@ -71,6 +78,20 @@ export default function Moderacao() {
         status,
         motivoRejeicao: status === 'rejeitada' ? motivos[id] || '' : ''
       });
+
+      if (status === 'rejeitada') {
+        const nextPendingPage = denuncias.length === 1 && pendingMeta.page > 1
+          ? pendingMeta.page - 1
+          : pendingMeta.page;
+        setSelectedReport(null);
+        setMotivos(current => {
+          const next = { ...current };
+          delete next[id];
+          return next;
+        });
+        await carregar(nextPendingPage, approvedMeta.page, 1);
+        return;
+      }
 
       setDenuncias(prev =>
         prev.filter(d => d.id !== id)
@@ -143,7 +164,7 @@ export default function Moderacao() {
     try {
       await denunciaService.moderar(id, { status: 'pendente' });
       setSelectedReport(null);
-      await carregar(pendingMeta.page, approvedMeta.page);
+      await carregar(pendingMeta.page, approvedMeta.page, rejectedMeta.page);
     } catch (err) {
       alert(friendlyError(err, 'Não foi possível reabrir a moderação.'));
     }
@@ -161,8 +182,17 @@ export default function Moderacao() {
           <p className="text-muted">Aprove ou rejeite novos registros antes da publicação.</p>
         </div>
 
+        <div className="rc-moderation-filter mb-4">
+          <div><i className="bi bi-funnel" /><div><strong>Filtrar denúncias</strong><small>Exiba apenas o status que deseja analisar.</small></div></div>
+          <div className="rc-moderation-filter-fields">
+            <label><span>Status de moderação</span><select className="form-select" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option value="todos">Todos os status</option><option value="pendente">Pendentes</option><option value="aprovada">Aprovadas</option><option value="rejeitada">Rejeitadas</option></select></label>
+            <label className={statusFilter === 'pendente' || statusFilter === 'rejeitada' ? 'd-none' : ''}><span>Andamento das aprovadas</span><select className="form-select" value={resolutionFilter} onChange={event => setResolutionFilter(event.target.value)}><option value="">Todos os andamentos</option><option value="aberta">Aberta</option><option value="em_andamento">Em andamento</option><option value="resolvida">Resolvida</option></select></label>
+          </div>
+        </div>
+
         {loading && <div className="text-center"><div className="spinner-border text-primary" /></div>}
         {error && <div className="alert alert-danger">{error}</div>}
+        <div className={statusFilter === 'todos' || statusFilter === 'pendente' ? '' : 'd-none'}>
         {!loading && !denuncias.length && <div className="rc-empty">Não há denúncias pendentes no momento.</div>}
 
         <div className="row g-4">
@@ -194,9 +224,10 @@ export default function Moderacao() {
             </div>
           ))}
         </div>
-        {pendingMeta.totalPages > 1 && <div className="d-flex justify-content-center gap-3 mt-3"><button className="btn btn-outline-primary" disabled={pendingMeta.page <= 1} onClick={() => carregar(pendingMeta.page - 1, approvedMeta.page)}>Anterior</button><span className="align-self-center">Página {pendingMeta.page} de {pendingMeta.totalPages}</span><button className="btn btn-outline-primary" disabled={pendingMeta.page >= pendingMeta.totalPages} onClick={() => carregar(pendingMeta.page + 1, approvedMeta.page)}>Próxima</button></div>}
+        {pendingMeta.totalPages > 1 && <div className="d-flex justify-content-center gap-3 mt-3"><button className="btn btn-outline-primary" disabled={pendingMeta.page <= 1} onClick={() => carregar(pendingMeta.page - 1, approvedMeta.page, rejectedMeta.page)}>Anterior</button><span className="align-self-center">Página {pendingMeta.page} de {pendingMeta.totalPages}</span><button className="btn btn-outline-primary" disabled={pendingMeta.page >= pendingMeta.totalPages} onClick={() => carregar(pendingMeta.page + 1, approvedMeta.page, rejectedMeta.page)}>Próxima</button></div>}
+        </div>
 
-      <section className="mt-5">
+      <section className={`mt-5 ${statusFilter === 'todos' || statusFilter === 'aprovada' ? '' : 'd-none'}`}>
 
         <h4 className="fw-bold">
           Atualizar resolução dos problemas
@@ -291,7 +322,13 @@ export default function Moderacao() {
 
           </div>
         )}
-        {approvedMeta.totalPages > 1 && <div className="d-flex justify-content-center gap-3 mt-3"><button className="btn btn-outline-primary" disabled={approvedMeta.page <= 1} onClick={() => carregar(pendingMeta.page, approvedMeta.page - 1)}>Anterior</button><span className="align-self-center">Página {approvedMeta.page} de {approvedMeta.totalPages}</span><button className="btn btn-outline-primary" disabled={approvedMeta.page >= approvedMeta.totalPages} onClick={() => carregar(pendingMeta.page, approvedMeta.page + 1)}>Próxima</button></div>}
+        {approvedMeta.totalPages > 1 && <div className="d-flex justify-content-center gap-3 mt-3"><button className="btn btn-outline-primary" disabled={approvedMeta.page <= 1} onClick={() => carregar(pendingMeta.page, approvedMeta.page - 1, rejectedMeta.page)}>Anterior</button><span className="align-self-center">Página {approvedMeta.page} de {approvedMeta.totalPages}</span><button className="btn btn-outline-primary" disabled={approvedMeta.page >= approvedMeta.totalPages} onClick={() => carregar(pendingMeta.page, approvedMeta.page + 1, rejectedMeta.page)}>Próxima</button></div>}
+      </section>
+      <section className={`mt-5 ${statusFilter === 'todos' || statusFilter === 'rejeitada' ? '' : 'd-none'}`}>
+        <h4 className="fw-bold">Denúncias rejeitadas</h4>
+        <p className="text-muted">Consulte os registros rejeitados ou reabra uma denúncia para uma nova análise.</p>
+        {!rejeitadas.length ? <div className="rc-empty">Não há denúncias rejeitadas.</div> : <div className="row g-3">{rejeitadas.map(d => <div className="col-12 col-lg-6" key={`rejected-${d.id}`}><article className="rc-filter-card"><div className="d-flex justify-content-between gap-2"><strong>{d.titulo}</strong><span className="badge bg-danger">Rejeitada</span></div><p className="small text-muted mt-2"><i className="bi bi-person-circle me-1" />{d.User?.username || 'Usuário não identificado'}</p>{d.motivoRejeicao && <p className="rc-rejection-reason"><strong>Motivo:</strong> {d.motivoRejeicao}</p>}<button className="btn btn-outline-primary btn-sm" onClick={() => setSelectedReport({ ...d, queue: 'rejected' })}><i className="bi bi-eye me-1" />Ver detalhes</button><button className="btn btn-outline-warning btn-sm ms-2" onClick={() => reabrirModeracao(d.id)}><i className="bi bi-arrow-counterclockwise me-1" />Reabrir</button></article></div>)}</div>}
+        {rejectedMeta.totalPages > 1 && <div className="d-flex justify-content-center gap-3 mt-3"><button className="btn btn-outline-primary" disabled={rejectedMeta.page <= 1} onClick={() => carregar(pendingMeta.page, approvedMeta.page, rejectedMeta.page - 1)}>Anterior</button><span className="align-self-center">Página {rejectedMeta.page} de {rejectedMeta.totalPages}</span><button className="btn btn-outline-primary" disabled={rejectedMeta.page >= rejectedMeta.totalPages} onClick={() => carregar(pendingMeta.page, approvedMeta.page, rejectedMeta.page + 1)}>Próxima</button></div>}
       </section>
       </main>
       {selectedReport && <div className="rc-moderation-detail-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedReport(null); }}>
@@ -303,7 +340,7 @@ export default function Moderacao() {
           <div className="rc-moderation-detail-grid">
             <div className="rc-moderation-detail-content">
               <ImageCarousel images={selectedReport.imageUrls} fallback={selectedReport.imageUrl} alt={selectedReport.titulo} />
-              <div className="rc-moderation-detail-badges"><span className="badge rc-category">{selectedReport.categoria || 'Outros'}</span><span className={`badge ${selectedReport.status === 'aprovada' ? 'bg-success' : 'bg-warning text-dark'}`}>{selectedReport.status}</span></div>
+              <div className="rc-moderation-detail-badges"><span className="badge rc-category">{selectedReport.categoria || 'Outros'}</span><span className={`badge ${selectedReport.status === 'aprovada' ? 'bg-success' : selectedReport.status === 'rejeitada' ? 'bg-danger' : 'bg-warning text-dark'}`}>{selectedReport.status}</span></div>
               <h3>{selectedReport.titulo}</h3>
               <p className="rc-moderation-description">{selectedReport.descricao}</p>
               <dl className="rc-moderation-metadata">
@@ -313,8 +350,8 @@ export default function Moderacao() {
               </dl>
             </div>
             <aside className="rc-moderation-detail-actions">
-              <h3>{selectedReport.queue === 'approved' ? 'Atualizar encaminhamento' : 'Decisão da moderação'}</h3>
-              <p>{selectedReport.queue === 'approved' ? 'Defina o andamento e o serviço que ficará responsável pela denúncia.' : 'Revise todos os dados antes de aprovar ou rejeitar esta publicação.'}</p>
+              <h3>{selectedReport.queue === 'approved' ? 'Atualizar encaminhamento' : selectedReport.queue === 'rejected' ? 'Revisar rejeição' : 'Decisão da moderação'}</h3>
+              <p>{selectedReport.queue === 'approved' ? 'Defina o andamento e o serviço que ficará responsável pela denúncia.' : selectedReport.queue === 'rejected' ? 'Consulte o motivo informado ou reabra o registro para uma nova análise.' : 'Revise todos os dados antes de aprovar ou rejeitar esta publicação.'}</p>
               {selectedReport.queue === 'approved' ? <>
                 <ResolutionTimeline status={resolutionDetails[selectedReport.id]?.resolucaoStatus || selectedReport.resolucaoStatus} />
                 <label className="form-label fw-semibold mt-3">Andamento</label>
@@ -322,6 +359,10 @@ export default function Moderacao() {
                 <label className="form-label fw-semibold mt-3">Setor responsável</label>
                 <select className="form-select" value={resolutionDetails[selectedReport.id]?.setorResponsavel || ''} onChange={event => setResolutionDetails(current => ({ ...current, [selectedReport.id]: { ...current[selectedReport.id], setorResponsavel: event.target.value } }))}><option value="">Selecione um setor</option>{SETORES.map(setor => <option value={setor} key={setor}>{setor}</option>)}</select>
                 <button className="btn btn-primary w-100 mt-3" disabled={savingResolution === selectedReport.id || !hasResolutionChanges(selectedReport)} onClick={() => atualizarResolucao(selectedReport.id)}><i className="bi bi-check2-circle me-1" />{savingResolution === selectedReport.id ? 'Salvando...' : 'Salvar mudanças'}</button>
+                <button className="btn btn-outline-secondary btn-sm w-100 mt-2" onClick={() => navigate(`/moderacao/denuncia/${selectedReport.id}/historico`)}><i className="bi bi-clock-history me-1" />Histórico de alterações</button>
+              </> : selectedReport.queue === 'rejected' ? <>
+                <div className="rc-rejection-reason"><strong>Motivo da rejeição</strong><p>{selectedReport.motivoRejeicao || 'Nenhum motivo registrado.'}</p></div>
+                <button className="btn btn-outline-warning w-100 mt-3" onClick={() => reabrirModeracao(selectedReport.id)}><i className="bi bi-arrow-counterclockwise me-1" />Reabrir moderação</button>
                 <button className="btn btn-outline-secondary btn-sm w-100 mt-2" onClick={() => navigate(`/moderacao/denuncia/${selectedReport.id}/historico`)}><i className="bi bi-clock-history me-1" />Histórico de alterações</button>
               </> : <>
                 <label className="form-label fw-semibold">Motivo da rejeição <span className="text-danger">(obrigatório para rejeitar)</span></label>

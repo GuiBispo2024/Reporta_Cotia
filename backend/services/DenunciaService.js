@@ -57,6 +57,9 @@ class DenunciaService {
     const motivo = status === 'rejeitada' ? motivoRejeicao.trim().slice(0, 1000) : null;
     const statusAnterior = denuncia.status;
     await DenunciaRepository.update(id, { status, motivoRejeicao: motivo });
+    if (status !== 'aprovada') {
+      await DenunciaRepository.clearSocialHistory(id);
+    }
     if (moderatorId) await DenunciaHistorico.create({ tipo: 'moderacao', statusAnterior, statusNovo: status, motivo, denunciaId: id, userId: moderatorId });
     denuncia.status = status;
     denuncia.motivoRejeicao = motivo;
@@ -212,6 +215,14 @@ class DenunciaService {
     const dadosAtualizados = Object.fromEntries(
       Object.entries(data).filter(([key]) => allowed.includes(key))
     );
+    for (const coordinate of ['latitude', 'longitude']) {
+      if (coordinate in dadosAtualizados && (
+        dadosAtualizados[coordinate] == null ||
+        (typeof dadosAtualizados[coordinate] === 'string' && !dadosAtualizados[coordinate].trim())
+      )) {
+        dadosAtualizados[coordinate] = null;
+      }
+    }
     if (dadosAtualizados.imageUrls && (!Array.isArray(dadosAtualizados.imageUrls) || dadosAtualizados.imageUrls.length > 4)) throw new AppError('Envie no máximo 4 imagens.', 400, 'IMAGE_LIMIT');
     if (data.titulo !== undefined) {
       const result = filterBadWords(data.titulo);
@@ -229,6 +240,7 @@ class DenunciaService {
     dadosAtualizados.motivoRejeicao = null;
 
     await DenunciaRepository.update(id, dadosAtualizados);
+    await DenunciaRepository.clearSocialHistory(id);
     return { message: 'Denúncia atualizada e reenviada para moderação.' };
   }
 

@@ -177,7 +177,11 @@ router.put('/:id', auth, upload.array('imagens', 4), async (req, res, next) => {
       data.imageUrl = newUrls[0] || null;
     }
     const result = await DenunciaService.atualizar(req.params.id, data, req.user.id);
-    if (replaceImages) await Promise.all((current.imageUrls?.length ? current.imageUrls : [current.imageUrl]).filter(Boolean).map(deleteImage));
+    if (replaceImages) await Promise.all(
+      (current.imageUrls?.length ? current.imageUrls : [current.imageUrl])
+        .filter(Boolean)
+        .map(url => deleteImage(url).catch(() => {}))
+    );
     res.status(200).json(result);
   } catch (error) { next(error); }
 });
