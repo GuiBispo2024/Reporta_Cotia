@@ -32,6 +32,7 @@ export default function Navbar() {
               <button className="btn rc-user-menu dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><UserAvatar user={user} className="rc-nav-avatar" /><span className="rc-nav-user-text"><strong>{user?.username}</strong><small>{user?.adm ? "Administrador" : "Minha conta"}</small></span></button>
               <ul className="dropdown-menu dropdown-menu-end rc-user-dropdown">
                 <li><NavLink className="dropdown-item" to="/perfil"><i className="bi bi-person-circle" /> Meu perfil</NavLink></li>
+                <li><NavLink className="dropdown-item" to={`/usuarios/${user?.id}`}><i className="bi bi-eye" /> Perfil público</NavLink></li>
                 <li><NavLink className="dropdown-item" to="/editar-perfil"><i className="bi bi-gear" /> Configurações</NavLink></li>
                 <li><hr className="dropdown-divider" /></li>
                 <li><button className="dropdown-item text-danger" onClick={sair}><i className="bi bi-box-arrow-right" /> Sair da conta</button></li>
