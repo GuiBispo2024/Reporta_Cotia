@@ -8,7 +8,8 @@ class CommentRepository {
   }
 
   // Busca todos os comentários de uma denúncia
-  static async findByDenunciaId(denunciaId, includeSensitive = false, { page = null, limit = null } = {}) {
+  static async findByDenunciaId(denunciaId, includeSensitive = false, { page = null, limit = null, sort = 'newest' } = {}) {
+    const direction = sort === 'oldest' ? 'ASC' : 'DESC'
     const query = {
       where: { denunciaId, parentCommentId: null },
       include: [
@@ -22,7 +23,7 @@ class CommentRepository {
           attributes: includeSensitive ? undefined : { exclude: ['comentarioOriginal'] }
         }
       ],
-      order: [['createdAt', 'DESC']],
+      order: [['createdAt', direction], ['id', direction]],
       attributes: includeSensitive ? undefined : { exclude: ['comentarioOriginal'] }
     }
     if (page && limit) {

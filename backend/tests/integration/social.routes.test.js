@@ -1,6 +1,6 @@
 const request = require('supertest')
 const app = require('../../app')
-const { sequelize, Denuncia, User } = require('../../models/rel')
+const { sequelize, Denuncia, User, Comment } = require('../../models/rel')
 
 describe('Interações sociais e sessões', () => {
   let token
@@ -34,6 +34,18 @@ describe('Interações sociais e sessões', () => {
     const list = await request(app).get(`/denuncia/${denunciaId}/comentarios`)
     expect(list.body.comments[0].Replies).toHaveLength(1)
     await request(app).delete(`/denuncia/comentario/${parent.body.comentario.id}`).set('Authorization', `Bearer ${token}`)
+  })
+
+  test('ordena comentários dos mais antigos ou mais recentes', async () => {
+    const older = await Comment.create({ comentario: 'Comentário antigo', denunciaId, userId: 1, createdAt: new Date('2025-01-01T10:00:00Z'), updatedAt: new Date('2025-01-01T10:00:00Z') })
+    const newer = await Comment.create({ comentario: 'Comentário recente', denunciaId, userId: 1, createdAt: new Date('2025-01-02T10:00:00Z'), updatedAt: new Date('2025-01-02T10:00:00Z') })
+
+    const oldestFirst = await request(app).get(`/denuncia/${denunciaId}/comentarios`).query({ sort: 'oldest' })
+    const newestFirst = await request(app).get(`/denuncia/${denunciaId}/comentarios`).query({ sort: 'newest' })
+
+    expect(oldestFirst.body.comments[0].id).toBe(older.id)
+    expect(newestFirst.body.comments[0].id).toBe(newer.id)
+    await Comment.destroy({ where: { id: [older.id, newer.id] } })
   })
 
   test('curte, pagina o histórico e descurte', async () => {

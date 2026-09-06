@@ -78,7 +78,8 @@ router.get('/:denunciaId/comentarios', optionalAuth, async (req, res, next) => {
   try {
     const page = req.query.page ? Math.max(Number(req.query.page), 1) : null
     const limit = req.query.limit ? Math.min(Math.max(Number(req.query.limit), 1), 50) : null
-    const comentarios = await CommentService.listarPorDenuncia(req.params.denunciaId, Boolean(req.user?.adm), { page, limit })
+    const sort = req.query.sort === 'oldest' ? 'oldest' : 'newest'
+    const comentarios = await CommentService.listarPorDenuncia(req.params.denunciaId, Boolean(req.user?.adm), { page, limit, sort })
     res.status(200).json(comentarios)
   } catch (error) { next(error) }
 })

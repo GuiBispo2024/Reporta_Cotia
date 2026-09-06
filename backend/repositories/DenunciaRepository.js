@@ -158,6 +158,16 @@ class DenunciaRepository {
         );
     }
 
+    if (sort === 'oldest') {
+        return this.findOrderedByDate(
+            where,
+            currentPage,
+            currentLimit,
+            userWhere,
+            'ASC'
+        );
+    }
+
     return this.findOrderedByDate(
         where,
         currentPage,
@@ -170,7 +180,8 @@ class DenunciaRepository {
     where,
     page,
     limit,
-    userWhere
+    userWhere,
+    direction = 'DESC'
   ) {
     const offset = (page - 1) * limit;
 
@@ -187,9 +198,7 @@ class DenunciaRepository {
                 }
             ],
 
-            order: [
-                ['createdAt', 'DESC']
-            ],
+            order: [['createdAt', direction], ['id', direction]],
 
             limit,
             offset,

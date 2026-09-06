@@ -303,10 +303,12 @@ body {
 .rc-comments-toggle { width: 100%; border: 0; border-top: 1px solid var(--rc-border); background: transparent; color: var(--rc-primary-dark); padding: .8rem 0 .2rem; display: flex; align-items: center; font-weight: 700; text-align: left; }
 .rc-comments-count { min-width: 1.5rem; height: 1.5rem; padding: 0 .4rem; margin-left: auto; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: #e5f2eb; color: var(--rc-primary-dark); font-size: .72rem; }
 .rc-comments-panel { position: static; width: 100%; min-width: 0; margin-top: .75rem; padding: 1rem; overflow: hidden; background: #f8faf9; border: 1px solid var(--rc-border); border-radius: 14px; }
-.rc-comments-heading { display: flex; align-items: center; justify-content: space-between; }
+.rc-comments-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .65rem; }
 .rc-comments-heading strong, .rc-comments-heading small { display: block; }
 .rc-comments-heading strong { color: var(--rc-text); font-size: .9rem; }
 .rc-comments-heading small { color: #7b8982; font-size: .68rem; }
+.rc-comment-order { display: flex; align-items: center; gap: .45rem; color: #718078; font-size: .68rem; font-weight: 700; }
+.rc-comment-order select { min-height: 32px; padding: .3rem 1.8rem .3rem .55rem; border: 1px solid var(--rc-border); border-radius: 8px; background-color: white; color: var(--rc-text); font-size: .72rem; }
 .rc-comments-view-all { margin-top: .75rem; padding: .65rem .8rem; display: flex; align-items: center; justify-content: space-between; border-radius: 9px; background: #e5f2eb; color: var(--rc-primary-dark); font-size: .76rem; font-weight: 800; text-decoration: none; }
 .rc-comments-view-all:hover { background: #d7e9df; color: var(--rc-primary-dark); }
 .rc-card-sector, .rc-responsible-sector { margin-top: .75rem; padding: .65rem .75rem; display: flex; align-items: center; gap: .65rem; border-radius: 10px; background: #edf5f1; color: var(--rc-primary-dark); font-size: .75rem; }

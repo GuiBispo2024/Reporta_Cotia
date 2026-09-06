@@ -18,12 +18,13 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
   const [message, setMessage] = useState("");
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState('');
+  const [sort, setSort] = useState('newest');
 
-  const loadComments = useCallback(async () => {
+  const loadComments = useCallback(async (requestedSort = sort) => {
     try {
       const res = await commentService.listarPorDenuncia(
         denunciaId,
-        preview ? { page: 1, limit: 3 } : {}
+        preview ? { page: 1, limit: 3, sort: 'newest' } : { sort: requestedSort }
       );
       setComments(res.comments);
       setTotal(res.totalComments);
@@ -31,7 +32,13 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
     } catch (error) {
       setMessage(friendlyError(error, "Não foi possível carregar os comentários. Feche e abra esta conversa para tentar novamente."));
     }
-  }, [denunciaId, preview]);
+  }, [denunciaId, preview, sort]);
+
+  const changeSort = async event => {
+    const nextSort = event.target.value;
+    setSort(nextSort);
+    await loadComments(nextSort);
+  };
 
   useEffect(() => {
     if (initiallyOpen && !loaded) loadComments();
@@ -109,6 +116,16 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
     }
   };
 
+  const visibleComments = preview
+    ? comments.reduce((result, comment) => {
+        const usedSlots = result.reduce((totalItems, item) => totalItems + 1 + item.Replies.length, 0);
+        const remainingSlots = 3 - usedSlots;
+        if (remainingSlots <= 0) return result;
+        result.push({ ...comment, Replies: (comment.Replies || []).slice(0, remainingSlots - 1) });
+        return result;
+      }, [])
+    : comments;
+
   return (
     <div className="rc-comments mt-3">
       <button className="rc-comments-toggle" onClick={toggleComments} aria-expanded={open}>
@@ -121,12 +138,13 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
         <div className="rc-comments-panel">
           <div className="rc-comments-heading">
             <div><strong>Conversa</strong><small>{total ? `${total} ${total === 1 ? 'comentário' : 'comentários'}` : 'Nenhum comentário ainda'}</small></div>
+            {!preview && total > 1 && <label className="rc-comment-order"><span>Ordenar</span><select value={sort} onChange={changeSort} aria-label="Ordenar comentários"><option value="newest">Mais recentes</option><option value="oldest">Mais antigos</option></select></label>}
           </div>
 
           <div className="rc-comment-list">
             {!comments.length ? (
               <div className="rc-comment-empty"><i className="bi bi-chat-square-dots" /><span>Seja o primeiro a comentar.</span></div>
-            ) : comments.map(c => (
+            ) : visibleComments.map(c => (
               <article className="rc-comment" key={c.id}>
                 <UserAvatar user={c.User} className="rc-comment-avatar" />
                 <div className="rc-comment-content">
@@ -156,7 +174,7 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
                   )}
                   {user && !preview && editingId !== c.id && <button className="rc-comment-reply-button" onClick={() => { setReplyingTo(c.id); setReplyText(''); }}><i className="bi bi-reply" /> Responder</button>}
 
-                  {!preview && (c.Replies || []).length > 0 && <div className="rc-comment-replies">
+                  {(c.Replies || []).length > 0 && <div className="rc-comment-replies">
                     {c.Replies.map(reply => <article className="rc-comment rc-comment-reply" key={reply.id}>
                       <UserAvatar user={reply.User} className="rc-comment-avatar" />
                       <div className="rc-comment-content">

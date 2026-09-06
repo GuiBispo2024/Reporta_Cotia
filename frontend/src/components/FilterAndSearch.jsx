@@ -50,7 +50,7 @@ export default function FilterAndSearch({ onFilter }) {
         <div className="rc-filter-options-row">
           <div className="rc-filter-field"><label>Categoria</label><select name="categoria" value={form.categoria} onChange={change}><option value="">Todas as categorias</option><option>Buraco e pavimentação</option><option>Iluminação pública</option><option>Limpeza urbana</option><option>Saneamento</option><option>Água e esgoto</option><option>Trânsito e sinalização</option><option>Árvore e área verde</option><option>Outros</option></select></div>
           <div className="rc-filter-field"><label>Status</label><select name="resolucaoStatus" value={form.resolucaoStatus} onChange={change}><option value="">Todos os status</option><option value="aberta">Aberta</option><option value="em_andamento">Em andamento</option><option value="resolvida">Resolvida</option></select></div>
-          <div className="rc-filter-field"><label>Ordenação</label><select name="sort" value={form.sort} onChange={change}><option value="">Mais recentes</option><option value="likes">Mais curtidas</option><option value="shares">Mais compartilhadas</option></select></div>
+          <div className="rc-filter-field"><label>Ordenação</label><select name="sort" value={form.sort} onChange={change}><option value="">Mais recentes</option><option value="oldest">Mais antigas</option><option value="likes">Mais curtidas</option><option value="shares">Mais compartilhadas</option></select></div>
           <div className="rc-filter-field rc-filter-description"><label>Palavra na descrição</label><input name="descricao" placeholder="Ex.: perigoso" value={form.descricao} onChange={change} /></div>
         </div>
 
