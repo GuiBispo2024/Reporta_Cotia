@@ -125,12 +125,6 @@ describe('Interações sociais e sessões', () => {
     expect(history.body[0]).not.toHaveProperty('evidenciaUrl')
   })
 
-  test('restringe a rastreabilidade de senhas a administradores', async () => {
-    const history = await request(app).get('/users/password/history').set('Authorization', `Bearer ${token}`)
-    expect(history.status).toBe(200)
-    expect(Array.isArray(history.body.data)).toBe(true)
-  })
-
   test('logout revoga o token usado', async () => {
     expect((await request(app).post('/users/logout').set('Authorization', `Bearer ${token}`)).status).toBe(200)
     expect((await request(app).get('/users/me').set('Authorization', `Bearer ${token}`)).status).toBe(401)

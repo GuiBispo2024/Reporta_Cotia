@@ -174,14 +174,6 @@ router.post('/password/reset', async (req, res, next) => {
   } catch (error) { next(error) }
 })
 
-router.get('/password/history', auth, async (req, res, next) => {
-  try {
-    const page = Math.max(Number.parseInt(req.query.page || '1', 10), 1)
-    const limit = Math.min(Math.max(Number.parseInt(req.query.limit || '30', 10), 1), 50)
-    res.status(200).json(await PasswordResetService.history(req.user.adm, { page, limit }))
-  } catch (error) { next(error) }
-})
-
 /**
  * @swagger
  * /users/{id}:

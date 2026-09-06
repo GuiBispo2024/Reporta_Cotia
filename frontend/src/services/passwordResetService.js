@@ -8,10 +8,6 @@ const passwordResetService = {
   async redefinir(token, password) {
     const response = await api.post('/users/password/reset', { token, password });
     return response.data;
-  },
-  async historico(params = {}) {
-    const response = await api.get('/users/password/history', { params });
-    return response.data;
   }
 };
 

@@ -74,16 +74,6 @@ class PasswordResetService {
     return result;
   }
 
-  static async history(isAdm, { page = 1, limit = 30 } = {}) {
-    if (!isAdm) throw new AppError('Apenas administradores podem consultar esta rastreabilidade.', 403, 'FORBIDDEN');
-    const { rows, count } = await PasswordResetHistorico.findAndCountAll({
-      include: [{ model: User, attributes: ['id', 'username', 'email'], required: false }],
-      order: [['createdAt', 'DESC']],
-      limit,
-      offset: (page - 1) * limit
-    });
-    return { data: rows, total: count, page, limit, totalPages: Math.ceil(count / limit) };
-  }
 }
 
 module.exports = PasswordResetService;

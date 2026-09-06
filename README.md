@@ -201,7 +201,6 @@ Authorization: Bearer <token>
 | `POST` | `/users/logout` | Invalidar a sessão atual |
 | `POST` | `/users/password/forgot` | Solicitar redefinição de senha |
 | `POST` | `/users/password/reset` | Redefinir usando token de uso único |
-| `GET` | `/users/password/history` | Consultar auditoria de redefinições (admin) |
 | `GET` | `/users?withCounts=true` | Listar participantes e suas contribuições (admin) |
 | `GET` | `/users/:id` | Consultar perfil público, sem expor o e-mail |
 | `PUT` | `/users/update` | Atualizar o próprio perfil |

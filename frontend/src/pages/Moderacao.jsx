@@ -151,7 +151,6 @@ export default function Moderacao() {
           <span className="rc-eyebrow">PAINEL ADMINISTRATIVO</span>
           <h2 className="fw-bold">Moderação</h2>
           <p className="text-muted">Aprove ou rejeite novos registros antes da publicação.</p>
-          <button className="btn btn-outline-secondary btn-sm" onClick={() => navigate('/moderacao/redefinicoes-senha')}><i className="bi bi-key me-1" />Rastreabilidade de senhas</button>
         </div>
 
         {loading && <div className="text-center"><div className="spinner-border text-primary" /></div>}

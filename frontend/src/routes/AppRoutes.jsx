@@ -17,7 +17,6 @@ import PerfilPublico from '../pages/PerfilPublico.jsx';
 import HistoricoDenuncia from '../pages/HistoricoDenuncia.jsx';
 import EsqueciSenha from '../pages/EsqueciSenha.jsx';
 import RedefinirSenha from '../pages/RedefinirSenha.jsx';
-import HistoricoRedefinicoesSenha from '../pages/HistoricoRedefinicoesSenha.jsx';
 
 function AppRoutes() {
     return(
@@ -34,7 +33,6 @@ function AppRoutes() {
                 <Route path="/usuarios/:id" element={<PerfilPublico/>}/>
                 <Route path="/moderacao" element={<PrivateRoute><Moderacao/></PrivateRoute>}/>
                 <Route path="/moderacao/denuncia/:id/historico" element={<PrivateRoute><HistoricoDenuncia/></PrivateRoute>}/>
-                <Route path="/moderacao/redefinicoes-senha" element={<PrivateRoute><HistoricoRedefinicoesSenha/></PrivateRoute>}/>
                 <Route path="/minhas-denuncias" element={<PrivateRoute><MinhasDenuncias/></PrivateRoute>}/>
                 <Route path="/editar-denuncia/:id" element={<PrivateRoute><EditarDenuncia/></PrivateRoute>}/>
                 <Route path="/nova-denuncia" element={<PrivateRoute><NovaDenuncia/></PrivateRoute>}/>
