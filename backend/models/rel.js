@@ -7,6 +7,10 @@ const Share = require('./Reporta_Cotia_Tables/Share')
 const DenunciaHistorico = require('./Reporta_Cotia_Tables/DenunciaHistorico')
 const PasswordResetToken = require('./Reporta_Cotia_Tables/PasswordResetToken')
 const PasswordResetHistorico = require('./Reporta_Cotia_Tables/PasswordResetHistorico')
+const Role = require('./Reporta_Cotia_Tables/Role')
+const Permission = require('./Reporta_Cotia_Tables/Permission')
+const UserRole = require('./Reporta_Cotia_Tables/UserRole')
+const RolePermission = require('./Reporta_Cotia_Tables/RolePermission')
 
 //User <-> Denuncia
 User.hasMany(Denuncia,{
@@ -84,4 +88,36 @@ Share.belongsTo(Denuncia,{
     foreignKey: 'denunciaId'
 })
 
-module.exports = {sequelize,User,Denuncia,Comment,Like,Share,DenunciaHistorico,PasswordResetToken,PasswordResetHistorico}
+// Users can have multiple roles. The legacy User.adm field remains active
+// during the gradual migration to permission-based access control.
+User.belongsToMany(Role, {
+    through: UserRole,
+    foreignKey: 'userId',
+    otherKey: 'roleId',
+    as: 'roles'
+})
+Role.belongsToMany(User, {
+    through: UserRole,
+    foreignKey: 'roleId',
+    otherKey: 'userId',
+    as: 'users'
+})
+
+Role.belongsToMany(Permission, {
+    through: RolePermission,
+    foreignKey: 'roleId',
+    otherKey: 'permissionId',
+    as: 'permissions'
+})
+Permission.belongsToMany(Role, {
+    through: RolePermission,
+    foreignKey: 'permissionId',
+    otherKey: 'roleId',
+    as: 'roles'
+})
+
+module.exports = {
+    sequelize, User, Denuncia, Comment, Like, Share,
+    DenunciaHistorico, PasswordResetToken, PasswordResetHistorico,
+    Role, Permission, UserRole, RolePermission
+}
