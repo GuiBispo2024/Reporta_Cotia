@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const UserRepository = require('../repositories/UserRepository')
 const { ROLES, ROLE_DESCRIPTIONS } = require('../constants/accessControl')
+const { extractUserAccess } = require('../utils/userAccess')
 const SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'reporta-cotia-test-secret' : undefined)
 const { deleteImage } = require('../utils/upload')
 
@@ -63,14 +64,9 @@ class UserService {
     const user = await UserRepository.findByIdWithAccess(id)
     if (!user) throw new Error('Usuário não encontrado.')
     const plain = user.get ? user.get({ plain: true }) : user
-    const roleNames = (plain.roles || []).map(role => role.name)
-    const permissionKeys = [...new Set(
-      (plain.roles || []).flatMap(role =>
-        (role.permissions || []).map(permission => permission.key)
-      )
-    )]
+    const { roles, permissions } = extractUserAccess(plain)
     const { password, tokenVersion, roles: _roles, ...safeUser } = plain
-    return { ...safeUser, roles: roleNames, permissions: permissionKeys }
+    return { ...safeUser, roles, permissions }
   }
 
   // Atualizar

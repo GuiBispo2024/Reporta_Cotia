@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middlewares/auth');
+const requirePermission = require('../middlewares/requirePermission');
 const optionalAuth = require('../middlewares/optionalAuth');
 const AppError = require('../utils/AppError');
 const DenunciaService = require('../services/DenunciaService');
 const { upload, storeImage, deleteImage } = require('../utils/upload');
+const { PERMISSIONS } = require('../constants/accessControl');
 
 function pagination(req) {
   const hasPagination = req.query.page !== undefined || req.query.limit !== undefined;
@@ -103,9 +105,8 @@ router.get('/', optionalAuth, async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-router.get('/moderacao', auth, async (req, res, next) => {
+router.get('/moderacao', auth, requirePermission(PERMISSIONS.MODERATION_VIEW), async (req, res, next) => {
   try {
-    if (!req.user.adm) throw new AppError('Acesso negado.', 403, 'FORBIDDEN');
     const { hasPagination, page, limit } = pagination(req);
     const { status, categoria, resolucaoStatus } = req.query;
     if (status && !['pendente', 'aprovada', 'rejeitada'].includes(status)) throw new AppError('Status de moderação inválido.', 400, 'VALIDATION_ERROR');

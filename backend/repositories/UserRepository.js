@@ -79,8 +79,8 @@ class UserRepository{
         return User.findByPk(id)
     }
 
-    static async findByIdWithAccess(id) {
-        return User.findByPk(id, {
+    static async findByIdWithAccess(id, attributes = null) {
+        const options = {
             include: [{
                 model: Role,
                 as: 'roles',
@@ -93,7 +93,9 @@ class UserRepository{
                     through: { attributes: [] }
                 }]
             }]
-        })
+        }
+        if (attributes) options.attributes = attributes
+        return User.findByPk(id, options)
     }
 
     static async findPublicById(id) {
