@@ -5,6 +5,13 @@ const ROLES = Object.freeze({
   ADMIN: 'ADMIN'
 })
 
+const ROLE_DESCRIPTIONS = Object.freeze({
+  [ROLES.CITIZEN]: 'Acessa os recursos destinados aos cidadãos.',
+  [ROLES.MODERATOR]: 'Analisa denúncias e revisa conteúdos.',
+  [ROLES.ANALYST]: 'Consulta indicadores e relatórios completos.',
+  [ROLES.ADMIN]: 'Gerencia usuários, acessos e configurações.'
+})
+
 const PERMISSIONS = Object.freeze({
   DENUNCIA_CREATE: 'denuncia.create',
   DENUNCIA_UPDATE_OWN: 'denuncia.update_own',
@@ -21,4 +28,4 @@ const PERMISSIONS = Object.freeze({
   AUDIT_VIEW: 'audit.view'
 })
 
-module.exports = { ROLES, PERMISSIONS }
+module.exports = { ROLES, ROLE_DESCRIPTIONS, PERMISSIONS }

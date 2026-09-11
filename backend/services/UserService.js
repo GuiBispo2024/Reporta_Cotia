@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const UserRepository = require('../repositories/UserRepository')
+const { ROLES, ROLE_DESCRIPTIONS } = require('../constants/accessControl')
 const SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'reporta-cotia-test-secret' : undefined)
 const { deleteImage } = require('../utils/upload')
 
@@ -14,7 +15,11 @@ class UserService {
     if (existingUsername) throw new Error('Nome de usuário já cadastrado.')
 
     const hashed = await bcrypt.hash(password, 10)
-    const created = await UserRepository.create({ username, email, password: hashed, avatarUrl })
+    const created = await UserRepository.createWithRoles(
+      { username, email, password: hashed, avatarUrl },
+      [ROLES.CITIZEN],
+      ROLE_DESCRIPTIONS
+    )
     const plain = created.get ? created.get({ plain: true }) : created
     const { password: _password, tokenVersion: _tokenVersion, ...safeUser } = plain
     return safeUser
@@ -55,11 +60,17 @@ class UserService {
   }
 
   static async getMe(id) {
-    const user = await UserRepository.findById(id)
+    const user = await UserRepository.findByIdWithAccess(id)
     if (!user) throw new Error('Usuário não encontrado.')
     const plain = user.get ? user.get({ plain: true }) : user
-    const { password, tokenVersion, ...safeUser } = plain
-    return safeUser
+    const roleNames = (plain.roles || []).map(role => role.name)
+    const permissionKeys = [...new Set(
+      (plain.roles || []).flatMap(role =>
+        (role.permissions || []).map(permission => permission.key)
+      )
+    )]
+    const { password, tokenVersion, roles: _roles, ...safeUser } = plain
+    return { ...safeUser, roles: roleNames, permissions: permissionKeys }
   }
 
   // Atualizar

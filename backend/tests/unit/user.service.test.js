@@ -14,17 +14,48 @@ describe('UserService (unit)', () => {
     console.log("➡️ Iniciando teste: register()");
     UserRepository.findByEmail.mockResolvedValue(null);
     UserRepository.findByUsername.mockResolvedValue(null);
-    UserRepository.create.mockImplementation((data) => {
-      console.log("📦 Chamado UserRepository.create com:", data);
+    UserRepository.createWithRoles.mockImplementation((data) => {
+      console.log("📦 Chamado UserRepository.createWithRoles com:", data);
       return Promise.resolve({ id: 1, ...data });
     });
     const result = await UserService.register({ username: 'u', email: 'e@e', password: '1234' });
     console.log("✅ Resultado recebido:", result);
     expect(UserRepository.findByEmail).toHaveBeenCalledWith('e@e');
     expect(UserRepository.findByUsername).toHaveBeenCalledWith('u');
-    expect(UserRepository.create).toHaveBeenCalled();
+    expect(UserRepository.createWithRoles).toHaveBeenCalledWith(
+      expect.objectContaining({ username: 'u', email: 'e@e' }),
+      ['CITIZEN'],
+      expect.any(Object)
+    );
     expect(result).toHaveProperty('id', 1);
   });
+
+  test('getMe: retorna perfis e permissões sem dados sensíveis', async () => {
+    UserRepository.findByIdWithAccess.mockResolvedValue({
+      get: () => ({
+        id: 1,
+        username: 'moderador',
+        email: 'moderador@example.com',
+        password: 'hash',
+        tokenVersion: 2,
+        roles: [{
+          name: 'MODERATOR',
+          permissions: [
+            { key: 'moderation.view' },
+            { key: 'moderation.review' },
+            { key: 'moderation.view' }
+          ]
+        }]
+      })
+    })
+
+    const result = await UserService.getMe(1)
+
+    expect(result.roles).toEqual(['MODERATOR'])
+    expect(result.permissions).toEqual(['moderation.view', 'moderation.review'])
+    expect(result).not.toHaveProperty('password')
+    expect(result).not.toHaveProperty('tokenVersion')
+  })
 
   test('login: retorna token e dados do usuário quando senha válida', async () => {
     console.log("➡️ Iniciando teste: login()");

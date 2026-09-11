@@ -1,4 +1,4 @@
-const {User, Denuncia, sequelize} = require('../models/rel')
+const {User, Denuncia, sequelize, Role, Permission} = require('../models/rel')
 const { Op } = require('sequelize')
 
 class UserRepository{
@@ -6,6 +6,23 @@ class UserRepository{
     //Cria um novo usuário
     static async create(data){
         return User.create(data)
+    }
+
+    static async createWithRoles(data, roleNames, roleDescriptions = {}) {
+        return sequelize.transaction(async transaction => {
+            const user = await User.create(data, { transaction })
+            for (const roleName of roleNames) {
+                const [role] = await Role.findOrCreate({
+                    where: { name: roleName },
+                    defaults: {
+                        description: roleDescriptions[roleName] || `Perfil ${roleName}`
+                    },
+                    transaction
+                })
+                await user.addRole(role, { transaction })
+            }
+            return user
+        })
     }
 
     //Procura usuário pelo email
@@ -60,6 +77,23 @@ class UserRepository{
     //Busca um usuário específico
     static async findById(id) {
         return User.findByPk(id)
+    }
+
+    static async findByIdWithAccess(id) {
+        return User.findByPk(id, {
+            include: [{
+                model: Role,
+                as: 'roles',
+                attributes: ['name'],
+                through: { attributes: [] },
+                include: [{
+                    model: Permission,
+                    as: 'permissions',
+                    attributes: ['key'],
+                    through: { attributes: [] }
+                }]
+            }]
+        })
     }
 
     static async findPublicById(id) {

@@ -1,7 +1,7 @@
 const request = require('supertest');
 const app = require('../../app'); // ajuste para o arquivo que exporta express app
 const db = require('../../models/db/db'); // inicializar/limpar DB (opcional)
-const { User } = require('../../models/rel');
+const { User, Role, Permission } = require('../../models/rel');
 
 let tokenUsuario;
 let idUsuario;
@@ -10,6 +10,15 @@ describe('Users routes (integration)', () => {
   beforeAll(async () => {
     // opcional: conectar DB de teste, rodar migrations ou configurar sqlite in-memory
     await db.sequelize.sync({ force: true });
+    const citizen = await Role.create({
+      name: 'CITIZEN',
+      description: 'Acessa os recursos destinados aos cidadãos.'
+    });
+    const permissions = await Permission.bulkCreate([
+      { key: 'denuncia.create', description: 'Criar denúncias.' },
+      { key: 'dashboard.public.view', description: 'Consultar indicadores públicos.' }
+    ]);
+    await citizen.setPermissions(permissions);
   });
 
   afterAll(async () => {
@@ -69,6 +78,21 @@ describe('Users routes (integration)', () => {
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.length).toBeGreaterThan(0);
   });
+
+  test("GET /users/me retorna o perfil padrão e suas permissões", async () => {
+    const res = await request(app)
+      .get('/users/me')
+      .set('Authorization', `Bearer ${tokenUsuario}`)
+
+    expect(res.statusCode).toBe(200)
+    expect(res.body.roles).toContain('CITIZEN')
+    expect(res.body.permissions).toEqual(expect.arrayContaining([
+      'denuncia.create',
+      'dashboard.public.view'
+    ]))
+    expect(res.body).not.toHaveProperty('password')
+    expect(res.body).not.toHaveProperty('tokenVersion')
+  })
 
   // -------------------------------------------------------------------
   test("GET /users/:id → retorna usuário específico", async () => {
