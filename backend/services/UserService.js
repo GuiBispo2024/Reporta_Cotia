@@ -55,7 +55,7 @@ class UserService {
     const valid = await bcrypt.compare(password, user.password)
     if (!valid) throw new Error('Senha incorreta.')
 
-    const token = jwt.sign({ id: user.id, adm: user.adm, v: user.tokenVersion || 0 }, SECRET, { expiresIn: '30m' })
+    const token = jwt.sign({ id: user.id, v: user.tokenVersion || 0 }, SECRET, { expiresIn: '30m' })
     const userWithAccess = await UserRepository.findByIdWithAccess(user.id)
 
     return {
@@ -181,7 +181,7 @@ class UserService {
 
     // Gera novo token
     const token = jwt.sign(
-      { id: updatedUser.id, adm: updatedUser.adm, v: updatedUser.tokenVersion || 0 },
+      { id: updatedUser.id, v: updatedUser.tokenVersion || 0 },
       SECRET,
       { expiresIn: "30m" }
     );

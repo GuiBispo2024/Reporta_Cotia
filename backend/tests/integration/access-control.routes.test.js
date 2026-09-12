@@ -1,4 +1,5 @@
 const request = require('supertest')
+const jwt = require('jsonwebtoken')
 const app = require('../../app')
 const { sequelize, User, Role, Permission, Denuncia, Comment } = require('../../models/rel')
 
@@ -87,8 +88,12 @@ describe('Autorização por permissão nas rotas', () => {
     await auditorUser.addRole(auditorRole)
 
     const admOnlyUser = await registerAndLogin('admin-route', 'admin-route@example.com')
-    admOnlyToken = admOnlyUser.token
     await User.update({ adm: true }, { where: { id: admOnlyUser.userId } })
+    admOnlyToken = jwt.sign(
+      { id: admOnlyUser.userId, adm: true, v: 0 },
+      process.env.JWT_SECRET || 'reporta-cotia-test-secret',
+      { expiresIn: '30m' }
+    )
   })
 
   afterAll(async () => {

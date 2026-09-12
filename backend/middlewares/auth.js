@@ -12,13 +12,14 @@ module.exports = async (req, res, next) => {
     const decoded = jwt.verify(token, SECRET)
     const user = await UserRepository.findByIdWithAccess(
       decoded.id,
-      ['id', 'adm', 'tokenVersion']
+      ['id', 'tokenVersion']
     )
     if (!user || Number(decoded.v || 0) !== Number(user.tokenVersion || 0)) {
       return res.status(401).json({ message: 'Esta sessão foi encerrada. Entre novamente.', code: 'SESSION_REVOKED' })
     }
     const { roles, permissions } = extractUserAccess(user)
-    req.user = { ...decoded, adm: user.adm, roles, permissions }
+    const { adm: _legacyAdm, ...session } = decoded
+    req.user = { ...session, roles, permissions }
     next()
   } catch {
     return res.status(401).json({ message: 'Sua sessão expirou. Entre novamente para continuar.', code: 'SESSION_EXPIRED' })

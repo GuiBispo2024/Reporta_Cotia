@@ -1,4 +1,5 @@
 const request = require('supertest');
+const jwt = require('jsonwebtoken');
 const app = require('../../app'); // ajuste para o arquivo que exporta express app
 const db = require('../../models/db/db'); // inicializar/limpar DB (opcional)
 const { User, Role, Permission } = require('../../models/rel');
@@ -47,6 +48,7 @@ describe('Users routes (integration)', () => {
     console.log("Resposta:", loginRes.statusCode, loginRes.body);
     expect(loginRes.statusCode).toBe(200);
     expect(loginRes.body).toHaveProperty('token');
+    expect(jwt.decode(loginRes.body.token)).not.toHaveProperty('adm');
     expect(loginRes.body.user.roles).toContain('CITIZEN');
     expect(loginRes.body.user.permissions).toEqual(expect.arrayContaining([
       'denuncia.create',

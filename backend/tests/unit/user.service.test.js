@@ -78,6 +78,11 @@ describe('UserService (unit)', () => {
     console.log("👤 Dados do usuário retornado:", res.user);
 
     expect(UserRepository.findByEmail).toHaveBeenCalledWith('e@e');
+    expect(spySign).toHaveBeenCalledWith(
+      { id: 10, v: 0 },
+      expect.any(String),
+      { expiresIn: '30m' }
+    );
     expect(res).toHaveProperty('token', 'TOKEN');
     expect(res.user).toMatchObject({ id: 10, username: 'u', email: 'e@e' });
     expect(res.user.roles).toEqual(['CITIZEN']);
@@ -154,6 +159,11 @@ describe('UserService (unit)', () => {
 
     expect(UserRepository.findById).toHaveBeenCalled();
     expect(UserRepository.update).toHaveBeenCalled();
+    expect(spySign).toHaveBeenCalledWith(
+      { id: 1, v: 0 },
+      expect.any(String),
+      { expiresIn: '30m' }
+    );
     expect(result).toHaveProperty("token", "TOKEN_ATUALIZADO");
     expect(result.user.roles).toEqual(['CITIZEN']);
     expect(result.user.permissions).toEqual(['denuncia.create']);
