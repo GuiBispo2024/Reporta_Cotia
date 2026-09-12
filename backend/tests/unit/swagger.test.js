@@ -1,0 +1,34 @@
+const { swaggerSpec } = require('../../utils/swagger')
+
+describe('Documentação OpenAPI', () => {
+  test('documenta perfis e permissões do usuário autenticado', () => {
+    expect(swaggerSpec.components.schemas.AccessRole.enum).toEqual([
+      'CITIZEN', 'MODERATOR', 'ANALYST', 'ADMIN'
+    ])
+    expect(swaggerSpec.paths['/users/me'].get.responses[200].content['application/json'].schema.$ref)
+      .toBe('#/components/schemas/AuthenticatedUser')
+  })
+
+  test('documenta a permissão da fila de moderação', () => {
+    const endpoint = swaggerSpec.paths['/denuncia/moderacao'].get
+
+    expect(endpoint.description).toContain('moderation.view')
+    expect(endpoint.security).toEqual([{ bearerAuth: [] }])
+    expect(endpoint.responses[403]).toBeDefined()
+  })
+
+  test('documenta endpoints de censura, avatar e recuperação de senha', () => {
+    expect(swaggerSpec.paths['/denuncia/{id}/censura'].patch).toBeDefined()
+    expect(swaggerSpec.paths['/denuncia/comentario/{id}/censura'].patch).toBeDefined()
+    expect(swaggerSpec.paths['/users/avatar'].patch).toBeDefined()
+    expect(swaggerSpec.paths['/users/avatar'].delete).toBeDefined()
+    expect(swaggerSpec.paths['/users/password/forgot'].post).toBeDefined()
+    expect(swaggerSpec.paths['/users/password/reset'].post).toBeDefined()
+  })
+
+  test('não exige autenticação global nos endpoints públicos', () => {
+    expect(swaggerSpec.security).toBeUndefined()
+    expect(swaggerSpec.paths['/denuncia/{id}'].get.security).toEqual([])
+    expect(swaggerSpec.paths['/users/{id}'].get.security).toEqual([])
+  })
+})

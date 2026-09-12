@@ -8,6 +8,7 @@ const cors = require('cors');
 const path = require('path');
 const errorHandler = require('./middlewares/errorHandler');
 const { securityHeaders, rateLimit } = require('./middlewares/security');
+const AppError = require('./utils/AppError');
 const { sequelize } = require('./models/rel');
 
 const app = express();
@@ -24,15 +25,35 @@ const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3000')
   .map(origin => origin.trim())
   .filter(Boolean);
 
+function isLocalDevelopmentOrigin(origin) {
+  if (process.env.NODE_ENV === 'production') return false;
+  try {
+    const url = new URL(origin);
+    return ['http:', 'https:'].includes(url.protocol)
+      && ['localhost', '127.0.0.1'].includes(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 app.use(bodyParser.json({ limit: '1mb' }));
 app.use(securityHeaders);
 app.use(rateLimit);
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+    if (
+      !origin
+      || allowedOrigins.includes('*')
+      || allowedOrigins.includes(origin)
+      || isLocalDevelopmentOrigin(origin)
+    ) {
       return callback(null, true);
     }
-    return callback(new Error('Origem não permitida pelo CORS.'));
+    return callback(new AppError(
+      'Esta origem não está autorizada a acessar a API.',
+      403,
+      'CORS_ORIGIN_DENIED'
+    ));
   }
 }));
 

@@ -17,6 +17,7 @@ const PasswordResetService = require('../services/PasswordResetService')
  * /users:
  *   post:
  *     summary: Cadastra um novo usuário
+ *     description: Cria uma conta com o perfil padrão `CITIZEN`. Campos administrativos enviados pelo cliente são ignorados.
  *     tags: [Usuários]
  *     requestBody:
  *       required: true
@@ -33,12 +34,24 @@ const PasswordResetService = require('../services/PasswordResetService')
  *                 example: gui@email.com
  *               password:
  *                 type: string
+ *                 minLength: 6
  *                 example: 123456
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [username, email, password]
+ *             properties:
+ *               username: { type: string, example: guilherme }
+ *               email: { type: string, format: email, example: gui@email.com }
+ *               password: { type: string, format: password, minLength: 6, example: "123456" }
+ *               avatar: { type: string, format: binary, description: Imagem de perfil opcional, com até 5 MB. }
  *     responses:
  *       201:
- *         description: Usuário cadastrado com sucesso
+ *         description: Usuário cadastrado como cidadão
  *       400:
  *         description: Credenciais inválidas
+ *       409:
+ *         description: E-mail ou nome de usuário já cadastrado
  */
 
 //Cadastra um usuário
@@ -100,11 +113,21 @@ router.post('/login', async (req, res) => {
  *   get:
  *     summary: Lista todos os usuários
  *     tags: [Usuários]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - { in: query, name: withCounts, schema: { type: boolean }, description: Inclui contagem e paginação quando verdadeiro. }
+ *       - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+ *       - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+ *       - { in: query, name: search, schema: { type: string } }
+ *       - { in: query, name: sort, schema: { type: string, enum: [username, contributions] } }
  *     responses:
  *       200:
  *         description: Lista de usuários
  *       500:
  *         description: Erro interno do servidor
+ *       401:
+ *         description: Sessão ausente, expirada ou revogada
  */
 
 //Lista todos os usuários
@@ -154,6 +177,30 @@ router.get('/denunciaCount', auth, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /users/me:
+ *   get:
+ *     summary: Retorna o usuário autenticado e seus acessos atuais
+ *     description: As permissões são consultadas no banco nesta requisição. Senha e versão da sessão nunca são retornadas.
+ *     tags: [Usuários]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dados do usuário, perfis e permissões sem duplicidade
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthenticatedUser'
+ *       401:
+ *         description: Sessão ausente, expirada ou revogada
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *       404:
+ *         description: Usuário não encontrado
+ */
 router.get('/me', auth, async (req, res) => {
   try {
     res.status(200).json(await UserService.getMe(req.user.id))
@@ -162,12 +209,58 @@ router.get('/me', auth, async (req, res) => {
   }
 })
 
+/**
+ * @swagger
+ * /users/password/forgot:
+ *   post:
+ *     summary: Solicita a redefinição de senha
+ *     description: Por segurança, a resposta não confirma se o e-mail está cadastrado.
+ *     tags: [Usuários]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email: { type: string, format: email }
+ *     responses:
+ *       200:
+ *         description: Solicitação recebida
+ *       400:
+ *         description: E-mail inválido
+ */
 router.post('/password/forgot', async (req, res, next) => {
   try {
     res.status(200).json(await PasswordResetService.request(req.body.email, req))
   } catch (error) { next(error) }
 })
 
+/**
+ * @swagger
+ * /users/password/reset:
+ *   post:
+ *     summary: Redefine a senha usando um token válido
+ *     tags: [Usuários]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token, password]
+ *             properties:
+ *               token: { type: string }
+ *               password: { type: string, format: password, minLength: 6 }
+ *     responses:
+ *       200:
+ *         description: Senha redefinida; sessões anteriores são revogadas
+ *       400:
+ *         description: Token ou senha inválidos
+ */
 router.post('/password/reset', async (req, res, next) => {
   try {
     res.status(200).json(await PasswordResetService.reset(req.body.token, req.body.password, req))
@@ -179,7 +272,9 @@ router.post('/password/reset', async (req, res, next) => {
  * /users/{id}:
  *   get:
  *     summary: Busca um usuário específico
+ *     description: Endpoint público. Retorna somente informações públicas do perfil.
  *     tags: [Usuários]
+ *     security: []
  *     parameters:
  *       - name: id
  *         in: path
@@ -225,8 +320,15 @@ router.get('/:id', async (req, res) => {
  *                 type: string
  *                 example: novo@email.com
  *               password:
+ *                 deprecated: true
+ *                 description: Não utilizado para troca de senha.
+ *               senhaAtual:
  *                 type: string
- *                 example: novaSenha123
+ *                 format: password
+ *               novaSenha:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 6
  *     responses:
  *       200:
  *         description: Usuário atualizado com sucesso
@@ -247,6 +349,28 @@ router.put('/update', auth, async (req, res) => {
   }
 })
 
+/**
+ * @swagger
+ * /users/avatar:
+ *   patch:
+ *     summary: Atualiza a foto do usuário autenticado
+ *     tags: [Usuários]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [avatar]
+ *             properties:
+ *               avatar: { type: string, format: binary, description: Imagem de até 5 MB. }
+ *     responses:
+ *       200: { description: Foto de perfil atualizada }
+ *       400: { description: Arquivo ausente ou inválido }
+ *       401: { description: Sessão ausente, expirada ou revogada }
+ */
 router.patch('/avatar', auth, upload.single('avatar'), async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'Selecione uma imagem para o perfil.' })
@@ -257,6 +381,18 @@ router.patch('/avatar', auth, upload.single('avatar'), async (req, res, next) =>
   }
 })
 
+/**
+ * @swagger
+ * /users/avatar:
+ *   delete:
+ *     summary: Remove a foto do usuário autenticado
+ *     tags: [Usuários]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200: { description: Foto de perfil removida }
+ *       401: { description: Sessão ausente, expirada ou revogada }
+ */
 router.delete('/avatar', auth, async (req, res, next) => {
   try {
     res.status(200).json(await UserService.removeAvatar(req.user.id))
@@ -270,6 +406,8 @@ router.delete('/avatar', auth, async (req, res, next) => {
  * /users/{id}/adm:
  *   put:
  *     summary: Altera a permissão (adm) de um usuário — apenas administradores
+ *     deprecated: true
+ *     description: Endpoint legado mantido durante a migração para perfis. Não permite autodespromoção nem remoção do último administrador.
  *     tags: [Usuários]
  *     security:
  *       - bearerAuth: []
@@ -293,7 +431,7 @@ router.delete('/avatar', auth, async (req, res, next) => {
  *       200:
  *         description: Permissão alterada com sucesso
  *       403:
- *         description: Apenas administradores podem alterar permissões
+ *         description: Solicitante sem acesso, autodespromoção ou tentativa de remover o último administrador
  *       404:
  *         description: Usuário não encontrado
  */

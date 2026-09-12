@@ -43,9 +43,28 @@ router.post('/', auth, upload.array('imagens', 4), async (req, res, next) => {
  * /denuncia/{id}/moderar:
  *   patch:
  *     summary: Aprova ou rejeita uma denúncia
+ *     description: Nesta etapa da migração, a ação ainda exige administrador legado. Ao rejeitar, o motivo é obrigatório e fica disponível ao autor.
  *     tags: [Denúncias]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [status]
+ *             properties:
+ *               status: { type: string, enum: [pendente, aprovada, rejeitada] }
+ *               motivoRejeicao: { type: string, maxLength: 1000, description: Obrigatório quando o status for rejeitada. }
+ *     responses:
+ *       200: { description: Moderação registrada }
+ *       400: { description: Status ou motivo inválido }
+ *       401: { description: Sessão ausente, expirada ou revogada }
+ *       403: { description: Ação restrita ao administrador nesta etapa da migração }
+ *       404: { description: Denúncia não encontrada }
  */
 router.patch('/:id/moderar', auth, async (req, res, next) => {
   try {
@@ -53,6 +72,35 @@ router.patch('/:id/moderar', auth, async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+/**
+ * @swagger
+ * /denuncia/{id}/censura:
+ *   patch:
+ *     summary: Revisa a censura automática de uma denúncia
+ *     description: Permite manter ou retirar a censura do título ou da descrição. A ação ainda exige administrador legado.
+ *     tags: [Denúncias]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [field, manterCensura]
+ *             properties:
+ *               field: { type: string, enum: [titulo, descricao] }
+ *               manterCensura: { type: boolean }
+ *     responses:
+ *       200: { description: Decisão de censura registrada }
+ *       400: { description: Campo ou decisão inválidos }
+ *       401: { description: Sessão ausente, expirada ou revogada }
+ *       403: { description: Ação restrita ao administrador nesta etapa da migração }
+ *       404: { description: Denúncia não encontrada }
+ *       409: { description: Campo sem conteúdo censurado para revisão }
+ */
 router.patch('/:id/censura', auth, async (req, res, next) => {
   try {
     res.status(200).json(await DenunciaService.revisarCensura(
@@ -66,9 +114,27 @@ router.patch('/:id/censura', auth, async (req, res, next) => {
  * /denuncia/{id}/resolucao:
  *   patch:
  *     summary: Atualiza o progresso da resolução
+ *     description: Ação ainda restrita ao administrador legado durante a migração de permissões.
  *     tags: [Denúncias]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [resolucaoStatus]
+ *             properties:
+ *               resolucaoStatus: { type: string, enum: [aberta, em_andamento, resolvida] }
+ *               setorResponsavel: { type: string, maxLength: 120 }
+ *     responses:
+ *       200: { description: Andamento atualizado ou nenhuma alteração necessária }
+ *       400: { description: Status ou setor inválido }
+ *       403: { description: Ação restrita ao administrador nesta etapa da migração }
+ *       404: { description: Denúncia não encontrada }
  */
 router.patch('/:id/resolucao', auth, async (req, res, next) => {
   try {
@@ -105,6 +171,31 @@ router.get('/', optionalAuth, async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+/**
+ * @swagger
+ * /denuncia/moderacao:
+ *   get:
+ *     summary: Consulta a fila de moderação
+ *     description: Exige a permissão `moderation.view`. Administradores legados permanecem autorizados temporariamente.
+ *     tags: [Denúncias]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - { in: query, name: status, schema: { type: string, enum: [pendente, aprovada, rejeitada] } }
+ *       - { in: query, name: categoria, schema: { type: string } }
+ *       - { in: query, name: resolucaoStatus, schema: { type: string, enum: [aberta, em_andamento, resolvida] } }
+ *       - { in: query, name: page, schema: { type: integer, minimum: 1 } }
+ *       - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 50 } }
+ *     responses:
+ *       200: { description: Denúncias disponíveis para análise }
+ *       400: { description: Filtro inválido }
+ *       401: { description: Sessão ausente, expirada ou revogada }
+ *       403:
+ *         description: Usuário sem `moderation.view`
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ */
 router.get('/moderacao', auth, requirePermission(PERMISSIONS.MODERATION_VIEW), async (req, res, next) => {
   try {
     const { hasPagination, page, limit } = pagination(req);
@@ -135,6 +226,20 @@ router.get('/filter', optionalAuth, async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+/**
+ * @swagger
+ * /denuncia/public/user/{userId}:
+ *   get:
+ *     summary: Lista denúncias públicas de um usuário
+ *     tags: [Denúncias]
+ *     security: []
+ *     parameters:
+ *       - { in: path, name: userId, required: true, schema: { type: integer } }
+ *       - { in: query, name: page, schema: { type: integer, minimum: 1 } }
+ *       - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 50 } }
+ *     responses:
+ *       200: { description: Página de denúncias aprovadas }
+ */
 router.get('/public/user/:userId', async (req, res, next) => {
   try {
     const page = Math.max(Number.parseInt(req.query.page || '1', 10), 1);
@@ -143,6 +248,21 @@ router.get('/public/user/:userId', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+/**
+ * @swagger
+ * /denuncia/user/{userId}:
+ *   get:
+ *     summary: Lista denúncias privadas de um usuário
+ *     description: Acesso permitido ao próprio usuário ou a um administrador legado.
+ *     tags: [Denúncias]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - { in: path, name: userId, required: true, schema: { type: integer } }
+ *     responses:
+ *       200: { description: Denúncias do usuário }
+ *       403: { description: Tentativa de consultar denúncias privadas de outro usuário }
+ */
 router.get('/user/:userId', auth, async (req, res, next) => {
   try {
     if (!req.user.adm && Number(req.user.id) !== Number(req.params.userId)) {
@@ -152,18 +272,75 @@ router.get('/user/:userId', auth, async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+/**
+ * @swagger
+ * /denuncia/{id}/historico:
+ *   get:
+ *     summary: Consulta o histórico de uma denúncia
+ *     description: Denúncias públicas podem ser consultadas sem login; conteúdos privados seguem as regras de autor e administrador.
+ *     tags: [Denúncias]
+ *     security: []
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     responses:
+ *       200: { description: Histórico cronológico da denúncia }
+ *       403: { description: Usuário sem acesso ao conteúdo privado }
+ *       404: { description: Denúncia não encontrada }
+ */
 router.get('/:id/historico', optionalAuth, async (req, res, next) => {
   try {
     res.status(200).json(await DenunciaService.buscarHistorico(req.params.id, req.user));
   } catch (error) { next(error); }
 });
 
+/**
+ * @swagger
+ * /denuncia/{id}:
+ *   get:
+ *     summary: Consulta os detalhes de uma denúncia
+ *     description: Denúncias aprovadas são públicas; denúncias não aprovadas exigem o autor ou administrador.
+ *     tags: [Denúncias]
+ *     security: []
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     responses:
+ *       200: { description: Detalhes da denúncia }
+ *       403: { description: Usuário sem acesso ao conteúdo privado }
+ *       404: { description: Denúncia não encontrada }
+ */
 router.get('/:id', optionalAuth, async (req, res, next) => {
   try {
     res.status(200).json(await DenunciaService.buscarPorId(req.params.id, req.user));
   } catch (error) { next(error); }
 });
 
+/**
+ * @swagger
+ * /denuncia/{id}:
+ *   put:
+ *     summary: Atualiza uma denúncia do usuário autenticado
+ *     tags: [Denúncias]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               titulo: { type: string }
+ *               descricao: { type: string }
+ *               localizacao: { type: string }
+ *               categoria: { type: string }
+ *               imagens: { type: array, maxItems: 4, items: { type: string, format: binary } }
+ *               removeImages: { type: boolean }
+ *     responses:
+ *       200: { description: Denúncia atualizada e reenviada para moderação }
+ *       403: { description: Usuário não é o autor }
+ *       404: { description: Denúncia não encontrada }
+ */
 router.put('/:id', auth, upload.array('imagens', 4), async (req, res, next) => {
   try {
     const current = await DenunciaService.buscarPorId(req.params.id, req.user);
@@ -187,6 +364,21 @@ router.put('/:id', auth, upload.array('imagens', 4), async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+/**
+ * @swagger
+ * /denuncia/{id}:
+ *   delete:
+ *     summary: Exclui uma denúncia do próprio usuário
+ *     tags: [Denúncias]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     responses:
+ *       200: { description: Denúncia excluída }
+ *       403: { description: Usuário não é o autor }
+ *       404: { description: Denúncia não encontrada }
+ */
 router.delete('/:id', auth, async (req, res, next) => {
   try {
     res.status(200).json(await DenunciaService.deletar(req.params.id, req.user.id));
