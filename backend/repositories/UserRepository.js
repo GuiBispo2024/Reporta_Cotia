@@ -37,7 +37,15 @@ class UserRepository{
 
     //Lista todos os usuários
     static async findAll() {
-        return User.findAll({ attributes: ['id', 'username', 'adm', 'avatarUrl'] })
+        return User.findAll({
+            attributes: ['id', 'username', 'adm', 'avatarUrl'],
+            include: [{
+                model: Role,
+                as: 'roles',
+                attributes: ['name'],
+                through: { attributes: [] }
+            }]
+        })
     }
 
     //Lista todos os usuários com a contagem de denúncias feitas por cada um
@@ -71,7 +79,27 @@ class UserRepository{
             offset,
             subQuery: false
          }), User.count({ where })])
-        return { data: rows, total, page, limit, totalPages: Math.ceil(total / limit) }
+
+        const accessRows = rows.length ? await User.findAll({
+            where: { id: { [Op.in]: rows.map(user => user.id) } },
+            attributes: ['id'],
+            include: [{
+                model: Role,
+                as: 'roles',
+                attributes: ['name'],
+                through: { attributes: [] }
+            }]
+        }) : []
+        const rolesByUser = new Map(accessRows.map(user => [
+            Number(user.id),
+            (user.roles || []).map(role => role.name)
+        ]))
+        const data = rows.map(user => ({
+            ...(user.get ? user.get({ plain: true }) : user),
+            roles: rolesByUser.get(Number(user.id)) || []
+        }))
+
+        return { data, total, page, limit, totalPages: Math.ceil(total / limit) }
     }
 
     //Busca um usuário específico
@@ -96,6 +124,53 @@ class UserRepository{
         }
         if (attributes) options.attributes = attributes
         return User.findByPk(id, options)
+    }
+
+    static async findRolesWithPermissions() {
+        return Role.findAll({
+            attributes: ['name', 'description'],
+            include: [{
+                model: Permission,
+                as: 'permissions',
+                attributes: ['key', 'description'],
+                through: { attributes: [] }
+            }],
+            order: [
+                ['name', 'ASC'],
+                [{ model: Permission, as: 'permissions' }, 'key', 'ASC']
+            ]
+        })
+    }
+
+    static async replaceRoles(userId, roleNames) {
+        return sequelize.transaction(async transaction => {
+            const user = await User.findByPk(userId, {
+                include: [{ model: Role, as: 'roles', through: { attributes: [] } }],
+                transaction
+            })
+            if (!user) return null
+
+            const roles = await Role.findAll({
+                where: { name: { [Op.in]: roleNames } },
+                transaction
+            })
+            await user.setRoles(roles, { transaction })
+            await user.update({ adm: roleNames.includes('ADMIN') }, { transaction })
+            return user
+        })
+    }
+
+    static async countUsersWithRole(roleName) {
+        return User.count({
+            include: [{
+                model: Role,
+                as: 'roles',
+                where: { name: roleName },
+                through: { attributes: [] },
+                required: true
+            }],
+            distinct: true
+        })
     }
 
     static async findPublicById(id) {

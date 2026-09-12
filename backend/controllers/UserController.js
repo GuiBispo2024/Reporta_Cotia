@@ -4,6 +4,8 @@ const UserService = require('../services/UserService')
 const auth = require('../middlewares/auth')
 const { upload, storeImage } = require('../utils/upload')
 const PasswordResetService = require('../services/PasswordResetService')
+const requirePermission = require('../middlewares/requirePermission')
+const { PERMISSIONS } = require('../constants/accessControl')
 
 /**
  * @swagger
@@ -206,6 +208,65 @@ router.get('/me', auth, async (req, res) => {
     res.status(200).json(await UserService.getMe(req.user.id))
   } catch (error) {
     res.status(404).json({ message: error.message })
+  }
+})
+
+/**
+ * @swagger
+ * /users/access/roles:
+ *   get:
+ *     summary: Lista os perfis disponíveis e suas permissões
+ *     tags: [Usuários]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200: { description: Perfis e permissões disponíveis }
+ *       403: { description: Requer a permissão `users.manage_roles` }
+ */
+router.get('/access/roles', auth, requirePermission(PERMISSIONS.USERS_MANAGE_ROLES), async (req, res, next) => {
+  try {
+    res.status(200).json(await UserService.getAvailableRoles())
+  } catch (error) {
+    next(error)
+  }
+})
+
+/**
+ * @swagger
+ * /users/{id}/roles:
+ *   put:
+ *     summary: Substitui os perfis de acesso de um usuário
+ *     description: Requer `users.manage_roles`. O perfil `CITIZEN` é mantido automaticamente. Não é possível remover o próprio perfil `ADMIN` nem o último administrador da plataforma.
+ *     tags: [Usuários]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [roles]
+ *             properties:
+ *               roles:
+ *                 type: array
+ *                 uniqueItems: true
+ *                 items: { type: string, enum: [CITIZEN, MODERATOR, ANALYST, ADMIN] }
+ *                 example: [CITIZEN, MODERATOR]
+ *     responses:
+ *       200: { description: Perfis atualizados com sucesso }
+ *       400: { description: Lista ou perfil inválido }
+ *       403: { description: Sem permissão ou tentativa de autodespromoção }
+ *       404: { description: Usuário não encontrado }
+ *       409: { description: Tentativa de remover o último administrador }
+ */
+router.put('/:id/roles', auth, requirePermission(PERMISSIONS.USERS_MANAGE_ROLES), async (req, res, next) => {
+  try {
+    res.status(200).json(await UserService.updateRoles(req.params.id, req.body?.roles, req.user.id))
+  } catch (error) {
+    next(error)
   }
 })
 

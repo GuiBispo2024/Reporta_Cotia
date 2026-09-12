@@ -31,4 +31,15 @@ describe('Documentação OpenAPI', () => {
     expect(swaggerSpec.paths['/denuncia/{id}'].get.security).toEqual([])
     expect(swaggerSpec.paths['/users/{id}'].get.security).toEqual([])
   })
+
+  test('documenta consulta e atualização administrativa de perfis', () => {
+    const listRoles = swaggerSpec.paths['/users/access/roles'].get
+    const updateRoles = swaggerSpec.paths['/users/{id}/roles'].put
+
+    expect(listRoles.security).toEqual([{ bearerAuth: [] }])
+    expect(listRoles.responses[403].description).toContain('users.manage_roles')
+    expect(updateRoles.security).toEqual([{ bearerAuth: [] }])
+    expect(updateRoles.requestBody.content['application/json'].schema.required).toContain('roles')
+    expect(updateRoles.responses[409]).toBeDefined()
+  })
 })

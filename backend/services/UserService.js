@@ -5,6 +5,7 @@ const { ROLES, ROLE_DESCRIPTIONS } = require('../constants/accessControl')
 const { extractUserAccess } = require('../utils/userAccess')
 const SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'reporta-cotia-test-secret' : undefined)
 const { deleteImage } = require('../utils/upload')
+const AppError = require('../utils/AppError')
 
 class UserService {
     
@@ -67,6 +68,65 @@ class UserService {
     const { roles, permissions } = extractUserAccess(plain)
     const { password, tokenVersion, roles: _roles, ...safeUser } = plain
     return { ...safeUser, roles, permissions }
+  }
+
+  static async getAvailableRoles() {
+    const roles = await UserRepository.findRolesWithPermissions()
+    return roles.map(role => {
+      const plain = role.get ? role.get({ plain: true }) : role
+      return {
+        name: plain.name,
+        description: plain.description,
+        permissions: (plain.permissions || []).map(permission => ({
+          key: permission.key,
+          description: permission.description
+        }))
+      }
+    })
+  }
+
+  static async updateRoles(targetUserId, requestedRoles, requesterId) {
+    if (!Array.isArray(requestedRoles)) {
+      throw new AppError('Informe os perfis do usuário em uma lista.', 400, 'INVALID_ROLES')
+    }
+
+    const validRoles = Object.values(ROLES)
+    const normalizedRoles = [...new Set(requestedRoles.map(role => String(role).trim().toUpperCase()))]
+    const invalidRoles = normalizedRoles.filter(role => !validRoles.includes(role))
+    if (invalidRoles.length) {
+      throw new AppError(`Perfil inválido: ${invalidRoles.join(', ')}.`, 400, 'INVALID_ROLES')
+    }
+    if (!normalizedRoles.includes(ROLES.CITIZEN)) normalizedRoles.unshift(ROLES.CITIZEN)
+
+    const targetUser = await UserRepository.findByIdWithAccess(targetUserId)
+    if (!targetUser) throw new AppError('Usuário não encontrado.', 404, 'USER_NOT_FOUND')
+
+    const currentAccess = extractUserAccess(targetUser.get ? targetUser.get({ plain: true }) : targetUser)
+    const removesAdmin = currentAccess.roles.includes(ROLES.ADMIN) && !normalizedRoles.includes(ROLES.ADMIN)
+    if (Number(targetUserId) === Number(requesterId) && removesAdmin) {
+      throw new AppError('Você não pode remover o perfil de administrador da própria conta.', 403, 'SELF_ADMIN_DEMOTION')
+    }
+    if (removesAdmin && await UserRepository.countUsersWithRole(ROLES.ADMIN) <= 1) {
+      throw new AppError('Não é permitido remover o último administrador da plataforma.', 409, 'LAST_ADMIN_REQUIRED')
+    }
+
+    await UserRepository.replaceRoles(targetUserId, normalizedRoles)
+    const updatedUser = await UserRepository.findByIdWithAccess(targetUserId)
+    const plain = updatedUser.get ? updatedUser.get({ plain: true }) : updatedUser
+    const { roles, permissions } = extractUserAccess(plain)
+
+    return {
+      message: 'Perfis do usuário atualizados com sucesso.',
+      user: {
+        id: plain.id,
+        username: plain.username,
+        email: plain.email,
+        adm: plain.adm,
+        avatarUrl: plain.avatarUrl || null,
+        roles,
+        permissions
+      }
+    }
   }
 
   // Atualizar
