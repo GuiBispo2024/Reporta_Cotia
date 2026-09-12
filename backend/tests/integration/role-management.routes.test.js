@@ -193,6 +193,36 @@ describe('Gerenciamento de perfis de acesso', () => {
     expect(response.body.code).toBe('SELF_ADMIN_DEMOTION')
   })
 
+  test('não permite que outro gestor remova o último perfil ADMIN', async () => {
+    const removeSecondAdmin = await request(app)
+      .put(`/users/${citizen.id}/roles`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({ roles: ['CITIZEN'] })
+    expect(removeSecondAdmin.status).toBe(200)
+
+    const accessManager = await registerAndLogin('access-manager', 'access-manager@example.com')
+    const accessManagerRole = await Role.create({
+      name: 'ACCESS_MANAGER',
+      description: 'Gerencia perfis sem ser administrador.'
+    })
+    const manageRoles = await Permission.findOne({ where: { key: 'users.manage_roles' } })
+    await accessManagerRole.addPermission(manageRoles)
+    const accessManagerUser = await User.findByPk(accessManager.id)
+    await accessManagerUser.addRole(accessManagerRole)
+
+    const response = await request(app)
+      .put(`/users/${admin.id}/roles`)
+      .set('Authorization', `Bearer ${accessManager.token}`)
+      .send({ roles: ['CITIZEN'] })
+
+    expect(response.status).toBe(409)
+    expect(response.body.code).toBe('LAST_ADMIN_REQUIRED')
+    const protectedAdmin = await User.findByPk(admin.id, {
+      include: [{ model: Role, as: 'roles', through: { attributes: [] } }]
+    })
+    expect(protectedAdmin.roles.map(role => role.name)).toContain('ADMIN')
+  })
+
   test('rejeita nomes de perfil que não existem', async () => {
     const response = await request(app)
       .put(`/users/${citizen.id}/roles`)

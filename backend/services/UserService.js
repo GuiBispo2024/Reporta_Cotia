@@ -131,19 +131,16 @@ class UserService {
     }
     if (!normalizedRoles.includes(ROLES.CITIZEN)) normalizedRoles.unshift(ROLES.CITIZEN)
 
-    const targetUser = await UserRepository.findByIdWithAccess(targetUserId)
-    if (!targetUser) throw new AppError('Usuário não encontrado.', 404, 'USER_NOT_FOUND')
-
-    const currentAccess = extractUserAccess(targetUser.get ? targetUser.get({ plain: true }) : targetUser)
-    const removesAdmin = currentAccess.roles.includes(ROLES.ADMIN) && !normalizedRoles.includes(ROLES.ADMIN)
-    if (Number(targetUserId) === Number(requesterId) && removesAdmin) {
+    const roleUpdate = await UserRepository.replaceRoles(targetUserId, normalizedRoles, requesterId)
+    if (roleUpdate?.status === 'self_admin_demotion') {
       throw new AppError('Você não pode remover o perfil de administrador da própria conta.', 403, 'SELF_ADMIN_DEMOTION')
     }
-    if (removesAdmin && await UserRepository.countUsersWithRole(ROLES.ADMIN) <= 1) {
+    if (roleUpdate?.status === 'last_admin') {
       throw new AppError('Não é permitido remover o último administrador da plataforma.', 409, 'LAST_ADMIN_REQUIRED')
     }
-
-    await UserRepository.replaceRoles(targetUserId, normalizedRoles, requesterId)
+    if (roleUpdate?.status === 'not_found') {
+      throw new AppError('Usuário não encontrado.', 404, 'USER_NOT_FOUND')
+    }
     const updatedUser = await UserRepository.findByIdWithAccess(targetUserId)
     const plain = updatedUser.get ? updatedUser.get({ plain: true }) : updatedUser
     const { roles, permissions } = extractUserAccess(plain)
@@ -235,23 +232,23 @@ class UserService {
 
   // Deletar
   static async delete(userIdToken, senhaAtual) {
-    const user = await UserRepository.findByIdWithAccess(userIdToken)
+    const user = await UserRepository.findById(userIdToken)
     if (!user) throw new AppError('Usuário não encontrado.', 404, 'USER_NOT_FOUND')
     if (!senhaAtual || !(await bcrypt.compare(senhaAtual, user.password))) {
       throw new AppError('A senha atual está incorreta. Revise-a antes de excluir sua conta.', 400, 'INVALID_CURRENT_PASSWORD')
     }
 
-    const { roles } = extractUserAccess(user.get ? user.get({ plain: true }) : user)
-    if (roles.includes(ROLES.ADMIN) && await UserRepository.countUsersWithRole(ROLES.ADMIN) <= 1) {
+    const deletion = await UserRepository.deletePreservingLastAdmin(userIdToken)
+    if (deletion.status === 'last_admin') {
       throw new AppError(
         'Esta é a única conta administradora. Promova outro usuário antes de excluir sua conta.',
         409,
         'LAST_ADMIN_REQUIRED'
       )
     }
-
-    const rowsDel = await UserRepository.delete(userIdToken)
-    if (!rowsDel) throw new AppError('Usuário não encontrado.', 404, 'USER_NOT_FOUND')
+    if (deletion.status === 'not_found') {
+      throw new AppError('Usuário não encontrado.', 404, 'USER_NOT_FOUND')
+    }
     return { message: 'Usuário excluído com sucesso' }
   }
 }

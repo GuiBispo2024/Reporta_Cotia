@@ -165,11 +165,17 @@ class UserRepository{
 
     static async replaceRoles(userId, roleNames, changedByUserId) {
         return sequelize.transaction(async transaction => {
-            const user = await User.findByPk(userId, {
-                include: [{ model: Role, as: 'roles', through: { attributes: [] } }],
-                transaction
+            await Role.findOne({
+                where: { name: 'ADMIN' },
+                attributes: ['id'],
+                transaction,
+                lock: transaction.LOCK.UPDATE
             })
-            if (!user) return null
+            const user = await User.findByPk(userId, {
+                transaction,
+                lock: transaction.LOCK.UPDATE
+            })
+            if (!user) return { status: 'not_found' }
 
             const changedByUser = await User.findByPk(changedByUserId, {
                 attributes: ['id', 'username'],
@@ -183,8 +189,29 @@ class UserRepository{
                 where: { name: { [Op.in]: roleNames } },
                 transaction
             })
-            const previousRoles = (user.roles || []).map(role => role.name).sort()
+            const currentRoles = await user.getRoles({
+                attributes: ['name'],
+                joinTableAttributes: [],
+                transaction
+            })
+            const previousRoles = currentRoles.map(role => role.name).sort()
             const newRoles = roles.map(role => role.name).sort()
+
+            if (
+                Number(userId) === Number(changedByUserId)
+                && previousRoles.includes('ADMIN')
+                && !newRoles.includes('ADMIN')
+            ) {
+                return { status: 'self_admin_demotion' }
+            }
+            if (
+                previousRoles.includes('ADMIN')
+                && !newRoles.includes('ADMIN')
+                && await UserRepository.countUsersWithRole('ADMIN', { transaction }) <= 1
+            ) {
+                return { status: 'last_admin' }
+            }
+
             await user.setRoles(roles, { transaction })
 
             if (JSON.stringify(previousRoles) !== JSON.stringify(newRoles)) {
@@ -197,11 +224,11 @@ class UserRepository{
                     newRoles
                 }, { transaction })
             }
-            return user
+            return { status: 'updated', user }
         })
     }
 
-    static async countUsersWithRole(roleName) {
+    static async countUsersWithRole(roleName, { transaction } = {}) {
         return User.count({
             include: [{
                 model: Role,
@@ -210,7 +237,39 @@ class UserRepository{
                 through: { attributes: [] },
                 required: true
             }],
-            distinct: true
+            distinct: true,
+            transaction
+        })
+    }
+
+    static async deletePreservingLastAdmin(userId) {
+        return sequelize.transaction(async transaction => {
+            await Role.findOne({
+                where: { name: 'ADMIN' },
+                attributes: ['id'],
+                transaction,
+                lock: transaction.LOCK.UPDATE
+            })
+            const user = await User.findByPk(userId, {
+                transaction,
+                lock: transaction.LOCK.UPDATE
+            })
+            if (!user) return { status: 'not_found' }
+
+            const roles = await user.getRoles({
+                attributes: ['name'],
+                joinTableAttributes: [],
+                transaction
+            })
+            if (
+                roles.some(role => role.name === 'ADMIN')
+                && await UserRepository.countUsersWithRole('ADMIN', { transaction }) <= 1
+            ) {
+                return { status: 'last_admin' }
+            }
+
+            await user.destroy({ transaction })
+            return { status: 'deleted' }
         })
     }
 
@@ -231,10 +290,6 @@ class UserRepository{
         return User.update(data, { where: { id } })
     }
 
-    //Deleta um usuário
-    static async delete(id) {
-        return User.destroy({ where: { id } })
-    }
 }
 
 module.exports = UserRepository
