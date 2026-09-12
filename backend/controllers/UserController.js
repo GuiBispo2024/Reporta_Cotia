@@ -124,7 +124,7 @@ router.post('/login', async (req, res) => {
  * /users:
  *   get:
  *     summary: Lista todos os usuários
- *     description: A comunidade é acessível a usuários autenticados. O e-mail é incluído somente para quem possui `users.view`; administradores legados permanecem autorizados temporariamente.
+ *     description: A comunidade é acessível a usuários autenticados. O e-mail é incluído somente para quem possui `users.view`.
  *     tags: [Usuários]
  *     security:
  *       - bearerAuth: []

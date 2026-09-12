@@ -5,6 +5,7 @@ const auth = require('../middlewares/auth')
 const optionalAuth = require('../middlewares/optionalAuth')
 const requirePermission = require('../middlewares/requirePermission')
 const { PERMISSIONS } = require('../constants/accessControl')
+const { hasPermission } = require('../utils/authorization')
 
 /**
  * @swagger
@@ -66,7 +67,7 @@ router.post('/:denunciaId/comentario',auth, async (req, res, next) => {
  * /denuncia/{denunciaId}/comentarios:
  *   get:
  *     summary: Lista todos os comentários de uma denúncia
- *     description: Endpoint público. Usuários administrativos autenticados também recebem o conteúdo original pendente de revisão.
+ *     description: Endpoint público. Usuários com `censorship.review` também recebem o conteúdo original pendente de revisão.
  *     tags: [Comentários]
  *     security: []
  *     parameters:
@@ -90,7 +91,7 @@ router.get('/:denunciaId/comentarios', optionalAuth, async (req, res, next) => {
     const page = req.query.page ? Math.max(Number(req.query.page), 1) : null
     const limit = req.query.limit ? Math.min(Math.max(Number(req.query.limit), 1), 50) : null
     const sort = req.query.sort === 'oldest' ? 'oldest' : 'newest'
-    const canReviewCensorship = Boolean(req.user?.adm || req.user?.permissions?.includes(PERMISSIONS.CENSORSHIP_REVIEW))
+    const canReviewCensorship = hasPermission(req.user, PERMISSIONS.CENSORSHIP_REVIEW)
     const comentarios = await CommentService.listarPorDenuncia(req.params.denunciaId, canReviewCensorship, { page, limit, sort })
     res.status(200).json(comentarios)
   } catch (error) { next(error) }
@@ -101,7 +102,7 @@ router.get('/:denunciaId/comentarios', optionalAuth, async (req, res, next) => {
  * /denuncia/comentario/{id}/censura:
  *   patch:
  *     summary: Revisa a censura automática de um comentário
- *     description: Permite manter ou retirar a censura antes de encerrar a revisão. Exige `censorship.review`; administradores legados permanecem autorizados temporariamente.
+ *     description: Permite manter ou retirar a censura antes de encerrar a revisão. Exige `censorship.review`.
  *     tags: [Comentários]
  *     security:
  *       - bearerAuth: []
@@ -197,7 +198,7 @@ router.put('/comentario/:id',auth, async (req, res, next) => {
 // Deleta comentário
 router.delete('/comentario/:id',auth, async (req, res, next) => {
   try {
-    const canModerateContent = Boolean(req.user.adm || req.user.permissions?.includes(PERMISSIONS.CENSORSHIP_REVIEW))
+    const canModerateContent = hasPermission(req.user, PERMISSIONS.CENSORSHIP_REVIEW)
     const result = await CommentService.deletar(req.params.id, req.user.id, canModerateContent)
     res.status(200).json(result)
   } catch (error) { next(error) }

@@ -8,7 +8,6 @@ module.exports = permission => (req, res, next) => {
     })
   }
 
-  // Compatibilidade temporária para administradores anteriores à migração.
   if (hasPermission(req.user, permission)) return next()
 
   return res.status(403).json({

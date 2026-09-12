@@ -28,10 +28,11 @@ describe('requirePermission', () => {
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'FORBIDDEN' }))
   })
 
-  test('mantém compatibilidade temporária com administrador legado', () => {
-    const { next } = runMiddleware({ adm: true, permissions: [] })
+  test('não autoriza somente pelo campo adm legado', () => {
+    const { next, res } = runMiddleware({ adm: true, permissions: [] })
 
-    expect(next).toHaveBeenCalledTimes(1)
+    expect(next).not.toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(403)
   })
 
   test('retorna 401 quando a autenticação não foi executada', () => {

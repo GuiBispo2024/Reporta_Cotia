@@ -16,9 +16,10 @@ const options = {
             description: [
                 'Documentação da API do sistema Reporta Cotia.',
                 '',
-                'O controle de acesso está em migração do campo legado `adm` para perfis e permissões.',
+                'O controle de acesso é realizado por perfis e permissões.',
                 'Novas contas recebem o perfil `CITIZEN`. As permissões atuais do usuário são consultadas',
-                'no banco a cada requisição autenticada, portanto alterações de acesso têm efeito imediato.'
+                'no banco a cada requisição autenticada, portanto alterações de acesso têm efeito imediato.',
+                'O campo legado `adm` permanece temporariamente nos dados, mas não concede acesso por conta própria.'
             ].join('\n')
         },
 
@@ -79,7 +80,7 @@ const options = {
                         adm: {
                             type: 'boolean',
                             deprecated: true,
-                            description: 'Campo temporário mantido durante a migração para perfis.'
+                            description: 'Campo temporário mantido para compatibilidade de dados; não concede permissões.'
                         },
                         avatarUrl: { type: 'string', nullable: true, example: '/uploads/perfis/avatar.jpg' },
                         roles: {

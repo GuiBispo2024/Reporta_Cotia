@@ -1,6 +1,6 @@
 const request = require('supertest')
 const app = require('../../app')
-const { sequelize, Denuncia, User, Comment } = require('../../models/rel')
+const { sequelize, Denuncia, User, Comment, Role, Permission } = require('../../models/rel')
 
 describe('Interações sociais e sessões', () => {
   let token
@@ -11,7 +11,15 @@ describe('Interações sociais e sessões', () => {
     await request(app).post('/users').send({ username: 'socialuser', email: 'social@example.com', password: '123456' })
     const login = await request(app).post('/users/login').send({ email: 'social@example.com', password: '123456' })
     token = login.body.token
-    await User.update({ adm: true }, { where: { id: login.body.user.id } })
+    const moderationPermissions = await Permission.bulkCreate([
+      { key: 'moderation.view', description: 'Visualizar a fila de moderação.' },
+      { key: 'moderation.review', description: 'Aprovar ou rejeitar denúncias.' },
+      { key: 'resolution.update', description: 'Atualizar o andamento de uma denúncia.' }
+    ])
+    const moderatorRole = await Role.create({ name: 'MODERATOR', description: 'Analisa denúncias e revisa conteúdos.' })
+    await moderatorRole.addPermissions(moderationPermissions)
+    const user = await User.findByPk(login.body.user.id)
+    await user.addRole(moderatorRole)
     const report = await Denuncia.create({ titulo: 'Iluminação quebrada', descricao: 'Poste apagado há vários dias', localizacao: 'Rua Central', categoria: 'Iluminação pública', status: 'aprovada', userId: login.body.user.id })
     denunciaId = report.id
   })

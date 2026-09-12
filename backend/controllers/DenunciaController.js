@@ -44,7 +44,7 @@ router.post('/', auth, upload.array('imagens', 4), async (req, res, next) => {
  * /denuncia/{id}/moderar:
  *   patch:
  *     summary: Aprova ou rejeita uma denúncia
- *     description: Exige a permissão `moderation.review`. Ao rejeitar, o motivo é obrigatório e fica disponível ao autor. Administradores legados permanecem autorizados temporariamente.
+ *     description: Exige a permissão `moderation.review`. Ao rejeitar, o motivo é obrigatório e fica disponível ao autor.
  *     tags: [Denúncias]
  *     security:
  *       - bearerAuth: []
@@ -78,7 +78,7 @@ router.patch('/:id/moderar', auth, requirePermission(PERMISSIONS.MODERATION_REVI
  * /denuncia/{id}/censura:
  *   patch:
  *     summary: Revisa a censura automática de uma denúncia
- *     description: Permite manter ou retirar a censura do título ou da descrição. Exige `censorship.review`; administradores legados permanecem autorizados temporariamente.
+ *     description: Permite manter ou retirar a censura do título ou da descrição. Exige `censorship.review`.
  *     tags: [Denúncias]
  *     security:
  *       - bearerAuth: []
@@ -177,7 +177,7 @@ router.get('/', optionalAuth, async (req, res, next) => {
  * /denuncia/moderacao:
  *   get:
  *     summary: Consulta a fila de moderação
- *     description: Exige `moderation.view`. Os textos originais censurados são incluídos somente com `censorship.review`. Administradores legados permanecem autorizados temporariamente.
+ *     description: Exige `moderation.view`. Os textos originais censurados são incluídos somente com `censorship.review`.
  *     tags: [Denúncias]
  *     security:
  *       - bearerAuth: []
@@ -254,7 +254,7 @@ router.get('/public/user/:userId', async (req, res, next) => {
  * /denuncia/user/{userId}:
  *   get:
  *     summary: Lista denúncias privadas de um usuário
- *     description: Acesso permitido ao próprio usuário ou a quem possui `moderation.view`. Administradores legados permanecem autorizados temporariamente.
+ *     description: Acesso permitido ao próprio usuário ou a quem possui `moderation.view`.
  *     tags: [Denúncias]
  *     security:
  *       - bearerAuth: []

@@ -13,7 +13,7 @@ describe('Autorização por permissão nas rotas', () => {
   let moderatorToken
   let viewerToken
   let auditorToken
-  let legacyAdminToken
+  let admOnlyToken
   let reportId
   let commentId
   let citizenUserId
@@ -86,9 +86,9 @@ describe('Autorização por permissão nas rotas', () => {
     const auditorUser = await User.findByPk(auditor.userId)
     await auditorUser.addRole(auditorRole)
 
-    const legacyAdmin = await registerAndLogin('admin-route', 'admin-route@example.com')
-    legacyAdminToken = legacyAdmin.token
-    await User.update({ adm: true }, { where: { id: legacyAdmin.userId } })
+    const admOnlyUser = await registerAndLogin('admin-route', 'admin-route@example.com')
+    admOnlyToken = admOnlyUser.token
+    await User.update({ adm: true }, { where: { id: admOnlyUser.userId } })
   })
 
   afterAll(async () => {
@@ -218,11 +218,12 @@ describe('Autorização por permissão nas rotas', () => {
     expect(response.body.resolucaoStatus).toBe('em_andamento')
   })
 
-  test('mantém administrador legado autorizado durante a transição', async () => {
+  test('não autoriza o campo adm sem a permissão exigida', async () => {
     const response = await request(app)
       .get('/denuncia/moderacao')
-      .set('Authorization', `Bearer ${legacyAdminToken}`)
+      .set('Authorization', `Bearer ${admOnlyToken}`)
 
-    expect(response.status).toBe(200)
+    expect(response.status).toBe(403)
+    expect(response.body.code).toBe('FORBIDDEN')
   })
 })
