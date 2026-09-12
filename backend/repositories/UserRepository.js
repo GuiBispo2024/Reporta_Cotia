@@ -1,4 +1,4 @@
-const {User, Denuncia, sequelize, Role, Permission} = require('../models/rel')
+const {User, Denuncia, sequelize, Role, Permission, UserRoleHistory} = require('../models/rel')
 const { Op } = require('sequelize')
 
 class UserRepository{
@@ -141,7 +141,7 @@ class UserRepository{
         })
     }
 
-    static async replaceRoles(userId, roleNames) {
+    static async replaceRoles(userId, roleNames, changedByUserId) {
         return sequelize.transaction(async transaction => {
             const user = await User.findByPk(userId, {
                 include: [{ model: Role, as: 'roles', through: { attributes: [] } }],
@@ -149,11 +149,32 @@ class UserRepository{
             })
             if (!user) return null
 
+            const changedByUser = await User.findByPk(changedByUserId, {
+                attributes: ['id', 'username'],
+                transaction
+            })
+            if (!changedByUser) {
+                throw new Error('Usuário responsável pela alteração de perfis não encontrado.')
+            }
+
             const roles = await Role.findAll({
                 where: { name: { [Op.in]: roleNames } },
                 transaction
             })
+            const previousRoles = (user.roles || []).map(role => role.name).sort()
+            const newRoles = roles.map(role => role.name).sort()
             await user.setRoles(roles, { transaction })
+
+            if (JSON.stringify(previousRoles) !== JSON.stringify(newRoles)) {
+                await UserRoleHistory.create({
+                    targetUserId: user.id,
+                    targetUsername: user.username,
+                    changedByUserId: changedByUser.id,
+                    changedByUsername: changedByUser.username,
+                    previousRoles,
+                    newRoles
+                }, { transaction })
+            }
             return user
         })
     }

@@ -1,4 +1,4 @@
-const { sequelize, User, Role, Permission } = require('../../models/rel')
+const { sequelize, User, Role, Permission, UserRoleHistory } = require('../../models/rel')
 
 describe('Modelos de controle de acesso', () => {
   beforeAll(async () => {
@@ -35,5 +35,19 @@ describe('Modelos de controle de acesso', () => {
 
     const permissions = await analyst.getPermissions()
     expect(permissions.map(item => item.key)).toContain('dashboard.full.view')
+  })
+
+  test('armazena a auditoria de alteração dos perfis', async () => {
+    const history = await UserRoleHistory.create({
+      targetUserId: 10,
+      targetUsername: 'cidadão',
+      changedByUserId: 20,
+      changedByUsername: 'administrador',
+      previousRoles: ['CITIZEN'],
+      newRoles: ['CITIZEN', 'MODERATOR']
+    })
+
+    expect(history.previousRoles).toEqual(['CITIZEN'])
+    expect(history.newRoles).toContain('MODERATOR')
   })
 })

@@ -128,7 +128,7 @@ class UserService {
       throw new AppError('Não é permitido remover o último administrador da plataforma.', 409, 'LAST_ADMIN_REQUIRED')
     }
 
-    await UserRepository.replaceRoles(targetUserId, normalizedRoles)
+    await UserRepository.replaceRoles(targetUserId, normalizedRoles, requesterId)
     const updatedUser = await UserRepository.findByIdWithAccess(targetUserId)
     const plain = updatedUser.get ? updatedUser.get({ plain: true }) : updatedUser
     const { roles, permissions } = extractUserAccess(plain)

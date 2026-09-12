@@ -11,6 +11,7 @@ const Role = require('./Reporta_Cotia_Tables/Role')
 const Permission = require('./Reporta_Cotia_Tables/Permission')
 const UserRole = require('./Reporta_Cotia_Tables/UserRole')
 const RolePermission = require('./Reporta_Cotia_Tables/RolePermission')
+const UserRoleHistory = require('./Reporta_Cotia_Tables/UserRoleHistory')
 
 //User <-> Denuncia
 User.hasMany(Denuncia,{
@@ -119,5 +120,5 @@ Permission.belongsToMany(Role, {
 module.exports = {
     sequelize, User, Denuncia, Comment, Like, Share,
     DenunciaHistorico, PasswordResetToken, PasswordResetHistorico,
-    Role, Permission, UserRole, RolePermission
+    Role, Permission, UserRole, RolePermission, UserRoleHistory
 }

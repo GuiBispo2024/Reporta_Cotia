@@ -1,6 +1,6 @@
 const request = require('supertest')
 const app = require('../../app')
-const { sequelize, User, Role, Permission } = require('../../models/rel')
+const { sequelize, User, Role, Permission, UserRoleHistory } = require('../../models/rel')
 
 async function registerAndLogin(username, email) {
   const registration = await request(app)
@@ -75,6 +75,32 @@ describe('Gerenciamento de perfis de acesso', () => {
     expect(response.status).toBe(200)
     expect(response.body.user.roles).toEqual(expect.arrayContaining(['CITIZEN', 'MODERATOR']))
     expect(response.body.user).not.toHaveProperty('adm')
+
+    const history = await UserRoleHistory.findOne({ where: { targetUserId: citizen.id } })
+    expect(history).toMatchObject({
+      targetUsername: 'role-citizen',
+      changedByUserId: admin.id,
+      changedByUsername: 'role-admin'
+    })
+    expect(history.previousRoles).toEqual(['CITIZEN'])
+    expect(history.newRoles).toEqual(['CITIZEN', 'MODERATOR'])
+  })
+
+  test('não duplica a auditoria quando os perfis permanecem iguais', async () => {
+    const historyCountBefore = await UserRoleHistory.count({
+      where: { targetUserId: citizen.id }
+    })
+
+    const response = await request(app)
+      .put(`/users/${citizen.id}/roles`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({ roles: ['MODERATOR', 'CITIZEN'] })
+
+    expect(response.status).toBe(200)
+    expect(response.body.user.roles).toEqual(expect.arrayContaining(['CITIZEN', 'MODERATOR']))
+    await expect(UserRoleHistory.count({
+      where: { targetUserId: citizen.id }
+    })).resolves.toBe(historyCountBefore)
   })
 
   test('atribui o perfil ADMIN sem depender de campo legado', async () => {
