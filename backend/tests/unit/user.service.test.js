@@ -87,6 +87,7 @@ describe('UserService (unit)', () => {
     expect(res.user).toMatchObject({ id: 10, username: 'u', email: 'e@e' });
     expect(res.user.roles).toEqual(['CITIZEN']);
     expect(res.user.permissions).toEqual(['denuncia.create']);
+    expect(res.user).not.toHaveProperty('adm');
     expect(res.user).not.toHaveProperty('password');
 
     spySign.mockRestore();
@@ -167,6 +168,7 @@ describe('UserService (unit)', () => {
     expect(result).toHaveProperty("token", "TOKEN_ATUALIZADO");
     expect(result.user.roles).toEqual(['CITIZEN']);
     expect(result.user.permissions).toEqual(['denuncia.create']);
+    expect(result.user).not.toHaveProperty('adm');
 
     spySign.mockRestore();
   });

@@ -30,8 +30,8 @@ const roleCatalog = [
 ]
 
 const users = [
-  { id: 1, username: 'Admin', email: 'admin@example.com', adm: true, roles: ['CITIZEN', 'ADMIN'], totalDenuncias: 2 },
-  { id: 2, username: 'Cidadão', email: 'cidadao@example.com', adm: false, roles: ['CITIZEN'], totalDenuncias: 1 }
+  { id: 1, username: 'Admin', email: 'admin@example.com', roles: ['CITIZEN', 'ADMIN'], totalDenuncias: 2 },
+  { id: 2, username: 'Cidadão', email: 'cidadao@example.com', roles: ['CITIZEN'], totalDenuncias: 1 }
 ]
 
 function renderPage(currentUser = { ...users[0], permissions: ['users.manage_roles'] }) {

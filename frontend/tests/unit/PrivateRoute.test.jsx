@@ -28,7 +28,7 @@ test('redireciona visitante para o login', () => {
 })
 
 test('explica a restrição para usuário autenticado sem permissão', () => {
-  renderRoute({ isAuthenticated: true, user: { adm: false, permissions: [] } })
+  renderRoute({ isAuthenticated: true, user: { permissions: [] } })
   expect(screen.getByRole('alert')).toHaveTextContent('Acesso não disponível')
   expect(screen.queryByText('Conteúdo protegido')).not.toBeInTheDocument()
 })
@@ -36,7 +36,7 @@ test('explica a restrição para usuário autenticado sem permissão', () => {
 test('renderiza a página para usuário com a permissão exigida', () => {
   renderRoute({
     isAuthenticated: true,
-    user: { adm: false, permissions: [PERMISSIONS.MODERATION_VIEW] }
+    user: { permissions: [PERMISSIONS.MODERATION_VIEW] }
   })
   expect(screen.getByText('Conteúdo protegido')).toBeInTheDocument()
 })

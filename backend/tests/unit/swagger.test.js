@@ -11,6 +11,7 @@ describe('Documentação OpenAPI', () => {
       .toBe('#/components/schemas/AuthenticatedUser')
     expect(swaggerSpec.paths['/users/update'].put.responses[200].content['application/json'].schema.properties.user.$ref)
       .toBe('#/components/schemas/AuthenticatedUser')
+    expect(swaggerSpec.components.schemas.AuthenticatedUser.properties.adm).toBeUndefined()
   })
 
   test('documenta a permissão da fila de moderação', () => {

@@ -75,7 +75,7 @@ describe('Gerenciamento de perfis de acesso', () => {
 
     expect(response.status).toBe(200)
     expect(response.body.user.roles).toEqual(expect.arrayContaining(['CITIZEN', 'MODERATOR']))
-    expect(response.body.user.adm).toBe(false)
+    expect(response.body.user).not.toHaveProperty('adm')
   })
 
   test('sincroniza o perfil ADMIN com o campo adm legado', async () => {
@@ -86,7 +86,7 @@ describe('Gerenciamento de perfis de acesso', () => {
 
     expect(response.status).toBe(200)
     expect(response.body.user.roles).toContain('ADMIN')
-    expect(response.body.user.adm).toBe(true)
+    expect(response.body.user).not.toHaveProperty('adm')
     expect((await User.findByPk(citizen.id)).adm).toBe(true)
   })
 
@@ -98,6 +98,7 @@ describe('Gerenciamento de perfis de acesso', () => {
     expect(response.status).toBe(200)
     const listedCitizen = response.body.data.find(user => user.id === citizen.id)
     expect(listedCitizen.roles).toEqual(expect.arrayContaining(['CITIZEN', 'ADMIN']))
+    expect(listedCitizen).not.toHaveProperty('adm')
   })
 
   test('não permite que administrador remova o próprio perfil ADMIN', async () => {

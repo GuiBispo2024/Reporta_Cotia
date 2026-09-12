@@ -90,7 +90,7 @@ export default function ListaDeUsuários() {
       setRolesError('')
       const result = await userService.updateRoles(selectedUser.id, selectedRoles)
       const updatedUser = result.user
-      setUsers(current => current.map(item => Number(item.id) === Number(updatedUser.id) ? { ...item, adm: updatedUser.adm, roles: updatedUser.roles } : item))
+      setUsers(current => current.map(item => Number(item.id) === Number(updatedUser.id) ? { ...item, roles: updatedUser.roles } : item))
       if (Number(updatedUser.id) === Number(user?.id)) setUser(current => ({ ...current, ...updatedUser }))
       setNotice(result.message || `Os perfis de ${selectedUser.username} foram atualizados.`)
       setSelectedUser(null)

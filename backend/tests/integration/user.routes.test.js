@@ -35,6 +35,7 @@ describe('Users routes (integration)', () => {
     console.log("Resposta:", res.statusCode, res.body);
     expect([200,201]).toContain(res.statusCode); // endpoint retorna 201 conforme router
     expect(res.body).toHaveProperty('user');
+    expect(res.body.user).not.toHaveProperty('adm');
   });
 
   // -------------------------------------------------------------------
@@ -54,6 +55,7 @@ describe('Users routes (integration)', () => {
       'denuncia.create',
       'dashboard.public.view'
     ]));
+    expect(loginRes.body.user).not.toHaveProperty('adm');
 
     tokenUsuario = loginRes.body.token;
     idUsuario = loginRes.body.user.id;
@@ -84,6 +86,7 @@ describe('Users routes (integration)', () => {
     expect(res.statusCode).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.length).toBeGreaterThan(0);
+    expect(res.body.every(user => !Object.prototype.hasOwnProperty.call(user, 'adm'))).toBe(true);
   });
 
   test("GET /users/me retorna o perfil padrão e suas permissões", async () => {
@@ -99,6 +102,7 @@ describe('Users routes (integration)', () => {
     ]))
     expect(res.body).not.toHaveProperty('password')
     expect(res.body).not.toHaveProperty('tokenVersion')
+    expect(res.body).not.toHaveProperty('adm')
   })
 
   // -------------------------------------------------------------------
@@ -112,6 +116,10 @@ describe('Users routes (integration)', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty("id", idUsuario);
+    expect(res.body.roles).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: 'CITIZEN' })
+    ]));
+    expect(res.body).not.toHaveProperty('adm');
   });
 
   // -------------------------------------------------------------------
@@ -136,6 +144,7 @@ describe('Users routes (integration)', () => {
       'denuncia.create',
       'dashboard.public.view'
     ]));
+    expect(res.body.user).not.toHaveProperty('adm');
   });
 
   test("DELETE /users/avatar remove a imagem do perfil no banco", async () => {
@@ -152,6 +161,7 @@ describe('Users routes (integration)', () => {
       'denuncia.create',
       'dashboard.public.view'
     ]));
+    expect(res.body.user).not.toHaveProperty('adm');
     const user = await User.findByPk(idUsuario);
     expect(user.avatarUrl).toBeNull();
   });

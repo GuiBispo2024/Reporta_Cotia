@@ -14,22 +14,22 @@ function runMiddleware(user, permission = 'moderation.view') {
 
 describe('requirePermission', () => {
   test('autoriza usuário que possui a permissão', () => {
-    const { next, res } = runMiddleware({ adm: false, permissions: ['moderation.view'] })
+    const { next, res } = runMiddleware({ permissions: ['moderation.view'] })
 
     expect(next).toHaveBeenCalledTimes(1)
     expect(res.status).not.toHaveBeenCalled()
   })
 
   test('bloqueia usuário sem a permissão', () => {
-    const { next, res } = runMiddleware({ adm: false, permissions: [] })
+    const { next, res } = runMiddleware({ permissions: [] })
 
     expect(next).not.toHaveBeenCalled()
     expect(res.status).toHaveBeenCalledWith(403)
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'FORBIDDEN' }))
   })
 
-  test('não autoriza somente pelo campo adm legado', () => {
-    const { next, res } = runMiddleware({ adm: true, permissions: [] })
+  test('não autoriza um perfil sem a permissão exigida', () => {
+    const { next, res } = runMiddleware({ roles: ['ADMIN'], permissions: [] })
 
     expect(next).not.toHaveBeenCalled()
     expect(res.status).toHaveBeenCalledWith(403)

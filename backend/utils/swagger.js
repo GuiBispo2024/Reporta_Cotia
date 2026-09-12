@@ -18,8 +18,7 @@ const options = {
                 '',
                 'O controle de acesso é realizado por perfis e permissões.',
                 'Novas contas recebem o perfil `CITIZEN`. As permissões atuais do usuário são consultadas',
-                'no banco a cada requisição autenticada, portanto alterações de acesso têm efeito imediato.',
-                'O campo legado `adm` permanece temporariamente nos dados, mas não concede acesso por conta própria.'
+                'no banco a cada requisição autenticada, portanto alterações de acesso têm efeito imediato.'
             ].join('\n')
         },
 
@@ -77,11 +76,6 @@ const options = {
                         id: { type: 'integer', example: 10 },
                         username: { type: 'string', example: 'maria.cotia' },
                         email: { type: 'string', format: 'email', example: 'maria@example.com' },
-                        adm: {
-                            type: 'boolean',
-                            deprecated: true,
-                            description: 'Campo temporário mantido para compatibilidade de dados; não concede permissões.'
-                        },
                         avatarUrl: { type: 'string', nullable: true, example: '/uploads/perfis/avatar.jpg' },
                         roles: {
                             type: 'array',

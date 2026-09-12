@@ -15,6 +15,7 @@ function serializeAuthenticatedUser(user) {
   const {
     password: _password,
     tokenVersion: _tokenVersion,
+    adm: _legacyAdm,
     roles: _roleAssociations,
     ...safeUser
   } = plain
@@ -43,7 +44,7 @@ class UserService {
       ROLE_DESCRIPTIONS
     )
     const plain = created.get ? created.get({ plain: true }) : created
-    const { password: _password, tokenVersion: _tokenVersion, ...safeUser } = plain
+    const { password: _password, tokenVersion: _tokenVersion, adm: _legacyAdm, ...safeUser } = plain
     return safeUser
   }
 
@@ -139,7 +140,6 @@ class UserService {
         id: plain.id,
         username: plain.username,
         email: plain.email,
-        adm: plain.adm,
         avatarUrl: plain.avatarUrl || null,
         roles,
         permissions
