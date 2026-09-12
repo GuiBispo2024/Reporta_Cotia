@@ -6,6 +6,7 @@ const { upload, storeImage } = require('../utils/upload')
 const PasswordResetService = require('../services/PasswordResetService')
 const requirePermission = require('../middlewares/requirePermission')
 const { PERMISSIONS } = require('../constants/accessControl')
+const { hasPermission } = require('../utils/authorization')
 
 /**
  * @swagger
@@ -114,6 +115,7 @@ router.post('/login', async (req, res) => {
  * /users:
  *   get:
  *     summary: Lista todos os usuários
+ *     description: A comunidade é acessível a usuários autenticados. O e-mail é incluído somente para quem possui `users.view`; administradores legados permanecem autorizados temporariamente.
  *     tags: [Usuários]
  *     security:
  *       - bearerAuth: []
@@ -125,7 +127,7 @@ router.post('/login', async (req, res) => {
  *       - { in: query, name: sort, schema: { type: string, enum: [username, contributions] } }
  *     responses:
  *       200:
- *         description: Lista de usuários
+ *         description: Lista de usuários com dados administrativos condicionados a `users.view`
  *       500:
  *         description: Erro interno do servidor
  *       401:
@@ -136,7 +138,7 @@ router.post('/login', async (req, res) => {
 router.get('/', auth, async (req, res) => {
   try {
     const users = req.query.withCounts === 'true'
-      ? await UserService.getAllWithDenunciaCount(req.user.adm, {
+      ? await UserService.getAllWithDenunciaCount(hasPermission(req.user, PERMISSIONS.USERS_VIEW), {
           page: Math.max(Number.parseInt(req.query.page || '1', 10), 1),
           limit: Math.min(Math.max(Number.parseInt(req.query.limit || '20', 10), 1), 50),
           search: req.query.search || '',
@@ -171,7 +173,7 @@ router.get('/denunciaCount', auth, async (req, res) => {
   try{
     const page = Math.max(Number.parseInt(req.query.page || '1', 10), 1)
     const limit = Math.min(Math.max(Number.parseInt(req.query.limit || '20', 10), 1), 50)
-    const resultado = await UserService.getAllWithDenunciaCount(req.user.adm, { page, limit, search: req.query.search || '', sort: req.query.sort || 'username' });
+    const resultado = await UserService.getAllWithDenunciaCount(hasPermission(req.user, PERMISSIONS.USERS_VIEW), { page, limit, search: req.query.search || '', sort: req.query.sort || 'username' });
     res.set('Deprecation-Notice', 'Use GET /users?withCounts=true.');
     res.status(200).json(resultado);
   }catch(error){

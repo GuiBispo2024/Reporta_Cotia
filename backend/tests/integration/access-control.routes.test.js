@@ -11,9 +11,12 @@ async function registerAndLogin(username, email) {
 describe('Autorização por permissão nas rotas', () => {
   let citizenToken
   let moderatorToken
+  let viewerToken
+  let auditorToken
   let legacyAdminToken
   let reportId
   let commentId
+  let citizenUserId
 
   beforeAll(async () => {
     await sequelize.sync({ force: true })
@@ -29,9 +32,24 @@ describe('Autorização por permissão nas rotas', () => {
       description: 'Analisa denúncias e revisa conteúdos.'
     })
     await moderatorRole.addPermissions(permissions)
+    const viewerRole = await Role.create({
+      name: 'QUEUE_VIEWER',
+      description: 'Consulta a fila sem alterar ou revisar conteúdo sensível.'
+    })
+    await viewerRole.addPermission(permissions.find(permission => permission.key === 'moderation.view'))
+    const readPermissions = await Permission.bulkCreate([
+      { key: 'audit.view', description: 'Consultar a trilha de auditoria.' },
+      { key: 'users.view', description: 'Consultar a listagem administrativa de usuários.' }
+    ])
+    const auditorRole = await Role.create({
+      name: 'READ_AUDITOR',
+      description: 'Consulta auditoria e dados administrativos sem moderar.'
+    })
+    await auditorRole.addPermissions(readPermissions)
 
     const citizen = await registerAndLogin('citizen-route', 'citizen-route@example.com')
     citizenToken = citizen.token
+    citizenUserId = citizen.userId
 
     const report = await Denuncia.create({
       titulo: 't****',
@@ -58,6 +76,16 @@ describe('Autorização por permissão nas rotas', () => {
     const moderatorUser = await User.findByPk(moderator.userId)
     await moderatorUser.addRole(moderatorRole)
 
+    const viewer = await registerAndLogin('viewer-route', 'viewer-route@example.com')
+    viewerToken = viewer.token
+    const viewerUser = await User.findByPk(viewer.userId)
+    await viewerUser.addRole(viewerRole)
+
+    const auditor = await registerAndLogin('auditor-route', 'auditor-route@example.com')
+    auditorToken = auditor.token
+    const auditorUser = await User.findByPk(auditor.userId)
+    await auditorUser.addRole(auditorRole)
+
     const legacyAdmin = await registerAndLogin('admin-route', 'admin-route@example.com')
     legacyAdminToken = legacyAdmin.token
     await User.update({ adm: true }, { where: { id: legacyAdmin.userId } })
@@ -82,6 +110,51 @@ describe('Autorização por permissão nas rotas', () => {
       .set('Authorization', `Bearer ${moderatorToken}`)
 
     expect(response.status).toBe(200)
+    expect(response.body[0].tituloOriginal).toBe('termo')
+  })
+
+  test('oculta conteúdo sensível de quem possui somente moderation.view', async () => {
+    const queueResponse = await request(app)
+      .get('/denuncia/moderacao')
+      .set('Authorization', `Bearer ${viewerToken}`)
+    const detailResponse = await request(app)
+      .get(`/denuncia/${reportId}`)
+      .set('Authorization', `Bearer ${viewerToken}`)
+    const historyResponse = await request(app)
+      .get(`/denuncia/${reportId}/historico`)
+      .set('Authorization', `Bearer ${viewerToken}`)
+
+    expect(queueResponse.status).toBe(200)
+    expect(queueResponse.body[0]).not.toHaveProperty('tituloOriginal')
+    expect(detailResponse.status).toBe(200)
+    expect(detailResponse.body).not.toHaveProperty('tituloOriginal')
+    expect(historyResponse.status).toBe(404)
+  })
+
+  test('permite que moderation.view consulte denúncias privadas de outro usuário', async () => {
+    const response = await request(app)
+      .get(`/denuncia/user/${citizenUserId}`)
+      .set('Authorization', `Bearer ${viewerToken}`)
+
+    expect(response.status).toBe(200)
+  })
+
+  test('autoriza histórico privado somente com audit.view', async () => {
+    const response = await request(app)
+      .get(`/denuncia/${reportId}/historico`)
+      .set('Authorization', `Bearer ${auditorToken}`)
+
+    expect(response.status).toBe(200)
+  })
+
+  test('expõe e-mail da comunidade somente com users.view', async () => {
+    const [citizenResponse, auditorResponse] = await Promise.all([
+      request(app).get('/users?withCounts=true').set('Authorization', `Bearer ${citizenToken}`),
+      request(app).get('/users?withCounts=true').set('Authorization', `Bearer ${auditorToken}`)
+    ])
+
+    expect(citizenResponse.body.data[0]).not.toHaveProperty('email')
+    expect(auditorResponse.body.data[0]).toHaveProperty('email')
   })
 
   test('bloqueia cidadão nas ações de moderação', async () => {

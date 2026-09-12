@@ -49,4 +49,11 @@ describe('Documentação OpenAPI', () => {
     expect(swaggerSpec.paths['/denuncia/{id}/resolucao'].patch.description).toContain('resolution.update')
     expect(swaggerSpec.paths['/denuncia/comentario/{id}/censura'].patch.description).toContain('censorship.review')
   })
+
+  test('documenta a proteção dos dados administrativos e sensíveis', () => {
+    expect(swaggerSpec.paths['/users'].get.description).toContain('users.view')
+    expect(swaggerSpec.paths['/denuncia/moderacao'].get.description).toContain('censorship.review')
+    expect(swaggerSpec.paths['/denuncia/{id}'].get.description).toContain('moderation.view')
+    expect(swaggerSpec.paths['/denuncia/{id}/historico'].get.description).toContain('audit.view')
+  })
 })

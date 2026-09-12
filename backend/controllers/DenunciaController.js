@@ -7,6 +7,7 @@ const AppError = require('../utils/AppError');
 const DenunciaService = require('../services/DenunciaService');
 const { upload, storeImage, deleteImage } = require('../utils/upload');
 const { PERMISSIONS } = require('../constants/accessControl');
+const { hasPermission } = require('../utils/authorization');
 
 function pagination(req) {
   const hasPagination = req.query.page !== undefined || req.query.limit !== undefined;
@@ -176,7 +177,7 @@ router.get('/', optionalAuth, async (req, res, next) => {
  * /denuncia/moderacao:
  *   get:
  *     summary: Consulta a fila de moderação
- *     description: Exige a permissão `moderation.view`. Administradores legados permanecem autorizados temporariamente.
+ *     description: Exige `moderation.view`. Os textos originais censurados são incluídos somente com `censorship.review`. Administradores legados permanecem autorizados temporariamente.
  *     tags: [Denúncias]
  *     security:
  *       - bearerAuth: []
@@ -201,7 +202,7 @@ router.get('/moderacao', auth, requirePermission(PERMISSIONS.MODERATION_VIEW), a
     const { hasPagination, page, limit } = pagination(req);
     const { status, categoria, resolucaoStatus } = req.query;
     if (status && !['pendente', 'aprovada', 'rejeitada'].includes(status)) throw new AppError('Status de moderação inválido.', 400, 'VALIDATION_ERROR');
-    const result = await DenunciaService.listarTodas({ status, categoria, resolucaoStatus, ...(hasPagination ? { page, limit } : {}) });
+    const result = await DenunciaService.listarTodas({ status, categoria, resolucaoStatus, ...(hasPagination ? { page, limit } : {}) }, req.user);
     res.status(200).json(result);
   } catch (error) { next(error); }
 });
@@ -253,7 +254,7 @@ router.get('/public/user/:userId', async (req, res, next) => {
  * /denuncia/user/{userId}:
  *   get:
  *     summary: Lista denúncias privadas de um usuário
- *     description: Acesso permitido ao próprio usuário ou a um administrador legado.
+ *     description: Acesso permitido ao próprio usuário ou a quem possui `moderation.view`. Administradores legados permanecem autorizados temporariamente.
  *     tags: [Denúncias]
  *     security:
  *       - bearerAuth: []
@@ -265,7 +266,7 @@ router.get('/public/user/:userId', async (req, res, next) => {
  */
 router.get('/user/:userId', auth, async (req, res, next) => {
   try {
-    if (!req.user.adm && Number(req.user.id) !== Number(req.params.userId)) {
+    if (!hasPermission(req.user, PERMISSIONS.MODERATION_VIEW) && Number(req.user.id) !== Number(req.params.userId)) {
       throw new AppError('Acesso negado.', 403, 'FORBIDDEN');
     }
     res.status(200).json(await DenunciaService.buscarPorUsuario(req.params.userId));
@@ -277,7 +278,7 @@ router.get('/user/:userId', auth, async (req, res, next) => {
  * /denuncia/{id}/historico:
  *   get:
  *     summary: Consulta o histórico de uma denúncia
- *     description: Denúncias públicas podem ser consultadas sem login; conteúdos privados seguem as regras de autor e administrador.
+ *     description: Denúncias públicas podem ser consultadas sem login. O histórico privado exige autoria ou `audit.view`.
  *     tags: [Denúncias]
  *     security: []
  *     parameters:
@@ -298,7 +299,7 @@ router.get('/:id/historico', optionalAuth, async (req, res, next) => {
  * /denuncia/{id}:
  *   get:
  *     summary: Consulta os detalhes de uma denúncia
- *     description: Denúncias aprovadas são públicas; denúncias não aprovadas exigem o autor ou administrador.
+ *     description: Denúncias aprovadas são públicas; denúncias não aprovadas exigem autoria ou `moderation.view`. Textos originais censurados exigem `censorship.review`.
  *     tags: [Denúncias]
  *     security: []
  *     parameters:
