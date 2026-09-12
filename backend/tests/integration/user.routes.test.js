@@ -177,8 +177,28 @@ describe('Users routes (integration)', () => {
   });
 
   // -------------------------------------------------------------------
-  test("DELETE /users/delete → deleta usuário autenticado", async () => {
+  test("DELETE /users/delete → protege o último administrador e permite excluir quando há outro", async () => {
     console.log("➡️ Teste: deletar usuário autenticado");
+
+    const adminRole = await Role.create({ name: 'ADMIN', description: 'Administrador' });
+    const currentUser = await User.findByPk(idUsuario);
+    await currentUser.addRole(adminRole);
+
+    const protectedResponse = await request(app)
+      .delete("/users/delete")
+      .set("Authorization", `Bearer ${tokenUsuario}`)
+      .send({ senhaAtual: 'novaSenha123' });
+
+    expect(protectedResponse.statusCode).toBe(409);
+    expect(protectedResponse.body.code).toBe('LAST_ADMIN_REQUIRED');
+    expect(protectedResponse.body.message).toContain('única conta administradora');
+    expect(await User.findByPk(idUsuario)).not.toBeNull();
+
+    const backupRegistration = await request(app)
+      .post('/users')
+      .send({ username: 'backupAdmin', email: 'backup-admin@example.com', password: '123456' });
+    const backupAdmin = await User.findByPk(backupRegistration.body.user.id);
+    await backupAdmin.addRole(adminRole);
 
     const res = await request(app)
       .delete("/users/delete")

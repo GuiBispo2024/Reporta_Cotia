@@ -235,11 +235,23 @@ class UserService {
 
   // Deletar
   static async delete(userIdToken, senhaAtual) {
-    const user = await UserRepository.findById(userIdToken)
-    if (!user) throw new Error('Usuário não encontrado.')
-    if (!senhaAtual || !(await bcrypt.compare(senhaAtual, user.password))) throw new Error('Senha atual incorreta.')
+    const user = await UserRepository.findByIdWithAccess(userIdToken)
+    if (!user) throw new AppError('Usuário não encontrado.', 404, 'USER_NOT_FOUND')
+    if (!senhaAtual || !(await bcrypt.compare(senhaAtual, user.password))) {
+      throw new AppError('A senha atual está incorreta. Revise-a antes de excluir sua conta.', 400, 'INVALID_CURRENT_PASSWORD')
+    }
+
+    const { roles } = extractUserAccess(user.get ? user.get({ plain: true }) : user)
+    if (roles.includes(ROLES.ADMIN) && await UserRepository.countUsersWithRole(ROLES.ADMIN) <= 1) {
+      throw new AppError(
+        'Esta é a única conta administradora. Promova outro usuário antes de excluir sua conta.',
+        409,
+        'LAST_ADMIN_REQUIRED'
+      )
+    }
+
     const rowsDel = await UserRepository.delete(userIdToken)
-    if (!rowsDel) throw new Error('Usuário não encontrado.')
+    if (!rowsDel) throw new AppError('Usuário não encontrado.', 404, 'USER_NOT_FOUND')
     return { message: 'Usuário excluído com sucesso' }
   }
 }

@@ -205,7 +205,11 @@ describe('UserService (unit)', () => {
     console.log("➡️ Iniciando teste: delete()");
 
     const password = await bcrypt.hash('123456', 10);
-    UserRepository.findById.mockResolvedValue({ id: 1, password });
+    UserRepository.findByIdWithAccess.mockResolvedValue({
+      id: 1,
+      password,
+      roles: [{ name: 'CITIZEN', permissions: [] }]
+    });
     UserRepository.delete.mockImplementation((id) => {
       console.log("🗑️ Chamado delete:", id);
       return Promise.resolve(true);
@@ -218,4 +222,20 @@ describe('UserService (unit)', () => {
     expect(UserRepository.delete).toHaveBeenCalledWith(1);
     expect(res).toEqual({ message: "Usuário excluído com sucesso" });
   });
+
+  test('delete: impede a exclusão do último administrador', async () => {
+    const password = await bcrypt.hash('123456', 10)
+    UserRepository.findByIdWithAccess.mockResolvedValue({
+      id: 1,
+      password,
+      roles: [{ name: 'ADMIN', permissions: [] }]
+    })
+    UserRepository.countUsersWithRole.mockResolvedValue(1)
+
+    await expect(UserService.delete(1, '123456')).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'LAST_ADMIN_REQUIRED'
+    })
+    expect(UserRepository.delete).not.toHaveBeenCalled()
+  })
 });

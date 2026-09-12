@@ -568,22 +568,35 @@ router.post('/logout', auth, async (req, res) => {
  *     tags: [Usuários]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [senhaAtual]
+ *             properties:
+ *               senhaAtual: { type: string, format: password, description: Confirmação da senha atual. }
  *     responses:
  *       200:
  *         description: Usuário excluído com sucesso
+ *       400:
+ *         description: Senha atual ausente ou incorreta
  *       401:
  *         description: Token inválido ou não fornecido
  *       404:
  *         description: Usuário não encontrado
+ *       409:
+ *         description: A única conta administradora não pode ser excluída
  */
 
 //Deleta um usuário
-router.delete('/delete',auth, async (req, res) => {
+router.delete('/delete', auth, async (req, res, next) => {
   try {
     const result = await UserService.delete(req.user.id, (req.body || {}).senhaAtual)
     res.status(200).json(result)
   } catch (error) {
-    res.status(404).json({ message: error.message })
+    next(error)
   }
 })
 

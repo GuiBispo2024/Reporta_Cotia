@@ -70,4 +70,11 @@ describe('Documentação OpenAPI', () => {
     expect(swaggerSpec.paths['/denuncia/{id}'].get.description).toContain('moderation.view')
     expect(swaggerSpec.paths['/denuncia/{id}/historico'].get.description).toContain('audit.view')
   })
+
+  test('documenta a proteção da exclusão da última conta administradora', () => {
+    const endpoint = swaggerSpec.paths['/users/delete'].delete
+
+    expect(endpoint.requestBody.content['application/json'].schema.required).toContain('senhaAtual')
+    expect(endpoint.responses[409].description).toContain('única conta administradora')
+  })
 })
