@@ -51,7 +51,7 @@ export default function EditarPerfil() {
       setLoading(true);
       setError('');
       const result = await userService.removeAvatar();
-      setUser(result.user);
+      setUser(currentUser => ({ ...currentUser, ...result.user }));
       setAvatarPreview('');
       setShowAvatarActions(false);
     } catch (err) {
@@ -69,9 +69,9 @@ export default function EditarPerfil() {
       if (profileResult.token) setToken(profileResult.token);
       if (avatar) {
         const avatarResult = await userService.updateAvatar(avatar);
-        updatedUser = avatarResult.user;
+        updatedUser = { ...updatedUser, ...avatarResult.user };
       }
-      setUser(updatedUser);
+      setUser(currentUser => ({ ...currentUser, ...updatedUser }));
       navigate("/perfil");
     } catch (err) {
       setError(friendlyError(err, "Não foi possível atualizar seu perfil. Seus dados foram mantidos; revise os campos e tente novamente."));

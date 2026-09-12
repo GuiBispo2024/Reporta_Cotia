@@ -7,6 +7,10 @@ describe('Documentação OpenAPI', () => {
     ])
     expect(swaggerSpec.paths['/users/me'].get.responses[200].content['application/json'].schema.$ref)
       .toBe('#/components/schemas/AuthenticatedUser')
+    expect(swaggerSpec.paths['/users/login'].post.responses[200].content['application/json'].schema.properties.user.$ref)
+      .toBe('#/components/schemas/AuthenticatedUser')
+    expect(swaggerSpec.paths['/users/update'].put.responses[200].content['application/json'].schema.properties.user.$ref)
+      .toBe('#/components/schemas/AuthenticatedUser')
   })
 
   test('documenta a permissão da fila de moderação', () => {

@@ -7,6 +7,26 @@ const SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'rep
 const { deleteImage } = require('../utils/upload')
 const AppError = require('../utils/AppError')
 
+function serializeAuthenticatedUser(user) {
+  if (!user) return null
+
+  const plain = user.get ? user.get({ plain: true }) : user
+  const { roles, permissions } = extractUserAccess(plain)
+  const {
+    password: _password,
+    tokenVersion: _tokenVersion,
+    roles: _roleAssociations,
+    ...safeUser
+  } = plain
+
+  return {
+    ...safeUser,
+    avatarUrl: safeUser.avatarUrl || null,
+    roles,
+    permissions
+  }
+}
+
 class UserService {
     
   // Cadastrar usuário
@@ -36,11 +56,12 @@ class UserService {
     if (!valid) throw new Error('Senha incorreta.')
 
     const token = jwt.sign({ id: user.id, adm: user.adm, v: user.tokenVersion || 0 }, SECRET, { expiresIn: '30m' })
+    const userWithAccess = await UserRepository.findByIdWithAccess(user.id)
 
     return {
       message: 'Login bem-sucedido',
       token,
-      user: { id: user.id, username: user.username, email: user.email, adm: user.adm, avatarUrl: user.avatarUrl || null }
+      user: serializeAuthenticatedUser(userWithAccess)
     }
   }
 
@@ -64,10 +85,7 @@ class UserService {
   static async getMe(id) {
     const user = await UserRepository.findByIdWithAccess(id)
     if (!user) throw new Error('Usuário não encontrado.')
-    const plain = user.get ? user.get({ plain: true }) : user
-    const { roles, permissions } = extractUserAccess(plain)
-    const { password, tokenVersion, roles: _roles, ...safeUser } = plain
-    return { ...safeUser, roles, permissions }
+    return serializeAuthenticatedUser(user)
   }
 
   static async getAvailableRoles() {
@@ -159,11 +177,7 @@ class UserService {
     if (!rowsUpdate) throw new Error("Usuário não encontrado.");
 
     // Busca usuário atualizado
-    const updatedUser = await UserRepository.findById(userIdToken);
-
-    // Remove password antes de mandar para o front
-    const plainUser = updatedUser.get ? updatedUser.get({ plain: true }) : updatedUser;
-    const { password, tokenVersion, ...userWithoutPassword } = plainUser;
+    const updatedUser = await UserRepository.findByIdWithAccess(userIdToken);
 
     // Gera novo token
     const token = jwt.sign(
@@ -174,7 +188,7 @@ class UserService {
 
     return { 
       message: "Usuário atualizado com sucesso", 
-      user: userWithoutPassword,
+      user: serializeAuthenticatedUser(updatedUser),
       token
     };
   }
@@ -184,10 +198,8 @@ class UserService {
     if (!user) throw new Error('Usuário não encontrado.')
     await UserRepository.update(userId, { avatarUrl })
     if (user.avatarUrl && user.avatarUrl !== avatarUrl) await deleteImage(user.avatarUrl).catch(() => {})
-    const updatedUser = await UserRepository.findById(userId)
-    const plain = updatedUser.get ? updatedUser.get({ plain: true }) : updatedUser
-    const { password, tokenVersion, ...safeUser } = plain
-    return { message: 'Foto de perfil atualizada com sucesso.', user: safeUser }
+    const updatedUser = await UserRepository.findByIdWithAccess(userId)
+    return { message: 'Foto de perfil atualizada com sucesso.', user: serializeAuthenticatedUser(updatedUser) }
   }
 
   static async removeAvatar(userId) {
@@ -195,10 +207,8 @@ class UserService {
     if (!user) throw new Error('Usuário não encontrado.')
     await UserRepository.update(userId, { avatarUrl: null })
     if (user.avatarUrl) await deleteImage(user.avatarUrl).catch(() => {})
-    const updatedUser = await UserRepository.findById(userId)
-    const plain = updatedUser.get ? updatedUser.get({ plain: true }) : updatedUser
-    const { password, tokenVersion, ...safeUser } = plain
-    return { message: 'Foto de perfil removida com sucesso.', user: safeUser }
+    const updatedUser = await UserRepository.findByIdWithAccess(userId)
+    return { message: 'Foto de perfil removida com sucesso.', user: serializeAuthenticatedUser(updatedUser) }
   }
 
   // Alterar perfil de administrador(apenas adm pode fazer)

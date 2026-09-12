@@ -47,6 +47,11 @@ describe('Users routes (integration)', () => {
     console.log("Resposta:", loginRes.statusCode, loginRes.body);
     expect(loginRes.statusCode).toBe(200);
     expect(loginRes.body).toHaveProperty('token');
+    expect(loginRes.body.user.roles).toContain('CITIZEN');
+    expect(loginRes.body.user.permissions).toEqual(expect.arrayContaining([
+      'denuncia.create',
+      'dashboard.public.view'
+    ]));
 
     tokenUsuario = loginRes.body.token;
     idUsuario = loginRes.body.user.id;
@@ -124,6 +129,11 @@ describe('Users routes (integration)', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.user).toHaveProperty("username", "updatedUser");
+    expect(res.body.user.roles).toContain('CITIZEN');
+    expect(res.body.user.permissions).toEqual(expect.arrayContaining([
+      'denuncia.create',
+      'dashboard.public.view'
+    ]));
   });
 
   test("DELETE /users/avatar remove a imagem do perfil no banco", async () => {
@@ -135,6 +145,11 @@ describe('Users routes (integration)', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.user.avatarUrl).toBeNull();
+    expect(res.body.user.roles).toContain('CITIZEN');
+    expect(res.body.user.permissions).toEqual(expect.arrayContaining([
+      'denuncia.create',
+      'dashboard.public.view'
+    ]));
     const user = await User.findByPk(idUsuario);
     expect(user.avatarUrl).toBeNull();
   });

@@ -62,6 +62,13 @@ describe('UserService (unit)', () => {
     const hashed = await bcrypt.hash('1234', 10);
     const mockUser = { id: 10, username: 'u', email: 'e@e', password: hashed, adm: false };
     UserRepository.findByEmail.mockResolvedValue(mockUser);
+    UserRepository.findByIdWithAccess.mockResolvedValue({
+      ...mockUser,
+      roles: [{
+        name: 'CITIZEN',
+        permissions: [{ key: 'denuncia.create' }]
+      }]
+    });
 
     const spySign = jest.spyOn(jwt, 'sign').mockReturnValue('TOKEN');
 
@@ -73,6 +80,9 @@ describe('UserService (unit)', () => {
     expect(UserRepository.findByEmail).toHaveBeenCalledWith('e@e');
     expect(res).toHaveProperty('token', 'TOKEN');
     expect(res.user).toMatchObject({ id: 10, username: 'u', email: 'e@e' });
+    expect(res.user.roles).toEqual(['CITIZEN']);
+    expect(res.user.permissions).toEqual(['denuncia.create']);
+    expect(res.user).not.toHaveProperty('password');
 
     spySign.mockRestore();
   });
@@ -121,6 +131,17 @@ describe('UserService (unit)', () => {
     });
 
     UserRepository.update.mockResolvedValue([1]); // sucesso
+    UserRepository.findByIdWithAccess.mockResolvedValue({
+      id: 1,
+      username: 'user',
+      email: 'e@e',
+      adm: false,
+      tokenVersion: 0,
+      roles: [{
+        name: 'CITIZEN',
+        permissions: [{ key: 'denuncia.create' }]
+      }]
+    });
     const spySign = jest.spyOn(jwt, "sign").mockReturnValue("TOKEN_ATUALIZADO");
 
     const result = await UserService.update(
@@ -134,6 +155,8 @@ describe('UserService (unit)', () => {
     expect(UserRepository.findById).toHaveBeenCalled();
     expect(UserRepository.update).toHaveBeenCalled();
     expect(result).toHaveProperty("token", "TOKEN_ATUALIZADO");
+    expect(result.user.roles).toEqual(['CITIZEN']);
+    expect(result.user.permissions).toEqual(['denuncia.create']);
 
     spySign.mockRestore();
   });

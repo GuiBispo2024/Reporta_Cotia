@@ -96,6 +96,15 @@ router.post('/', upload.single('avatar'), async(req,res, next)=>{
  *     responses:
  *       200:
  *         description: Login bem-sucedido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required: [message, token, user]
+ *               properties:
+ *                 message: { type: string, example: Login bem-sucedido }
+ *                 token: { type: string, description: Token JWT da sessão. }
+ *                 user: { $ref: '#/components/schemas/AuthenticatedUser' }
  *       401:
  *         description: Credenciais inválidas
  */
@@ -395,6 +404,14 @@ router.get('/:id', async (req, res) => {
  *     responses:
  *       200:
  *         description: Usuário atualizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message: { type: string }
+ *                 token: { type: string }
+ *                 user: { $ref: '#/components/schemas/AuthenticatedUser' }
  *       401:
  *         description: Token inválido ou não fornecido
  *       403:
@@ -430,7 +447,15 @@ router.put('/update', auth, async (req, res) => {
  *             properties:
  *               avatar: { type: string, format: binary, description: Imagem de até 5 MB. }
  *     responses:
- *       200: { description: Foto de perfil atualizada }
+ *       200:
+ *         description: Foto de perfil atualizada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message: { type: string }
+ *                 user: { $ref: '#/components/schemas/AuthenticatedUser' }
  *       400: { description: Arquivo ausente ou inválido }
  *       401: { description: Sessão ausente, expirada ou revogada }
  */
@@ -453,7 +478,15 @@ router.patch('/avatar', auth, upload.single('avatar'), async (req, res, next) =>
  *     security:
  *       - bearerAuth: []
  *     responses:
- *       200: { description: Foto de perfil removida }
+ *       200:
+ *         description: Foto de perfil removida
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message: { type: string }
+ *                 user: { $ref: '#/components/schemas/AuthenticatedUser' }
  *       401: { description: Sessão ausente, expirada ou revogada }
  */
 router.delete('/avatar', auth, async (req, res, next) => {
