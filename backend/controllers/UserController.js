@@ -244,6 +244,45 @@ router.get('/access/roles', auth, requirePermission(PERMISSIONS.USERS_MANAGE_ROL
 
 /**
  * @swagger
+ * /users/access/role-history:
+ *   get:
+ *     summary: Consulta o histórico de alterações de perfis
+ *     description: Requer `audit.view`. Retorna primeiro as alterações mais recentes e permite filtrar pelo usuário alterado ou pelo responsável.
+ *     tags: [Usuários]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+ *       - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+ *       - { in: query, name: targetUserId, schema: { type: integer, minimum: 1 }, description: Identificador do usuário que teve os perfis alterados. }
+ *       - { in: query, name: changedByUserId, schema: { type: integer, minimum: 1 }, description: Identificador do usuário responsável pela alteração. }
+ *     responses:
+ *       200:
+ *         description: Histórico paginado de alterações de perfis
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - { $ref: '#/components/schemas/Pagination' }
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items: { $ref: '#/components/schemas/UserRoleHistory' }
+ *       400: { description: Filtro de usuário inválido }
+ *       401: { description: Sessão ausente, expirada ou revogada }
+ *       403: { description: Requer a permissão `audit.view` }
+ */
+router.get('/access/role-history', auth, requirePermission(PERMISSIONS.AUDIT_VIEW), async (req, res, next) => {
+  try {
+    res.status(200).json(await UserService.getRoleHistory(req.query))
+  } catch (error) {
+    next(error)
+  }
+})
+
+/**
+ * @swagger
  * /users/{id}/roles:
  *   put:
  *     summary: Substitui os perfis de acesso de um usuário

@@ -90,6 +90,31 @@ const options = {
                         }
                     }
                 },
+                UserRoleHistory: {
+                    type: 'object',
+                    required: [
+                        'id', 'targetUserId', 'targetUsername', 'changedByUserId',
+                        'changedByUsername', 'previousRoles', 'newRoles', 'createdAt'
+                    ],
+                    properties: {
+                        id: { type: 'integer', example: 25 },
+                        targetUserId: { type: 'integer', example: 10 },
+                        targetUsername: { type: 'string', example: 'maria.cotia' },
+                        changedByUserId: { type: 'integer', example: 1 },
+                        changedByUsername: { type: 'string', example: 'administrador' },
+                        previousRoles: {
+                            type: 'array',
+                            items: { $ref: '#/components/schemas/AccessRole' },
+                            example: ['CITIZEN']
+                        },
+                        newRoles: {
+                            type: 'array',
+                            items: { $ref: '#/components/schemas/AccessRole' },
+                            example: ['CITIZEN', 'MODERATOR']
+                        },
+                        createdAt: { type: 'string', format: 'date-time' }
+                    }
+                },
                 Pagination: {
                     type: 'object',
                     properties: {

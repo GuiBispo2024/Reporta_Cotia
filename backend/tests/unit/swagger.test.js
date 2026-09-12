@@ -39,6 +39,7 @@ describe('Documentação OpenAPI', () => {
 
   test('documenta consulta e atualização administrativa de perfis', () => {
     const listRoles = swaggerSpec.paths['/users/access/roles'].get
+    const roleHistory = swaggerSpec.paths['/users/access/role-history'].get
     const updateRoles = swaggerSpec.paths['/users/{id}/roles'].put
 
     expect(listRoles.security).toEqual([{ bearerAuth: [] }])
@@ -46,6 +47,10 @@ describe('Documentação OpenAPI', () => {
     expect(updateRoles.security).toEqual([{ bearerAuth: [] }])
     expect(updateRoles.requestBody.content['application/json'].schema.required).toContain('roles')
     expect(updateRoles.responses[409]).toBeDefined()
+    expect(roleHistory.description).toContain('audit.view')
+    expect(roleHistory.security).toEqual([{ bearerAuth: [] }])
+    expect(roleHistory.responses[200].content['application/json'].schema.allOf[1].properties.data.items.$ref)
+      .toBe('#/components/schemas/UserRoleHistory')
     expect(swaggerSpec.paths['/users/{id}/adm']).toBeUndefined()
   })
 

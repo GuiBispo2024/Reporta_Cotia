@@ -141,6 +141,31 @@ class UserRepository{
         })
     }
 
+    static async findRoleHistory({ page = 1, limit = 20, targetUserId, changedByUserId } = {}) {
+        const where = {}
+        if (targetUserId) where.targetUserId = targetUserId
+        if (changedByUserId) where.changedByUserId = changedByUserId
+
+        const { rows, count } = await UserRoleHistory.findAndCountAll({
+            where,
+            attributes: [
+                'id', 'targetUserId', 'targetUsername', 'changedByUserId',
+                'changedByUsername', 'previousRoles', 'newRoles', 'createdAt'
+            ],
+            order: [['createdAt', 'DESC'], ['id', 'DESC']],
+            limit,
+            offset: (page - 1) * limit
+        })
+
+        return {
+            data: rows,
+            total: count,
+            page,
+            limit,
+            totalPages: Math.ceil(count / limit)
+        }
+    }
+
     static async replaceRoles(userId, roleNames, changedByUserId) {
         return sequelize.transaction(async transaction => {
             const user = await User.findByPk(userId, {

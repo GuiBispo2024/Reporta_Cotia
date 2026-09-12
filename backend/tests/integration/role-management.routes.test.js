@@ -23,6 +23,10 @@ describe('Gerenciamento de perfis de acesso', () => {
       key: 'users.manage_roles',
       description: 'Gerenciar perfis de acesso dos usuários.'
     })
+    const viewAudit = await Permission.create({
+      key: 'audit.view',
+      description: 'Consultar a trilha de auditoria.'
+    })
     await Permission.create({
       key: 'moderation.view',
       description: 'Visualizar a fila de moderação.'
@@ -31,7 +35,7 @@ describe('Gerenciamento de perfis de acesso', () => {
     const adminRole = await Role.create({ name: 'ADMIN', description: 'Administrador' })
     await Role.create({ name: 'MODERATOR', description: 'Moderador' })
     await Role.create({ name: 'ANALYST', description: 'Analista' })
-    await adminRole.addPermission(manageRoles)
+    await adminRole.addPermissions([manageRoles, viewAudit])
 
     admin = await registerAndLogin('role-admin', 'role-admin@example.com')
     citizen = await registerAndLogin('role-citizen', 'role-citizen@example.com')
@@ -103,6 +107,15 @@ describe('Gerenciamento de perfis de acesso', () => {
     })).resolves.toBe(historyCountBefore)
   })
 
+  test('bloqueia consulta do histórico sem audit.view', async () => {
+    const response = await request(app)
+      .get('/users/access/role-history')
+      .set('Authorization', `Bearer ${citizen.token}`)
+
+    expect(response.status).toBe(403)
+    expect(response.body.code).toBe('FORBIDDEN')
+  })
+
   test('atribui o perfil ADMIN sem depender de campo legado', async () => {
     const response = await request(app)
       .put(`/users/${citizen.id}/roles`)
@@ -117,6 +130,32 @@ describe('Gerenciamento de perfis de acesso', () => {
     })
     expect(updatedUser.roles.map(role => role.name)).toContain('ADMIN')
     expect(updatedUser.toJSON()).not.toHaveProperty('adm')
+  })
+
+  test('consulta o histórico paginado e filtrado pelo usuário alterado', async () => {
+    const response = await request(app)
+      .get(`/users/access/role-history?page=1&limit=1&targetUserId=${citizen.id}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+
+    expect(response.status).toBe(200)
+    expect(response.body).toMatchObject({ total: 2, page: 1, limit: 1, totalPages: 2 })
+    expect(response.body.data).toHaveLength(1)
+    expect(response.body.data[0]).toMatchObject({
+      targetUserId: citizen.id,
+      changedByUserId: admin.id,
+      previousRoles: ['CITIZEN', 'MODERATOR'],
+      newRoles: ['ADMIN', 'CITIZEN']
+    })
+    expect(response.body.data[0]).not.toHaveProperty('updatedAt')
+  })
+
+  test('rejeita filtro inválido no histórico de perfis', async () => {
+    const response = await request(app)
+      .get('/users/access/role-history?changedByUserId=invalido')
+      .set('Authorization', `Bearer ${admin.token}`)
+
+    expect(response.status).toBe(400)
+    expect(response.body.code).toBe('INVALID_USER_FILTER')
   })
 
   test('inclui os perfis atuais na listagem administrativa', async () => {
