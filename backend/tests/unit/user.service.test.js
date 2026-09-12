@@ -60,7 +60,7 @@ describe('UserService (unit)', () => {
   test('login: retorna token e dados do usuário quando senha válida', async () => {
     console.log("➡️ Iniciando teste: login()");
     const hashed = await bcrypt.hash('1234', 10);
-    const mockUser = { id: 10, username: 'u', email: 'e@e', password: hashed, adm: false };
+    const mockUser = { id: 10, username: 'u', email: 'e@e', password: hashed };
     UserRepository.findByEmail.mockResolvedValue(mockUser);
     UserRepository.findByIdWithAccess.mockResolvedValue({
       ...mockUser,
@@ -141,7 +141,6 @@ describe('UserService (unit)', () => {
       id: 1,
       username: 'user',
       email: 'e@e',
-      adm: false,
       tokenVersion: 0,
       roles: [{
         name: 'CITIZEN',

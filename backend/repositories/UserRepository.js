@@ -154,7 +154,6 @@ class UserRepository{
                 transaction
             })
             await user.setRoles(roles, { transaction })
-            await user.update({ adm: roleNames.includes('ADMIN') }, { transaction })
             return user
         })
     }

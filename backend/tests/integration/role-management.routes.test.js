@@ -38,7 +38,6 @@ describe('Gerenciamento de perfis de acesso', () => {
 
     const adminUser = await User.findByPk(admin.id)
     await adminUser.addRole(adminRole)
-    await adminUser.update({ adm: true })
   })
 
   afterAll(async () => {
@@ -78,7 +77,7 @@ describe('Gerenciamento de perfis de acesso', () => {
     expect(response.body.user).not.toHaveProperty('adm')
   })
 
-  test('sincroniza o perfil ADMIN com o campo adm legado', async () => {
+  test('atribui o perfil ADMIN sem depender de campo legado', async () => {
     const response = await request(app)
       .put(`/users/${citizen.id}/roles`)
       .set('Authorization', `Bearer ${admin.token}`)
@@ -87,7 +86,11 @@ describe('Gerenciamento de perfis de acesso', () => {
     expect(response.status).toBe(200)
     expect(response.body.user.roles).toContain('ADMIN')
     expect(response.body.user).not.toHaveProperty('adm')
-    expect((await User.findByPk(citizen.id)).adm).toBe(true)
+    const updatedUser = await User.findByPk(citizen.id, {
+      include: [{ model: Role, as: 'roles', through: { attributes: [] } }]
+    })
+    expect(updatedUser.roles.map(role => role.name)).toContain('ADMIN')
+    expect(updatedUser.toJSON()).not.toHaveProperty('adm')
   })
 
   test('inclui os perfis atuais na listagem administrativa', async () => {

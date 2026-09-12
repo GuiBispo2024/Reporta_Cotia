@@ -88,7 +88,6 @@ describe('Autorização por permissão nas rotas', () => {
     await auditorUser.addRole(auditorRole)
 
     const admOnlyUser = await registerAndLogin('admin-route', 'admin-route@example.com')
-    await User.update({ adm: true }, { where: { id: admOnlyUser.userId } })
     admOnlyToken = jwt.sign(
       { id: admOnlyUser.userId, adm: true, v: 0 },
       process.env.JWT_SECRET || 'reporta-cotia-test-secret',
@@ -223,7 +222,7 @@ describe('Autorização por permissão nas rotas', () => {
     expect(response.body.resolucaoStatus).toBe('em_andamento')
   })
 
-  test('não autoriza o campo adm sem a permissão exigida', async () => {
+  test('não autoriza a claim adm de um token legado sem a permissão exigida', async () => {
     const response = await request(app)
       .get('/denuncia/moderacao')
       .set('Authorization', `Bearer ${admOnlyToken}`)

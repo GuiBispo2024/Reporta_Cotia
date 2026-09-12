@@ -88,7 +88,7 @@ Share.belongsTo(Denuncia,{
     foreignKey: 'denunciaId'
 })
 
-// Users can have multiple roles. User.adm remains only for temporary data compatibility.
+// Users can have multiple roles and receive permissions through those roles.
 // during the gradual migration to permission-based access control.
 User.belongsToMany(Role, {
     through: UserRole,
