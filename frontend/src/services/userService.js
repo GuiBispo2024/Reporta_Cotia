@@ -38,8 +38,13 @@ const userService = {
     return res.data
   },
 
-  async updateAdm(id, data) {
-    const res = await api.put(`/users/${id}/adm`, data)
+  async getAvailableRoles() {
+    const res = await api.get('/users/access/roles')
+    return res.data
+  },
+
+  async updateRoles(id, roles) {
+    const res = await api.put(`/users/${id}/roles`, { roles })
     return res.data
   }
 }
