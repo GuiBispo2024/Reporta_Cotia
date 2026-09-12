@@ -32,6 +32,7 @@ export default function ListaDeUsuários() {
   const [savingRoles, setSavingRoles] = useState(false)
 
   const canManageRoles = hasPermission(user, PERMISSIONS.USERS_MANAGE_ROLES)
+  const canViewAudit = hasPermission(user, PERMISSIONS.AUDIT_VIEW)
 
   const carregar = useCallback(async () => {
     try {
@@ -105,7 +106,10 @@ export default function ListaDeUsuários() {
     <main className="container py-4 flex-grow-1">
       <header className="rc-section-header">
         <div><span className="rc-eyebrow">COMUNIDADE</span><h1>Usuários do Reporta Cotia</h1><p>Conheça quem participa e quantas denúncias aprovadas cada pessoa publicou.</p></div>
-        <div className="rc-users-total"><strong>{totalUsers}</strong><span>participantes</span></div>
+        <div className="rc-section-header-actions">
+          {canViewAudit && <button type="button" className="btn rc-audit-link" onClick={() => navigate('/administracao/historico-perfis')}><i className="bi bi-clock-history" /> Histórico de perfis</button>}
+          <div className="rc-users-total"><strong>{totalUsers}</strong><span>participantes</span></div>
+        </div>
       </header>
 
       {notice && <div className="alert alert-success rc-users-message" role="status"><i className="bi bi-check-circle" />{notice}<button type="button" aria-label="Fechar mensagem" onClick={() => setNotice('')}><i className="bi bi-x" /></button></div>}

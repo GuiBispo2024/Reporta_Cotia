@@ -43,6 +43,11 @@ const userService = {
     return res.data
   },
 
+  async getRoleHistory(params = {}) {
+    const res = await api.get('/users/access/role-history', { params })
+    return res.data
+  },
+
   async updateRoles(id, roles) {
     const res = await api.put(`/users/${id}/roles`, { roles })
     return res.data

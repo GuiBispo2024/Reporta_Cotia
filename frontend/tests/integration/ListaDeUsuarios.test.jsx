@@ -88,3 +88,10 @@ test('mantém bloqueados os perfis básicos e o ADMIN da própria conta', async 
   expect(within(dialog).getByRole('checkbox', { name: /administrador/i })).toBeDisabled()
   expect(within(dialog).getByText(/sua administração está protegida/i)).toBeInTheDocument()
 })
+
+test('oferece acesso ao histórico para quem possui audit.view', async () => {
+  renderPage({ ...users[0], permissions: ['users.manage_roles', 'audit.view'] })
+
+  fireEvent.click(await screen.findByRole('button', { name: /histórico de perfis/i }))
+  expect(mockNavigate).toHaveBeenCalledWith('/administracao/historico-perfis')
+})

@@ -15,6 +15,7 @@ import ListaDeUsuários from "../pages/ListaDeUsuários.jsx";
 import PrivateRoute from "./PrivateRoute.jsx";
 import PerfilPublico from '../pages/PerfilPublico.jsx';
 import HistoricoDenuncia from '../pages/HistoricoDenuncia.jsx';
+import HistoricoPerfis from '../pages/HistoricoPerfis.jsx';
 import EsqueciSenha from '../pages/EsqueciSenha.jsx';
 import RedefinirSenha from '../pages/RedefinirSenha.jsx';
 import { PERMISSIONS } from '../utils/accessControl';
@@ -38,6 +39,7 @@ function AppRoutes() {
                 <Route path="/editar-denuncia/:id" element={<PrivateRoute><EditarDenuncia/></PrivateRoute>}/>
                 <Route path="/nova-denuncia" element={<PrivateRoute><NovaDenuncia/></PrivateRoute>}/>
                 <Route path="/lista-de-usuarios" element={<PrivateRoute><ListaDeUsuários/></PrivateRoute>}/>
+                <Route path="/administracao/historico-perfis" element={<PrivateRoute permission={PERMISSIONS.AUDIT_VIEW}><HistoricoPerfis/></PrivateRoute>}/>
                 <Route path="/perfil" element={<PrivateRoute><Perfil/></PrivateRoute>}/>
                 <Route path="/editar-perfil" element={<PrivateRoute><EditarPerfil /></PrivateRoute>} />
             </Routes>
