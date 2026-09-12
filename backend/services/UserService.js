@@ -211,28 +211,6 @@ class UserService {
     return { message: 'Foto de perfil removida com sucesso.', user: serializeAuthenticatedUser(updatedUser) }
   }
 
-  // Alterar perfil de administrador(apenas adm pode fazer)
-  static async updateAdm(targetUserId, admStatus, requesterAdm, requesterId) {
-    if (!requesterAdm) {
-      throw new Error('Apenas administradores podem alterar permissões.')
-    }
-    if (Number(targetUserId) === Number(requesterId)) {
-      throw new Error('Você não pode alterar a permissão da própria conta.')
-    }
-    const targetUser = await UserRepository.findById(targetUserId)
-    if (!targetUser) {
-      throw new Error('Usuário alvo não encontrado.')
-    }
-    //checar se é o último admin
-    if (admStatus === false) {
-    const adminsCount = await UserRepository.countAdmins()
-    if (adminsCount <= 1 && targetUser.adm) 
-      throw new Error('Não é permitido remover a última conta de administrador.')
-    }
-    await UserRepository.updateAdm(targetUserId, admStatus)
-    return { message: `Permissão de administrador ${admStatus ? 'concedida' : 'removida'} com sucesso.` }
-  }
-
   // Logout (invalidação simbólica)
   static async logout(userId) {
     const user = await UserRepository.findById(userId)

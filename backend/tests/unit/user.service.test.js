@@ -190,64 +190,6 @@ describe('UserService (unit)', () => {
     console.log("⚠️ Erro corretamente identificado: usuário não existe");
   });
 
-  test('updateAdm: altera permissão para admin com sucesso', async () => {
-    console.log("➡️ Iniciando teste: updateAdm() — conceder admin");
-
-    UserRepository.findById.mockResolvedValue({ id: 2, adm: false });
-    UserRepository.updateAdm.mockResolvedValue(true);
-
-    const result = await UserService.updateAdm(2, true, true);
-
-    console.log("📦 Chamado updateAdm para id 2 → ADM = true");
-    console.log("✅ Mensagem:", result.message);
-
-    expect(result).toHaveProperty(
-      "message",
-      "Permissão de administrador concedida com sucesso."
-    );
-  });
-
-  test('updateAdm: erro se quem solicita não é admin', async () => {
-    console.log("➡️ Iniciando teste: updateAdm() — usuário comum tentando alterar permissões");
-
-    await expect(
-      UserService.updateAdm(2, true, false)
-    ).rejects.toThrow("Apenas administradores podem alterar permissões.");
-
-    console.log("⚠️ Erro capturado: usuário sem permissão tentou alterar ADM");
-  });
-
-  test('updateAdm: administrador não pode alterar a própria permissão', async () => {
-    await expect(
-      UserService.updateAdm(1, false, true, 1)
-    ).rejects.toThrow('Você não pode alterar a permissão da própria conta.');
-  });
-
-  test('updateAdm: impede remover o último administrador', async () => {
-    console.log("➡️ Iniciando teste: updateAdm() — última conta ADM");
-
-    UserRepository.findById.mockResolvedValue({ id: 1, adm: true });
-    UserRepository.countAdmins.mockResolvedValue(1);
-
-    await expect(
-      UserService.updateAdm(1, false, true)
-    ).rejects.toThrow("Não é permitido remover a última conta de administrador.");
-
-    console.log("⚠️ Proteção ativada: último admin não pode ser removido");
-  });
-
-  test('updateAdm: erro se usuário alvo não existe', async () => {
-    console.log("➡️ Iniciando teste: updateAdm() — alvo inexistente");
-
-    UserRepository.findById.mockResolvedValue(null);
-
-    await expect(
-      UserService.updateAdm(999, true, true)
-    ).rejects.toThrow("Usuário alvo não encontrado.");
-
-    console.log("⚠️ Erro capturado: usuário alvo não existe");
-  });
-
   test('delete: exclui usuário corretamente', async () => {
     console.log("➡️ Iniciando teste: delete()");
 

@@ -499,52 +499,6 @@ router.delete('/avatar', auth, async (req, res, next) => {
 
 /**
  * @swagger
- * /users/{id}/adm:
- *   put:
- *     summary: Altera a permissão (adm) de um usuário — apenas administradores
- *     deprecated: true
- *     description: Endpoint legado mantido durante a migração para perfis. Não permite autodespromoção nem remoção do último administrador.
- *     tags: [Usuários]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: integer
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               adm:
- *                 type: boolean
- *                 example: true
- *     responses:
- *       200:
- *         description: Permissão alterada com sucesso
- *       403:
- *         description: Solicitante sem acesso, autodespromoção ou tentativa de remover o último administrador
- *       404:
- *         description: Usuário não encontrado
- */
-
-//Altera perfil de usuário para adm(apenas adm pode fazer)
-router.put('/:id/adm', auth, async (req, res) => {
-  try {
-    const { adm } = req.body
-    const result = await UserService.updateAdm(req.params.id, adm, req.user.adm, req.user.id)
-    res.status(200).json(result)
-  } catch (error) {
-    res.status(403).json({ message: error.message })
-  }
-})
-
-/**
- * @swagger
  * /users/logout:
  *   post:
  *     summary: Faz logout do usuário autenticado

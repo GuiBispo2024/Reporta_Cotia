@@ -45,6 +45,7 @@ describe('Documentação OpenAPI', () => {
     expect(updateRoles.security).toEqual([{ bearerAuth: [] }])
     expect(updateRoles.requestBody.content['application/json'].schema.required).toContain('roles')
     expect(updateRoles.responses[409]).toBeDefined()
+    expect(swaggerSpec.paths['/users/{id}/adm']).toBeUndefined()
   })
 
   test('documenta as permissões específicas das ações de moderação', () => {

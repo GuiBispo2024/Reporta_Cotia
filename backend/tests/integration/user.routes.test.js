@@ -155,17 +155,13 @@ describe('Users routes (integration)', () => {
   });
 
   // -------------------------------------------------------------------
-  test("PUT /users/:id/adm → não permite sem ser ADM (403)", async () => {
-    console.log("➡️ Teste: tentativa de virar ADM sem permissão");
-
+  test("PUT /users/:id/adm → endpoint legado não está mais disponível", async () => {
     const res = await request(app)
       .put(`/users/${idUsuario}/adm`)
       .set("Authorization", `Bearer ${tokenUsuario}`)
       .send({ adm: true });
 
-    console.log("Resposta:", res.statusCode, res.body);
-
-    expect(res.statusCode).toBe(403);
+    expect(res.statusCode).toBe(404);
   });
 
   // -------------------------------------------------------------------
