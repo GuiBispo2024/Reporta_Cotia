@@ -25,8 +25,20 @@ const authService = {
   },
 
   getUser() {
-    const user = localStorage.getItem("user")
-    return user ? JSON.parse(user) : null
+    const storedUser = localStorage.getItem("user")
+    if (!storedUser) return null
+
+    try {
+      const user = JSON.parse(storedUser)
+      if (!user || typeof user !== "object" || Array.isArray(user)) {
+        localStorage.removeItem("user")
+        return null
+      }
+      return user
+    } catch {
+      localStorage.removeItem("user")
+      return null
+    }
   },
 
   getToken() {

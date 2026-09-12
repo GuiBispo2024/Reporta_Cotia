@@ -1,7 +1,8 @@
 const request = require('supertest');
+const jwt = require('jsonwebtoken');
 const app = require('../../app'); // ajuste para o arquivo que exporta express app
 const db = require('../../models/db/db'); // inicializar/limpar DB (opcional)
-const { User } = require('../../models/rel');
+const { User, Role, Permission } = require('../../models/rel');
 
 let tokenUsuario;
 let idUsuario;
@@ -10,6 +11,15 @@ describe('Users routes (integration)', () => {
   beforeAll(async () => {
     // opcional: conectar DB de teste, rodar migrations ou configurar sqlite in-memory
     await db.sequelize.sync({ force: true });
+    const citizen = await Role.create({
+      name: 'CITIZEN',
+      description: 'Acessa os recursos destinados aos cidadãos.'
+    });
+    const permissions = await Permission.bulkCreate([
+      { key: 'denuncia.create', description: 'Criar denúncias.' },
+      { key: 'dashboard.public.view', description: 'Consultar indicadores públicos.' }
+    ]);
+    await citizen.setPermissions(permissions);
   });
 
   afterAll(async () => {
@@ -25,6 +35,7 @@ describe('Users routes (integration)', () => {
     console.log("Resposta:", res.statusCode, res.body);
     expect([200,201]).toContain(res.statusCode); // endpoint retorna 201 conforme router
     expect(res.body).toHaveProperty('user');
+    expect(res.body.user).not.toHaveProperty('adm');
   });
 
   // -------------------------------------------------------------------
@@ -38,6 +49,13 @@ describe('Users routes (integration)', () => {
     console.log("Resposta:", loginRes.statusCode, loginRes.body);
     expect(loginRes.statusCode).toBe(200);
     expect(loginRes.body).toHaveProperty('token');
+    expect(jwt.decode(loginRes.body.token)).not.toHaveProperty('adm');
+    expect(loginRes.body.user.roles).toContain('CITIZEN');
+    expect(loginRes.body.user.permissions).toEqual(expect.arrayContaining([
+      'denuncia.create',
+      'dashboard.public.view'
+    ]));
+    expect(loginRes.body.user).not.toHaveProperty('adm');
 
     tokenUsuario = loginRes.body.token;
     idUsuario = loginRes.body.user.id;
@@ -68,7 +86,24 @@ describe('Users routes (integration)', () => {
     expect(res.statusCode).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.length).toBeGreaterThan(0);
+    expect(res.body.every(user => !Object.prototype.hasOwnProperty.call(user, 'adm'))).toBe(true);
   });
+
+  test("GET /users/me retorna o perfil padrão e suas permissões", async () => {
+    const res = await request(app)
+      .get('/users/me')
+      .set('Authorization', `Bearer ${tokenUsuario}`)
+
+    expect(res.statusCode).toBe(200)
+    expect(res.body.roles).toContain('CITIZEN')
+    expect(res.body.permissions).toEqual(expect.arrayContaining([
+      'denuncia.create',
+      'dashboard.public.view'
+    ]))
+    expect(res.body).not.toHaveProperty('password')
+    expect(res.body).not.toHaveProperty('tokenVersion')
+    expect(res.body).not.toHaveProperty('adm')
+  })
 
   // -------------------------------------------------------------------
   test("GET /users/:id → retorna usuário específico", async () => {
@@ -81,6 +116,10 @@ describe('Users routes (integration)', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty("id", idUsuario);
+    expect(res.body.roles).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: 'CITIZEN' })
+    ]));
+    expect(res.body).not.toHaveProperty('adm');
   });
 
   // -------------------------------------------------------------------
@@ -100,6 +139,12 @@ describe('Users routes (integration)', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.user).toHaveProperty("username", "updatedUser");
+    expect(res.body.user.roles).toContain('CITIZEN');
+    expect(res.body.user.permissions).toEqual(expect.arrayContaining([
+      'denuncia.create',
+      'dashboard.public.view'
+    ]));
+    expect(res.body.user).not.toHaveProperty('adm');
   });
 
   test("DELETE /users/avatar remove a imagem do perfil no banco", async () => {
@@ -111,27 +156,49 @@ describe('Users routes (integration)', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.user.avatarUrl).toBeNull();
+    expect(res.body.user.roles).toContain('CITIZEN');
+    expect(res.body.user.permissions).toEqual(expect.arrayContaining([
+      'denuncia.create',
+      'dashboard.public.view'
+    ]));
+    expect(res.body.user).not.toHaveProperty('adm');
     const user = await User.findByPk(idUsuario);
     expect(user.avatarUrl).toBeNull();
   });
 
   // -------------------------------------------------------------------
-  test("PUT /users/:id/adm → não permite sem ser ADM (403)", async () => {
-    console.log("➡️ Teste: tentativa de virar ADM sem permissão");
-
+  test("PUT /users/:id/adm → endpoint legado não está mais disponível", async () => {
     const res = await request(app)
       .put(`/users/${idUsuario}/adm`)
       .set("Authorization", `Bearer ${tokenUsuario}`)
       .send({ adm: true });
 
-    console.log("Resposta:", res.statusCode, res.body);
-
-    expect(res.statusCode).toBe(403);
+    expect(res.statusCode).toBe(404);
   });
 
   // -------------------------------------------------------------------
-  test("DELETE /users/delete → deleta usuário autenticado", async () => {
+  test("DELETE /users/delete → protege o último administrador e permite excluir quando há outro", async () => {
     console.log("➡️ Teste: deletar usuário autenticado");
+
+    const adminRole = await Role.create({ name: 'ADMIN', description: 'Administrador' });
+    const currentUser = await User.findByPk(idUsuario);
+    await currentUser.addRole(adminRole);
+
+    const protectedResponse = await request(app)
+      .delete("/users/delete")
+      .set("Authorization", `Bearer ${tokenUsuario}`)
+      .send({ senhaAtual: 'novaSenha123' });
+
+    expect(protectedResponse.statusCode).toBe(409);
+    expect(protectedResponse.body.code).toBe('LAST_ADMIN_REQUIRED');
+    expect(protectedResponse.body.message).toContain('única conta administradora');
+    expect(await User.findByPk(idUsuario)).not.toBeNull();
+
+    const backupRegistration = await request(app)
+      .post('/users')
+      .send({ username: 'backupAdmin', email: 'backup-admin@example.com', password: '123456' });
+    const backupAdmin = await User.findByPk(backupRegistration.body.user.id);
+    await backupAdmin.addRole(adminRole);
 
     const res = await request(app)
       .delete("/users/delete")

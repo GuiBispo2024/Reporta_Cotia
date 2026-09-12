@@ -9,6 +9,7 @@ async function runSeeds() {
 
     console.log("▶ Rodando Seeds...");
 
+    await require("./accessControl.seed")();
     await require("./user.seed")();
     await require("./denuncia.seed")();
     await require("./comment.seed")();

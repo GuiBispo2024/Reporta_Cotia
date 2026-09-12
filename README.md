@@ -13,6 +13,9 @@ Plataforma web colaborativa para registrar, acompanhar e dar visibilidade a prob
 ## Funcionalidades
 
 - Cadastro, autenticação JWT, edição de perfil e exclusão de conta protegida por senha.
+- Controle de acesso por perfis cumulativos (`CITIZEN`, `MODERATOR`, `ANALYST` e `ADMIN`) e permissões consultadas no banco a cada requisição.
+- Gerenciamento de perfis pela interface administrativa, com proteção contra autodespromoção e remoção do último administrador.
+- Histórico paginado das alterações de perfis, identificando o usuário alterado, o responsável e os perfis anteriores e novos.
 - Foto de perfil com recorte, substituição e remoção da imagem anterior.
 - Redefinição de senha por e-mail com token próprio, uso único, expiração e trilha de auditoria.
 - Criação e edição de denúncias com título, descrição, categoria, endereço, geolocalização e até quatro imagens.
@@ -141,7 +144,7 @@ cd backend
 npm run db:migrate
 ```
 
-As migrações incluem controle de sessão, histórico das denúncias, setor responsável, respostas a comentários, tokens e histórico de redefinição de senha e suporte a múltiplas imagens.
+As migrações incluem controle de sessão, perfis e permissões, auditoria das mudanças de acesso, histórico das denúncias, setor responsável, respostas a comentários, tokens e histórico de redefinição de senha e suporte a múltiplas imagens.
 
 Para inserir os dados iniciais:
 
@@ -201,7 +204,11 @@ Authorization: Bearer <token>
 | `POST` | `/users/logout` | Invalidar a sessão atual |
 | `POST` | `/users/password/forgot` | Solicitar redefinição de senha |
 | `POST` | `/users/password/reset` | Redefinir usando token de uso único |
-| `GET` | `/users?withCounts=true` | Listar participantes e suas contribuições (admin) |
+| `GET` | `/users?withCounts=true` | Listar participantes e suas contribuições; o e-mail exige `users.view` |
+| `GET` | `/users/me` | Consultar os dados, perfis e permissões atuais da própria sessão |
+| `GET` | `/users/access/roles` | Listar os perfis disponíveis e suas permissões (`users.manage_roles`) |
+| `GET` | `/users/access/role-history` | Consultar o histórico paginado de perfis (`audit.view`) |
+| `PUT` | `/users/:id/roles` | Substituir os perfis de um usuário (`users.manage_roles`) |
 | `GET` | `/users/:id` | Consultar perfil público, sem expor o e-mail |
 | `PUT` | `/users/update` | Atualizar o próprio perfil |
 | `PATCH` | `/users/avatar` | Substituir a foto de perfil |
@@ -245,9 +252,25 @@ Os envios multipart usam o campo `imagens` e aceitam no máximo quatro arquivos.
 
 Comentários, curtidas e compartilhamentos retornam dados de resumo junto às denúncias e suas listas completas são carregadas apenas quando necessário. Compartilhamentos externos registram a intenção de compartilhar; a plataforma de destino não confirma a publicação.
 
+## Perfis e permissões
+
+Os perfis são cumulativos: todo usuário mantém o perfil `CITIZEN` e pode receber outros perfis conforme sua responsabilidade. A autorização considera as permissões efetivamente associadas no banco, sem depender de uma propriedade administrativa no token.
+
+| Perfil | Responsabilidade principal |
+| --- | --- |
+| `CITIZEN` | Criar e administrar as próprias denúncias e consultar indicadores públicos |
+| `MODERATOR` | Visualizar a fila, moderar denúncias, revisar censura e atualizar a resolução |
+| `ANALYST` | Consultar o dashboard completo e exportar dados analíticos |
+| `ADMIN` | Gerenciar usuários e perfis, consultar auditorias e acessar as demais funções |
+
+As mudanças de perfil passam a valer nas requisições seguintes. A interface também sincroniza a sessão ao abrir a aplicação e quando a janela volta ao foco.
+
 ## Regras de segurança e rastreabilidade
 
-- Alterações sensíveis exigem autenticação e validação de autoria ou perfil administrativo.
+- Alterações sensíveis exigem autenticação e validação de autoria ou permissão específica.
+- Endpoints protegidos verificam permissões específicas, como `moderation.review`, `users.manage_roles` e `audit.view`.
+- O perfil `CITIZEN` é obrigatório; um administrador não pode remover o próprio perfil `ADMIN`, e a plataforma sempre preserva ao menos uma conta administradora.
+- Mudanças de perfis são transacionais e registradas na trilha de auditoria somente quando há alteração efetiva.
 - O logout invalida tokens emitidos anteriormente por meio do versionamento da sessão.
 - Tokens de redefinição são armazenados como hash, expiram e não podem ser reutilizados.
 - A moderação preserva o conteúdo original para permitir reabertura e nova análise.

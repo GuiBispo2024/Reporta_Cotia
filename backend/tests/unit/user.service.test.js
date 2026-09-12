@@ -14,23 +14,61 @@ describe('UserService (unit)', () => {
     console.log("➡️ Iniciando teste: register()");
     UserRepository.findByEmail.mockResolvedValue(null);
     UserRepository.findByUsername.mockResolvedValue(null);
-    UserRepository.create.mockImplementation((data) => {
-      console.log("📦 Chamado UserRepository.create com:", data);
+    UserRepository.createWithRoles.mockImplementation((data) => {
+      console.log("📦 Chamado UserRepository.createWithRoles com:", data);
       return Promise.resolve({ id: 1, ...data });
     });
     const result = await UserService.register({ username: 'u', email: 'e@e', password: '1234' });
     console.log("✅ Resultado recebido:", result);
     expect(UserRepository.findByEmail).toHaveBeenCalledWith('e@e');
     expect(UserRepository.findByUsername).toHaveBeenCalledWith('u');
-    expect(UserRepository.create).toHaveBeenCalled();
+    expect(UserRepository.createWithRoles).toHaveBeenCalledWith(
+      expect.objectContaining({ username: 'u', email: 'e@e' }),
+      ['CITIZEN'],
+      expect.any(Object)
+    );
     expect(result).toHaveProperty('id', 1);
   });
+
+  test('getMe: retorna perfis e permissões sem dados sensíveis', async () => {
+    UserRepository.findByIdWithAccess.mockResolvedValue({
+      get: () => ({
+        id: 1,
+        username: 'moderador',
+        email: 'moderador@example.com',
+        password: 'hash',
+        tokenVersion: 2,
+        roles: [{
+          name: 'MODERATOR',
+          permissions: [
+            { key: 'moderation.view' },
+            { key: 'moderation.review' },
+            { key: 'moderation.view' }
+          ]
+        }]
+      })
+    })
+
+    const result = await UserService.getMe(1)
+
+    expect(result.roles).toEqual(['MODERATOR'])
+    expect(result.permissions).toEqual(['moderation.view', 'moderation.review'])
+    expect(result).not.toHaveProperty('password')
+    expect(result).not.toHaveProperty('tokenVersion')
+  })
 
   test('login: retorna token e dados do usuário quando senha válida', async () => {
     console.log("➡️ Iniciando teste: login()");
     const hashed = await bcrypt.hash('1234', 10);
-    const mockUser = { id: 10, username: 'u', email: 'e@e', password: hashed, adm: false };
+    const mockUser = { id: 10, username: 'u', email: 'e@e', password: hashed };
     UserRepository.findByEmail.mockResolvedValue(mockUser);
+    UserRepository.findByIdWithAccess.mockResolvedValue({
+      ...mockUser,
+      roles: [{
+        name: 'CITIZEN',
+        permissions: [{ key: 'denuncia.create' }]
+      }]
+    });
 
     const spySign = jest.spyOn(jwt, 'sign').mockReturnValue('TOKEN');
 
@@ -40,8 +78,17 @@ describe('UserService (unit)', () => {
     console.log("👤 Dados do usuário retornado:", res.user);
 
     expect(UserRepository.findByEmail).toHaveBeenCalledWith('e@e');
+    expect(spySign).toHaveBeenCalledWith(
+      { id: 10, v: 0 },
+      expect.any(String),
+      { expiresIn: '30m' }
+    );
     expect(res).toHaveProperty('token', 'TOKEN');
     expect(res.user).toMatchObject({ id: 10, username: 'u', email: 'e@e' });
+    expect(res.user.roles).toEqual(['CITIZEN']);
+    expect(res.user.permissions).toEqual(['denuncia.create']);
+    expect(res.user).not.toHaveProperty('adm');
+    expect(res.user).not.toHaveProperty('password');
 
     spySign.mockRestore();
   });
@@ -90,6 +137,16 @@ describe('UserService (unit)', () => {
     });
 
     UserRepository.update.mockResolvedValue([1]); // sucesso
+    UserRepository.findByIdWithAccess.mockResolvedValue({
+      id: 1,
+      username: 'user',
+      email: 'e@e',
+      tokenVersion: 0,
+      roles: [{
+        name: 'CITIZEN',
+        permissions: [{ key: 'denuncia.create' }]
+      }]
+    });
     const spySign = jest.spyOn(jwt, "sign").mockReturnValue("TOKEN_ATUALIZADO");
 
     const result = await UserService.update(
@@ -102,7 +159,15 @@ describe('UserService (unit)', () => {
 
     expect(UserRepository.findById).toHaveBeenCalled();
     expect(UserRepository.update).toHaveBeenCalled();
+    expect(spySign).toHaveBeenCalledWith(
+      { id: 1, v: 0 },
+      expect.any(String),
+      { expiresIn: '30m' }
+    );
     expect(result).toHaveProperty("token", "TOKEN_ATUALIZADO");
+    expect(result.user.roles).toEqual(['CITIZEN']);
+    expect(result.user.permissions).toEqual(['denuncia.create']);
+    expect(result.user).not.toHaveProperty('adm');
 
     spySign.mockRestore();
   });
@@ -136,79 +201,33 @@ describe('UserService (unit)', () => {
     console.log("⚠️ Erro corretamente identificado: usuário não existe");
   });
 
-  test('updateAdm: altera permissão para admin com sucesso', async () => {
-    console.log("➡️ Iniciando teste: updateAdm() — conceder admin");
-
-    UserRepository.findById.mockResolvedValue({ id: 2, adm: false });
-    UserRepository.updateAdm.mockResolvedValue(true);
-
-    const result = await UserService.updateAdm(2, true, true);
-
-    console.log("📦 Chamado updateAdm para id 2 → ADM = true");
-    console.log("✅ Mensagem:", result.message);
-
-    expect(result).toHaveProperty(
-      "message",
-      "Permissão de administrador concedida com sucesso."
-    );
-  });
-
-  test('updateAdm: erro se quem solicita não é admin', async () => {
-    console.log("➡️ Iniciando teste: updateAdm() — usuário comum tentando alterar permissões");
-
-    await expect(
-      UserService.updateAdm(2, true, false)
-    ).rejects.toThrow("Apenas administradores podem alterar permissões.");
-
-    console.log("⚠️ Erro capturado: usuário sem permissão tentou alterar ADM");
-  });
-
-  test('updateAdm: administrador não pode alterar a própria permissão', async () => {
-    await expect(
-      UserService.updateAdm(1, false, true, 1)
-    ).rejects.toThrow('Você não pode alterar a permissão da própria conta.');
-  });
-
-  test('updateAdm: impede remover o último administrador', async () => {
-    console.log("➡️ Iniciando teste: updateAdm() — última conta ADM");
-
-    UserRepository.findById.mockResolvedValue({ id: 1, adm: true });
-    UserRepository.countAdmins.mockResolvedValue(1);
-
-    await expect(
-      UserService.updateAdm(1, false, true)
-    ).rejects.toThrow("Não é permitido remover a última conta de administrador.");
-
-    console.log("⚠️ Proteção ativada: último admin não pode ser removido");
-  });
-
-  test('updateAdm: erro se usuário alvo não existe', async () => {
-    console.log("➡️ Iniciando teste: updateAdm() — alvo inexistente");
-
-    UserRepository.findById.mockResolvedValue(null);
-
-    await expect(
-      UserService.updateAdm(999, true, true)
-    ).rejects.toThrow("Usuário alvo não encontrado.");
-
-    console.log("⚠️ Erro capturado: usuário alvo não existe");
-  });
-
   test('delete: exclui usuário corretamente', async () => {
     console.log("➡️ Iniciando teste: delete()");
 
     const password = await bcrypt.hash('123456', 10);
     UserRepository.findById.mockResolvedValue({ id: 1, password });
-    UserRepository.delete.mockImplementation((id) => {
+    UserRepository.deletePreservingLastAdmin.mockImplementation((id) => {
       console.log("🗑️ Chamado delete:", id);
-      return Promise.resolve(true);
+      return Promise.resolve({ status: 'deleted' });
     });
 
     const res = await UserService.delete(1, '123456');
 
     console.log("✅ Resultado:", res);
 
-    expect(UserRepository.delete).toHaveBeenCalledWith(1);
+    expect(UserRepository.deletePreservingLastAdmin).toHaveBeenCalledWith(1);
     expect(res).toEqual({ message: "Usuário excluído com sucesso" });
   });
+
+  test('delete: impede a exclusão do último administrador', async () => {
+    const password = await bcrypt.hash('123456', 10)
+    UserRepository.findById.mockResolvedValue({ id: 1, password })
+    UserRepository.deletePreservingLastAdmin.mockResolvedValue({ status: 'last_admin' })
+
+    await expect(UserService.delete(1, '123456')).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'LAST_ADMIN_REQUIRED'
+    })
+    expect(UserRepository.deletePreservingLastAdmin).toHaveBeenCalledWith(1)
+  })
 });

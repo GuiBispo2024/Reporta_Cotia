@@ -5,8 +5,7 @@ const db = require("../../models/db/db");
 let tokenUser;
 let userId;
 let denunciaId;
-let tokenAdm;
-let admId;
+let secondaryUserId;
 const { Denuncia, Share } = require('../../models/rel');
 
 describe("Denúncias routes (integration)", () => {
@@ -27,20 +26,13 @@ describe("Denúncias routes (integration)", () => {
     tokenUser = loginUser.body.token;
     userId = loginUser.body.user.id;
 
-    // Criar usuário ADM
-    const adm = await request(app).post("/users").send({
-      username: "admin",
-      email: "adm@example.com",
+    // Criar outro usuário para os cenários de interação
+    const secondaryUser = await request(app).post("/users").send({
+      username: "secondaryuser",
+      email: "secondary@example.com",
       password: "123456",
-      adm: true,
     });
-
-    const loginAdm = await request(app)
-      .post("/users/login")
-      .send({ email: "adm@example.com", password: "123456" });
-
-    tokenAdm = loginAdm.body.token;
-    admId = loginAdm.body.user.id;
+    secondaryUserId = secondaryUser.body.user.id;
   });
 
   afterAll(async () => {
@@ -132,7 +124,7 @@ describe("Denúncias routes (integration)", () => {
     });
     await Share.bulkCreate([
       { denunciaId: maisCompartilhada.id, userId },
-      { denunciaId: maisCompartilhada.id, userId: admId },
+      { denunciaId: maisCompartilhada.id, userId: secondaryUserId },
       { denunciaId, userId }
     ]);
 

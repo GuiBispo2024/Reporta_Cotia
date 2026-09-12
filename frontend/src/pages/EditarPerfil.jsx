@@ -7,6 +7,7 @@ import userService from "../services/userService";
 import UserAvatar from '../components/UserAvatar';
 import { friendlyError } from '../utils/errorMessage';
 import AvatarCropper from '../components/AvatarCropper';
+import { getPrimaryRoleLabel } from '../utils/accessControl';
 
 export default function EditarPerfil() {
   const { user, setUser, setToken } = useContext(AuthContext);
@@ -50,7 +51,7 @@ export default function EditarPerfil() {
       setLoading(true);
       setError('');
       const result = await userService.removeAvatar();
-      setUser(result.user);
+      setUser(currentUser => ({ ...currentUser, ...result.user }));
       setAvatarPreview('');
       setShowAvatarActions(false);
     } catch (err) {
@@ -68,9 +69,9 @@ export default function EditarPerfil() {
       if (profileResult.token) setToken(profileResult.token);
       if (avatar) {
         const avatarResult = await userService.updateAvatar(avatar);
-        updatedUser = avatarResult.user;
+        updatedUser = { ...updatedUser, ...avatarResult.user };
       }
-      setUser(updatedUser);
+      setUser(currentUser => ({ ...currentUser, ...updatedUser }));
       navigate("/perfil");
     } catch (err) {
       setError(friendlyError(err, "Não foi possível atualizar seu perfil. Seus dados foram mantidos; revise os campos e tente novamente."));
@@ -91,7 +92,7 @@ export default function EditarPerfil() {
           </div> : <UserAvatar user={user} className="rc-profile-avatar" />}
           <h2>{user?.username}</h2>
           <p>{user?.email}</p>
-          <span className="badge bg-light text-dark">{user?.adm ? "Administrador" : "Cidadão"}</span>
+          <span className="badge bg-light text-dark">{getPrimaryRoleLabel(user)}</span>
           <button className="btn btn-outline-light mt-4" onClick={() => navigate("/perfil")}><i className="bi bi-arrow-left me-2" />Voltar ao perfil</button>
           {!avatarPreview && <label className="btn btn-light btn-sm mt-3 rc-avatar-upload"><i className="bi bi-camera me-2" />Adicionar foto<input type="file" accept="image/*" onChange={escolherAvatar} /></label>}
         </aside>

@@ -7,6 +7,7 @@ import Footer from "../components/Footer";
 import ResolutionTimeline from "../components/ResolutionTimeline";
 import { friendlyError } from '../utils/errorMessage';
 import ImageCarousel from '../components/ImageCarousel';
+import { hasPermission, PERMISSIONS } from '../utils/accessControl';
 
 const SETORES = [
   'Secretaria de Infraestrutura e Obras',
@@ -38,6 +39,11 @@ export default function Moderacao() {
   const [resolutionDetails, setResolutionDetails] = useState({});
   const [savingResolution, setSavingResolution] = useState(null);
   const [selectedReport, setSelectedReport] = useState(null);
+  const canViewModeration = hasPermission(user, PERMISSIONS.MODERATION_VIEW);
+  const canReviewModeration = hasPermission(user, PERMISSIONS.MODERATION_REVIEW);
+  const canReviewCensorship = hasPermission(user, PERMISSIONS.CENSORSHIP_REVIEW);
+  const canUpdateResolution = hasPermission(user, PERMISSIONS.RESOLUTION_UPDATE);
+  const canViewAudit = hasPermission(user, PERMISSIONS.AUDIT_VIEW);
 
   const hasResolutionChanges = report => {
     const draft = resolutionDetails[report.id] || {};
@@ -70,7 +76,7 @@ export default function Moderacao() {
     finally { setLoading(false); }
   }, [resolutionFilter]);
 
-  useEffect(() => { if (user?.adm) carregar(); }, [user, carregar]);
+  useEffect(() => { if (canViewModeration) carregar(); }, [canViewModeration, carregar]);
 
   const moderar = async (id, status) => {
     try {
@@ -170,14 +176,14 @@ export default function Moderacao() {
     }
   };
 
-  if (!user?.adm) return <div className="container py-5"><div className="alert alert-danger">Apenas administradores podem acessar esta página.</div></div>;
+  if (!canViewModeration) return null;
 
   return (
     <div className="rc-page">
       <Navbar />
       <main className="container py-4 flex-grow-1">
         <div className="text-center mb-4">
-          <span className="rc-eyebrow">PAINEL ADMINISTRATIVO</span>
+          <span className="rc-eyebrow">PAINEL DE MODERAÇÃO</span>
           <h2 className="fw-bold">Moderação</h2>
           <p className="text-muted">Aprove ou rejeite novos registros antes da publicação.</p>
         </div>
@@ -204,7 +210,7 @@ export default function Moderacao() {
                   <span className="badge rc-category mb-2">{d.categoria || "Outros"}</span>
                   <h5 className="fw-bold">{d.titulo}</h5>
                   <p>{d.descricao}</p>
-                  {(d.tituloOriginal || d.descricaoOriginal) && <div className="rc-censorship-review">
+                  {canReviewCensorship && (d.tituloOriginal || d.descricaoOriginal) && <div className="rc-censorship-review">
                     <strong><i className="bi bi-eye" /> Revisão de conteúdo automático</strong>
                     {d.tituloOriginal && <div className="rc-censored-field"><small>Título original</small><p>{d.tituloOriginal}</p><div><button className="btn btn-sm btn-outline-danger" onClick={() => revisarCensura(d.id, 'titulo', true)}>Manter censura</button><button className="btn btn-sm btn-outline-success" onClick={() => revisarCensura(d.id, 'titulo', false)}>Retirar censura</button></div></div>}
                     {d.descricaoOriginal && <div className="rc-censored-field"><small>Descrição original</small><p>{d.descricaoOriginal}</p><div><button className="btn btn-sm btn-outline-danger" onClick={() => revisarCensura(d.id, 'descricao', true)}>Manter censura</button><button className="btn btn-sm btn-outline-success" onClick={() => revisarCensura(d.id, 'descricao', false)}>Retirar censura</button></div></div>}
@@ -212,13 +218,10 @@ export default function Moderacao() {
                   <p className="small"><strong>Local:</strong> {d.localizacao}</p>
                   <p className="small"><strong>Usuário:</strong> {d.User?.username || "Desconhecido"}</p>
                   <button className="btn btn-outline-primary btn-sm w-100 mb-2" onClick={() => setSelectedReport({ ...d, queue: 'pending' })}><i className="bi bi-eye me-1" />Ver detalhes da denúncia</button>
-                  <label className="form-label small fw-semibold mt-2">Motivo da rejeição <span className="text-danger">(obrigatório para rejeitar)</span></label>
-                  <textarea className="form-control form-control-sm" rows="2" maxLength="1000" placeholder="Explique o que o cidadão pode corrigir..." value={motivos[d.id] || ''} onChange={e => setMotivos(prev => ({ ...prev, [d.id]: e.target.value }))} />
-                  <div className="d-flex gap-2 mt-3">
-                    <button className="btn btn-success flex-fill" onClick={() => moderar(d.id, "aprovada")}>✅ Aprovar</button>
-                    <button className="btn btn-danger flex-fill" disabled={!motivos[d.id]?.trim()} onClick={() => moderar(d.id, "rejeitada")}>❌ Rejeitar</button>
-                  </div>
-                  <button className="btn btn-outline-secondary btn-sm mt-3" onClick={() => navigate(`/moderacao/denuncia/${d.id}/historico`)}><i className="bi bi-clock-history me-1" />Histórico de alterações</button>
+                  {canReviewModeration ? <><label className="form-label small fw-semibold mt-2">Motivo da rejeição <span className="text-danger">(obrigatório para rejeitar)</span></label>
+                    <textarea className="form-control form-control-sm" rows="2" maxLength="1000" placeholder="Explique o que o cidadão pode corrigir..." value={motivos[d.id] || ''} onChange={e => setMotivos(prev => ({ ...prev, [d.id]: e.target.value }))} />
+                    <div className="d-flex gap-2 mt-3"><button className="btn btn-success flex-fill" onClick={() => moderar(d.id, "aprovada")}>✅ Aprovar</button><button className="btn btn-danger flex-fill" disabled={!motivos[d.id]?.trim()} onClick={() => moderar(d.id, "rejeitada")}>❌ Rejeitar</button></div></> : <p className="rc-permission-note"><i className="bi bi-eye" /> Acesso somente para consulta.</p>}
+                  {canViewAudit && <button className="btn btn-outline-secondary btn-sm mt-3" onClick={() => navigate(`/moderacao/denuncia/${d.id}/historico`)}><i className="bi bi-clock-history me-1" />Histórico de alterações</button>}
                 </div>
               </article>
             </div>
@@ -230,7 +233,7 @@ export default function Moderacao() {
       <section className={`mt-5 ${statusFilter === 'todos' || statusFilter === 'aprovada' ? '' : 'd-none'}`}>
 
         <h4 className="fw-bold">
-          Atualizar resolução dos problemas
+          {canUpdateResolution ? 'Atualizar resolução dos problemas' : 'Acompanhar resolução dos problemas'}
         </h4>
 
         <p className="text-muted">
@@ -281,7 +284,7 @@ export default function Moderacao() {
                     Andamento
                   </label>
 
-                  <select
+                  <select disabled={!canUpdateResolution}
                     className="form-select"
                     value={
                       resolutionDetails[d.id]?.resolucaoStatus || d.resolucaoStatus || "aberta"
@@ -304,15 +307,15 @@ export default function Moderacao() {
                     </option>
                   </select>
                   <label className="form-label mt-3 fw-semibold">Setor responsável</label>
-                  <select className="form-select" value={resolutionDetails[d.id]?.setorResponsavel || ''} onChange={event => setResolutionDetails(current => ({ ...current, [d.id]: { ...current[d.id], setorResponsavel: event.target.value } }))}>
+                  <select className="form-select" disabled={!canUpdateResolution} value={resolutionDetails[d.id]?.setorResponsavel || ''} onChange={event => setResolutionDetails(current => ({ ...current, [d.id]: { ...current[d.id], setorResponsavel: event.target.value } }))}>
                     <option value="">Selecione um setor</option>
                     {SETORES.map(setor => <option value={setor} key={setor}>{setor}</option>)}
                   </select>
-                  <button className="btn btn-primary mt-3 me-2" disabled={savingResolution === d.id || !hasResolutionChanges(d)} onClick={() => atualizarResolucao(d.id)}>
+                  {canUpdateResolution && <button className="btn btn-primary mt-3 me-2" disabled={savingResolution === d.id || !hasResolutionChanges(d)} onClick={() => atualizarResolucao(d.id)}>
                     <i className="bi bi-check2-circle me-1" />{savingResolution === d.id ? 'Salvando...' : 'Salvar mudanças'}
-                  </button>
-                  <button className="btn btn-outline-warning btn-sm mt-3" onClick={() => reabrirModeracao(d.id)}><i className="bi bi-arrow-counterclockwise me-1" />Reabrir moderação</button>
-                  <button className="btn btn-outline-secondary btn-sm mt-3 ms-2" onClick={() => navigate(`/moderacao/denuncia/${d.id}/historico`)}><i className="bi bi-clock-history me-1" />Histórico de alterações</button>
+                  </button>}
+                  {canReviewModeration && <button className="btn btn-outline-warning btn-sm mt-3" onClick={() => reabrirModeracao(d.id)}><i className="bi bi-arrow-counterclockwise me-1" />Reabrir moderação</button>}
+                  {canViewAudit && <button className="btn btn-outline-secondary btn-sm mt-3 ms-2" onClick={() => navigate(`/moderacao/denuncia/${d.id}/historico`)}><i className="bi bi-clock-history me-1" />Histórico de alterações</button>}
 
                 </div>
 
@@ -327,7 +330,7 @@ export default function Moderacao() {
       <section className={`mt-5 ${statusFilter === 'todos' || statusFilter === 'rejeitada' ? '' : 'd-none'}`}>
         <h4 className="fw-bold">Denúncias rejeitadas</h4>
         <p className="text-muted">Consulte os registros rejeitados ou reabra uma denúncia para uma nova análise.</p>
-        {!rejeitadas.length ? <div className="rc-empty">Não há denúncias rejeitadas.</div> : <div className="row g-3">{rejeitadas.map(d => <div className="col-12 col-lg-6" key={`rejected-${d.id}`}><article className="rc-filter-card"><div className="d-flex justify-content-between gap-2"><strong>{d.titulo}</strong><span className="badge bg-danger">Rejeitada</span></div><p className="small text-muted mt-2"><i className="bi bi-person-circle me-1" />{d.User?.username || 'Usuário não identificado'}</p>{d.motivoRejeicao && <p className="rc-rejection-reason"><strong>Motivo:</strong> {d.motivoRejeicao}</p>}<button className="btn btn-outline-primary btn-sm" onClick={() => setSelectedReport({ ...d, queue: 'rejected' })}><i className="bi bi-eye me-1" />Ver detalhes</button><button className="btn btn-outline-warning btn-sm ms-2" onClick={() => reabrirModeracao(d.id)}><i className="bi bi-arrow-counterclockwise me-1" />Reabrir</button></article></div>)}</div>}
+        {!rejeitadas.length ? <div className="rc-empty">Não há denúncias rejeitadas.</div> : <div className="row g-3">{rejeitadas.map(d => <div className="col-12 col-lg-6" key={`rejected-${d.id}`}><article className="rc-filter-card"><div className="d-flex justify-content-between gap-2"><strong>{d.titulo}</strong><span className="badge bg-danger">Rejeitada</span></div><p className="small text-muted mt-2"><i className="bi bi-person-circle me-1" />{d.User?.username || 'Usuário não identificado'}</p>{d.motivoRejeicao && <p className="rc-rejection-reason"><strong>Motivo:</strong> {d.motivoRejeicao}</p>}<button className="btn btn-outline-primary btn-sm" onClick={() => setSelectedReport({ ...d, queue: 'rejected' })}><i className="bi bi-eye me-1" />Ver detalhes</button>{canReviewModeration && <button className="btn btn-outline-warning btn-sm ms-2" onClick={() => reabrirModeracao(d.id)}><i className="bi bi-arrow-counterclockwise me-1" />Reabrir</button>}</article></div>)}</div>}
         {rejectedMeta.totalPages > 1 && <div className="d-flex justify-content-center gap-3 mt-3"><button className="btn btn-outline-primary" disabled={rejectedMeta.page <= 1} onClick={() => carregar(pendingMeta.page, approvedMeta.page, rejectedMeta.page - 1)}>Anterior</button><span className="align-self-center">Página {rejectedMeta.page} de {rejectedMeta.totalPages}</span><button className="btn btn-outline-primary" disabled={rejectedMeta.page >= rejectedMeta.totalPages} onClick={() => carregar(pendingMeta.page, approvedMeta.page, rejectedMeta.page + 1)}>Próxima</button></div>}
       </section>
       </main>
@@ -355,20 +358,20 @@ export default function Moderacao() {
               {selectedReport.queue === 'approved' ? <>
                 <ResolutionTimeline status={resolutionDetails[selectedReport.id]?.resolucaoStatus || selectedReport.resolucaoStatus} />
                 <label className="form-label fw-semibold mt-3">Andamento</label>
-                <select className="form-select" value={resolutionDetails[selectedReport.id]?.resolucaoStatus || selectedReport.resolucaoStatus || 'aberta'} onChange={event => setResolutionDetails(current => ({ ...current, [selectedReport.id]: { ...current[selectedReport.id], resolucaoStatus: event.target.value } }))}><option value="aberta">Aberta</option><option value="em_andamento">Em andamento</option><option value="resolvida">Resolvida</option></select>
+                <select className="form-select" disabled={!canUpdateResolution} value={resolutionDetails[selectedReport.id]?.resolucaoStatus || selectedReport.resolucaoStatus || 'aberta'} onChange={event => setResolutionDetails(current => ({ ...current, [selectedReport.id]: { ...current[selectedReport.id], resolucaoStatus: event.target.value } }))}><option value="aberta">Aberta</option><option value="em_andamento">Em andamento</option><option value="resolvida">Resolvida</option></select>
                 <label className="form-label fw-semibold mt-3">Setor responsável</label>
-                <select className="form-select" value={resolutionDetails[selectedReport.id]?.setorResponsavel || ''} onChange={event => setResolutionDetails(current => ({ ...current, [selectedReport.id]: { ...current[selectedReport.id], setorResponsavel: event.target.value } }))}><option value="">Selecione um setor</option>{SETORES.map(setor => <option value={setor} key={setor}>{setor}</option>)}</select>
-                <button className="btn btn-primary w-100 mt-3" disabled={savingResolution === selectedReport.id || !hasResolutionChanges(selectedReport)} onClick={() => atualizarResolucao(selectedReport.id)}><i className="bi bi-check2-circle me-1" />{savingResolution === selectedReport.id ? 'Salvando...' : 'Salvar mudanças'}</button>
-                <button className="btn btn-outline-secondary btn-sm w-100 mt-2" onClick={() => navigate(`/moderacao/denuncia/${selectedReport.id}/historico`)}><i className="bi bi-clock-history me-1" />Histórico de alterações</button>
+                <select className="form-select" disabled={!canUpdateResolution} value={resolutionDetails[selectedReport.id]?.setorResponsavel || ''} onChange={event => setResolutionDetails(current => ({ ...current, [selectedReport.id]: { ...current[selectedReport.id], setorResponsavel: event.target.value } }))}><option value="">Selecione um setor</option>{SETORES.map(setor => <option value={setor} key={setor}>{setor}</option>)}</select>
+                {canUpdateResolution && <button className="btn btn-primary w-100 mt-3" disabled={savingResolution === selectedReport.id || !hasResolutionChanges(selectedReport)} onClick={() => atualizarResolucao(selectedReport.id)}><i className="bi bi-check2-circle me-1" />{savingResolution === selectedReport.id ? 'Salvando...' : 'Salvar mudanças'}</button>}
+                {canViewAudit && <button className="btn btn-outline-secondary btn-sm w-100 mt-2" onClick={() => navigate(`/moderacao/denuncia/${selectedReport.id}/historico`)}><i className="bi bi-clock-history me-1" />Histórico de alterações</button>}
               </> : selectedReport.queue === 'rejected' ? <>
                 <div className="rc-rejection-reason"><strong>Motivo da rejeição</strong><p>{selectedReport.motivoRejeicao || 'Nenhum motivo registrado.'}</p></div>
-                <button className="btn btn-outline-warning w-100 mt-3" onClick={() => reabrirModeracao(selectedReport.id)}><i className="bi bi-arrow-counterclockwise me-1" />Reabrir moderação</button>
-                <button className="btn btn-outline-secondary btn-sm w-100 mt-2" onClick={() => navigate(`/moderacao/denuncia/${selectedReport.id}/historico`)}><i className="bi bi-clock-history me-1" />Histórico de alterações</button>
-              </> : <>
+                {canReviewModeration && <button className="btn btn-outline-warning w-100 mt-3" onClick={() => reabrirModeracao(selectedReport.id)}><i className="bi bi-arrow-counterclockwise me-1" />Reabrir moderação</button>}
+                {canViewAudit && <button className="btn btn-outline-secondary btn-sm w-100 mt-2" onClick={() => navigate(`/moderacao/denuncia/${selectedReport.id}/historico`)}><i className="bi bi-clock-history me-1" />Histórico de alterações</button>}
+              </> : canReviewModeration ? <>
                 <label className="form-label fw-semibold">Motivo da rejeição <span className="text-danger">(obrigatório para rejeitar)</span></label>
                 <textarea className="form-control" rows="4" maxLength="1000" placeholder="Explique o que o cidadão pode corrigir..." value={motivos[selectedReport.id] || ''} onChange={event => setMotivos(current => ({ ...current, [selectedReport.id]: event.target.value }))} />
                 <div className="d-grid gap-2 mt-3"><button className="btn btn-success" onClick={() => moderar(selectedReport.id, 'aprovada')}><i className="bi bi-check-circle me-1" />Aprovar denúncia</button><button className="btn btn-danger" disabled={!motivos[selectedReport.id]?.trim()} onClick={() => moderar(selectedReport.id, 'rejeitada')}><i className="bi bi-x-circle me-1" />Rejeitar denúncia</button></div>
-              </>}
+              </> : <p className="rc-permission-note"><i className="bi bi-eye" /> Você possui acesso somente para consultar esta denúncia.</p>}
             </aside>
           </div>
         </section>

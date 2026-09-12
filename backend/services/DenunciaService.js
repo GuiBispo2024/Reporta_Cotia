@@ -4,6 +4,22 @@ const filterBadWords = require('../utils/filterBadWords');
 const AppError = require('../utils/AppError');
 const { validateDenuncia } = require('../utils/validateDenuncia');
 const { deleteImage } = require('../utils/upload');
+const { PERMISSIONS } = require('../constants/accessControl');
+const { hasPermission } = require('../utils/authorization');
+
+function removeCensorshipSource(report) {
+  const visible = report?.get ? report.get({ plain: true }) : { ...report };
+  delete visible.tituloOriginal;
+  delete visible.descricaoOriginal;
+  return visible;
+}
+
+function protectCensorshipSources(result, requester) {
+  if (hasPermission(requester, PERMISSIONS.CENSORSHIP_REVIEW)) return result;
+  if (Array.isArray(result)) return result.map(removeCensorshipSource);
+  if (Array.isArray(result?.data)) return { ...result, data: result.data.map(removeCensorshipSource) };
+  return result;
+}
 
 class DenunciaService {
   static async create(data, user) {
@@ -42,8 +58,7 @@ class DenunciaService {
     };
   }
 
-  static async moderar(id, status, isAdm, motivoRejeicao = null, moderatorId = null) {
-    if (!isAdm) throw new AppError('Acesso negado. Apenas administradores podem moderar denúncias.', 403, 'FORBIDDEN');
+  static async moderar(id, status, motivoRejeicao = null, moderatorId = null) {
     if (!['pendente', 'aprovada', 'rejeitada'].includes(status)) {
       throw new AppError('Status de moderação inválido.', 400, 'VALIDATION_ERROR');
     }
@@ -66,8 +81,7 @@ class DenunciaService {
     return { message: status === 'rejeitada' ? 'Denúncia rejeitada. O autor poderá consultar o motivo e corrigir o registro.' : `Denúncia marcada como ${status}.`, denuncia };
   }
 
-  static async revisarCensura(id, field, manterCensura, isAdm) {
-    if (!isAdm) throw new AppError('Apenas administradores podem revisar a censura.', 403, 'FORBIDDEN');
+  static async revisarCensura(id, field, manterCensura) {
     if (!['titulo', 'descricao'].includes(field) || typeof manterCensura !== 'boolean') {
       throw new AppError('Informe um campo e uma decisão de censura válidos.', 400, 'VALIDATION_ERROR');
     }
@@ -82,8 +96,7 @@ class DenunciaService {
     return { message: manterCensura ? 'A censura foi mantida.' : 'A censura foi removida após revisão.', field, value, censurado: manterCensura };
   }
 
-  static async atualizarResolucao(id, resolucaoStatus, isAdm, details = {}, moderatorId = null) {
-    if (!isAdm) throw new AppError('Apenas administradores podem atualizar a resolução.', 403, 'FORBIDDEN');
+  static async atualizarResolucao(id, resolucaoStatus, details = {}, moderatorId = null) {
     if (!['aberta', 'em_andamento', 'resolvida'].includes(resolucaoStatus)) {
       throw new AppError('Status de resolução inválido.', 400, 'VALIDATION_ERROR');
     }
@@ -141,8 +154,8 @@ class DenunciaService {
     };
   }
 
-  static async listarTodas(options = {}) {
-    return DenunciaRepository.findAll(options);
+  static async listarTodas(options = {}, requester = null) {
+    return protectCensorshipSources(await DenunciaRepository.findAll(options), requester);
   }
 
   static async listarPublicadas(options = {}) {
@@ -163,13 +176,13 @@ class DenunciaService {
     const denuncia = await DenunciaRepository.findById(id);
     if (!denuncia) throw new AppError('Denúncia não encontrada.', 404, 'NOT_FOUND');
     const canSeePrivate = requester && (
-      requester.adm || Number(requester.id) === Number(denuncia.userId)
+      hasPermission(requester, PERMISSIONS.MODERATION_VIEW) || Number(requester.id) === Number(denuncia.userId)
     );
     if (denuncia.status !== 'aprovada' && !canSeePrivate) {
       throw new AppError('Denúncia não encontrada.', 404, 'NOT_FOUND');
     }
     const visible = denuncia.get ? denuncia.get({ plain: true }) : { ...denuncia };
-    if (!requester?.adm) {
+    if (!hasPermission(requester, PERMISSIONS.CENSORSHIP_REVIEW)) {
       delete visible.tituloOriginal;
       delete visible.descricaoOriginal;
     }
@@ -183,7 +196,7 @@ class DenunciaService {
   static async buscarHistorico(id, requester = null) {
     const denuncia = await DenunciaRepository.findById(id);
     if (!denuncia) throw new AppError('Denúncia não encontrada.', 404, 'NOT_FOUND');
-    const canSee = denuncia.status === 'aprovada' || requester?.adm || Number(requester?.id) === Number(denuncia.userId);
+    const canSee = denuncia.status === 'aprovada' || hasPermission(requester, PERMISSIONS.AUDIT_VIEW) || Number(requester?.id) === Number(denuncia.userId);
     if (!canSee) throw new AppError('Denúncia não encontrada.', 404, 'NOT_FOUND');
     return DenunciaHistorico.findAll({
       where: { denunciaId: id },

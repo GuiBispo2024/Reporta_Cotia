@@ -4,6 +4,7 @@ import commentService from "../services/commentService";
 import { AuthContext } from "../context/authContext";
 import UserAvatar from './UserAvatar';
 import { friendlyError } from '../utils/errorMessage';
+import { hasPermission, PERMISSIONS } from '../utils/accessControl';
 
 export default function Comentarios({ denunciaId, initialCount = 0, preview = false, initiallyOpen = false }) {
   const { user } = useContext(AuthContext);
@@ -19,6 +20,7 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [sort, setSort] = useState('newest');
+  const canReviewCensorship = hasPermission(user, PERMISSIONS.CENSORSHIP_REVIEW);
 
   const loadComments = useCallback(async (requestedSort = sort) => {
     try {
@@ -161,12 +163,12 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
                       </div>
                     </div>
                   ) : <p>{c.comentario}</p>}
-                  {user?.adm && c.comentarioOriginal && !c.censuraRevisada && <div className="rc-comment-review">
+                  {canReviewCensorship && c.comentarioOriginal && !c.censuraRevisada && <div className="rc-comment-review">
                     <small>Texto original para revisão</small>
                     <p>{c.comentarioOriginal}</p>
                     <div><button onClick={() => revisarCensura(c, true)}>Manter censura</button><button onClick={() => revisarCensura(c, false)}>Retirar censura</button></div>
                   </div>}
-                  {editingId !== c.id && (user?.id === c.userId || user?.adm) && (
+                  {editingId !== c.id && (Number(user?.id) === Number(c.userId) || canReviewCensorship) && (
                     <div className="rc-comment-actions">
                       {user?.id === c.userId && <button onClick={() => iniciarEdicao(c)}><i className="bi bi-pencil" /> Editar</button>}
                       <button className="text-danger" onClick={() => excluirComentario(c)}><i className="bi bi-trash" /> Excluir</button>
@@ -180,8 +182,8 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
                       <div className="rc-comment-content">
                         <div className="rc-comment-meta"><strong>{reply.User?.username || 'Usuário'}</strong><time>{new Date(reply.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</time></div>
                         {editingId === reply.id ? <div><textarea className="form-control form-control-sm" rows="2" maxLength="255" value={editingText} onChange={event => setEditingText(event.target.value)} /><div className="d-flex gap-2 mt-2"><button className="btn btn-primary btn-sm" disabled={!editingText.trim()} onClick={salvarEdicao}>Salvar</button><button className="btn btn-link btn-sm text-secondary" onClick={() => setEditingId(null)}>Cancelar</button></div></div> : <p>{reply.comentario}</p>}
-                        {user?.adm && reply.comentarioOriginal && !reply.censuraRevisada && <div className="rc-comment-review"><small>Texto original para revisão</small><p>{reply.comentarioOriginal}</p><div><button onClick={() => revisarCensura(reply, true)}>Manter censura</button><button onClick={() => revisarCensura(reply, false)}>Retirar censura</button></div></div>}
-                        {editingId !== reply.id && (Number(user?.id) === Number(reply.userId) || user?.adm) && <div className="rc-comment-actions">{Number(user?.id) === Number(reply.userId) && <button onClick={() => iniciarEdicao(reply)}><i className="bi bi-pencil" /> Editar</button>}<button className="text-danger" onClick={() => excluirComentario(reply)}><i className="bi bi-trash" /> Excluir</button></div>}
+                        {canReviewCensorship && reply.comentarioOriginal && !reply.censuraRevisada && <div className="rc-comment-review"><small>Texto original para revisão</small><p>{reply.comentarioOriginal}</p><div><button onClick={() => revisarCensura(reply, true)}>Manter censura</button><button onClick={() => revisarCensura(reply, false)}>Retirar censura</button></div></div>}
+                        {editingId !== reply.id && (Number(user?.id) === Number(reply.userId) || canReviewCensorship) && <div className="rc-comment-actions">{Number(user?.id) === Number(reply.userId) && <button onClick={() => iniciarEdicao(reply)}><i className="bi bi-pencil" /> Editar</button>}<button className="text-danger" onClick={() => excluirComentario(reply)}><i className="bi bi-trash" /> Excluir</button></div>}
                       </div>
                     </article>)}
                   </div>}

@@ -1,8 +1,31 @@
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const UserRepository = require('../repositories/UserRepository')
+const { ROLES, ROLE_DESCRIPTIONS } = require('../constants/accessControl')
+const { extractUserAccess } = require('../utils/userAccess')
 const SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'reporta-cotia-test-secret' : undefined)
 const { deleteImage } = require('../utils/upload')
+const AppError = require('../utils/AppError')
+
+function serializeAuthenticatedUser(user) {
+  if (!user) return null
+
+  const plain = user.get ? user.get({ plain: true }) : user
+  const { roles, permissions } = extractUserAccess(plain)
+  const {
+    password: _password,
+    tokenVersion: _tokenVersion,
+    roles: _roleAssociations,
+    ...safeUser
+  } = plain
+
+  return {
+    ...safeUser,
+    avatarUrl: safeUser.avatarUrl || null,
+    roles,
+    permissions
+  }
+}
 
 class UserService {
     
@@ -14,7 +37,11 @@ class UserService {
     if (existingUsername) throw new Error('Nome de usuário já cadastrado.')
 
     const hashed = await bcrypt.hash(password, 10)
-    const created = await UserRepository.create({ username, email, password: hashed, avatarUrl })
+    const created = await UserRepository.createWithRoles(
+      { username, email, password: hashed, avatarUrl },
+      [ROLES.CITIZEN],
+      ROLE_DESCRIPTIONS
+    )
     const plain = created.get ? created.get({ plain: true }) : created
     const { password: _password, tokenVersion: _tokenVersion, ...safeUser } = plain
     return safeUser
@@ -28,12 +55,13 @@ class UserService {
     const valid = await bcrypt.compare(password, user.password)
     if (!valid) throw new Error('Senha incorreta.')
 
-    const token = jwt.sign({ id: user.id, adm: user.adm, v: user.tokenVersion || 0 }, SECRET, { expiresIn: '30m' })
+    const token = jwt.sign({ id: user.id, v: user.tokenVersion || 0 }, SECRET, { expiresIn: '30m' })
+    const userWithAccess = await UserRepository.findByIdWithAccess(user.id)
 
     return {
       message: 'Login bem-sucedido',
       token,
-      user: { id: user.id, username: user.username, email: user.email, adm: user.adm, avatarUrl: user.avatarUrl || null }
+      user: serializeAuthenticatedUser(userWithAccess)
     }
   }
 
@@ -55,11 +83,79 @@ class UserService {
   }
 
   static async getMe(id) {
-    const user = await UserRepository.findById(id)
+    const user = await UserRepository.findByIdWithAccess(id)
     if (!user) throw new Error('Usuário não encontrado.')
-    const plain = user.get ? user.get({ plain: true }) : user
-    const { password, tokenVersion, ...safeUser } = plain
-    return safeUser
+    return serializeAuthenticatedUser(user)
+  }
+
+  static async getAvailableRoles() {
+    const roles = await UserRepository.findRolesWithPermissions()
+    return roles.map(role => {
+      const plain = role.get ? role.get({ plain: true }) : role
+      return {
+        name: plain.name,
+        description: plain.description,
+        permissions: (plain.permissions || []).map(permission => ({
+          key: permission.key,
+          description: permission.description
+        }))
+      }
+    })
+  }
+
+  static async getRoleHistory({ page, limit, sort = 'newest' } = {}) {
+    const normalizedPage = Math.max(Number.parseInt(page || '1', 10) || 1, 1)
+    const normalizedLimit = Math.min(Math.max(Number.parseInt(limit || '20', 10) || 20, 1), 50)
+    const normalizedSort = String(sort).trim().toLowerCase()
+    if (!['newest', 'oldest'].includes(normalizedSort)) {
+      throw new AppError('Selecione uma ordenação válida para o histórico.', 400, 'INVALID_HISTORY_SORT')
+    }
+
+    return UserRepository.findRoleHistory({
+      page: normalizedPage,
+      limit: normalizedLimit,
+      sort: normalizedSort
+    })
+  }
+
+  static async updateRoles(targetUserId, requestedRoles, requesterId) {
+    if (!Array.isArray(requestedRoles)) {
+      throw new AppError('Informe os perfis do usuário em uma lista.', 400, 'INVALID_ROLES')
+    }
+
+    const validRoles = Object.values(ROLES)
+    const normalizedRoles = [...new Set(requestedRoles.map(role => String(role).trim().toUpperCase()))]
+    const invalidRoles = normalizedRoles.filter(role => !validRoles.includes(role))
+    if (invalidRoles.length) {
+      throw new AppError(`Perfil inválido: ${invalidRoles.join(', ')}.`, 400, 'INVALID_ROLES')
+    }
+    if (!normalizedRoles.includes(ROLES.CITIZEN)) normalizedRoles.unshift(ROLES.CITIZEN)
+
+    const roleUpdate = await UserRepository.replaceRoles(targetUserId, normalizedRoles, requesterId)
+    if (roleUpdate?.status === 'self_admin_demotion') {
+      throw new AppError('Você não pode remover o perfil de administrador da própria conta.', 403, 'SELF_ADMIN_DEMOTION')
+    }
+    if (roleUpdate?.status === 'last_admin') {
+      throw new AppError('Não é permitido remover o último administrador da plataforma.', 409, 'LAST_ADMIN_REQUIRED')
+    }
+    if (roleUpdate?.status === 'not_found') {
+      throw new AppError('Usuário não encontrado.', 404, 'USER_NOT_FOUND')
+    }
+    const updatedUser = await UserRepository.findByIdWithAccess(targetUserId)
+    const plain = updatedUser.get ? updatedUser.get({ plain: true }) : updatedUser
+    const { roles, permissions } = extractUserAccess(plain)
+
+    return {
+      message: 'Perfis do usuário atualizados com sucesso.',
+      user: {
+        id: plain.id,
+        username: plain.username,
+        email: plain.email,
+        avatarUrl: plain.avatarUrl || null,
+        roles,
+        permissions
+      }
+    }
   }
 
   // Atualizar
@@ -92,22 +188,18 @@ class UserService {
     if (!rowsUpdate) throw new Error("Usuário não encontrado.");
 
     // Busca usuário atualizado
-    const updatedUser = await UserRepository.findById(userIdToken);
-
-    // Remove password antes de mandar para o front
-    const plainUser = updatedUser.get ? updatedUser.get({ plain: true }) : updatedUser;
-    const { password, tokenVersion, ...userWithoutPassword } = plainUser;
+    const updatedUser = await UserRepository.findByIdWithAccess(userIdToken);
 
     // Gera novo token
     const token = jwt.sign(
-      { id: updatedUser.id, adm: updatedUser.adm, v: updatedUser.tokenVersion || 0 },
+      { id: updatedUser.id, v: updatedUser.tokenVersion || 0 },
       SECRET,
       { expiresIn: "30m" }
     );
 
     return { 
       message: "Usuário atualizado com sucesso", 
-      user: userWithoutPassword,
+      user: serializeAuthenticatedUser(updatedUser),
       token
     };
   }
@@ -117,10 +209,8 @@ class UserService {
     if (!user) throw new Error('Usuário não encontrado.')
     await UserRepository.update(userId, { avatarUrl })
     if (user.avatarUrl && user.avatarUrl !== avatarUrl) await deleteImage(user.avatarUrl).catch(() => {})
-    const updatedUser = await UserRepository.findById(userId)
-    const plain = updatedUser.get ? updatedUser.get({ plain: true }) : updatedUser
-    const { password, tokenVersion, ...safeUser } = plain
-    return { message: 'Foto de perfil atualizada com sucesso.', user: safeUser }
+    const updatedUser = await UserRepository.findByIdWithAccess(userId)
+    return { message: 'Foto de perfil atualizada com sucesso.', user: serializeAuthenticatedUser(updatedUser) }
   }
 
   static async removeAvatar(userId) {
@@ -128,32 +218,8 @@ class UserService {
     if (!user) throw new Error('Usuário não encontrado.')
     await UserRepository.update(userId, { avatarUrl: null })
     if (user.avatarUrl) await deleteImage(user.avatarUrl).catch(() => {})
-    const updatedUser = await UserRepository.findById(userId)
-    const plain = updatedUser.get ? updatedUser.get({ plain: true }) : updatedUser
-    const { password, tokenVersion, ...safeUser } = plain
-    return { message: 'Foto de perfil removida com sucesso.', user: safeUser }
-  }
-
-  // Alterar perfil de administrador(apenas adm pode fazer)
-  static async updateAdm(targetUserId, admStatus, requesterAdm, requesterId) {
-    if (!requesterAdm) {
-      throw new Error('Apenas administradores podem alterar permissões.')
-    }
-    if (Number(targetUserId) === Number(requesterId)) {
-      throw new Error('Você não pode alterar a permissão da própria conta.')
-    }
-    const targetUser = await UserRepository.findById(targetUserId)
-    if (!targetUser) {
-      throw new Error('Usuário alvo não encontrado.')
-    }
-    //checar se é o último admin
-    if (admStatus === false) {
-    const adminsCount = await UserRepository.countAdmins()
-    if (adminsCount <= 1 && targetUser.adm) 
-      throw new Error('Não é permitido remover a última conta de administrador.')
-    }
-    await UserRepository.updateAdm(targetUserId, admStatus)
-    return { message: `Permissão de administrador ${admStatus ? 'concedida' : 'removida'} com sucesso.` }
+    const updatedUser = await UserRepository.findByIdWithAccess(userId)
+    return { message: 'Foto de perfil removida com sucesso.', user: serializeAuthenticatedUser(updatedUser) }
   }
 
   // Logout (invalidação simbólica)
@@ -167,10 +233,22 @@ class UserService {
   // Deletar
   static async delete(userIdToken, senhaAtual) {
     const user = await UserRepository.findById(userIdToken)
-    if (!user) throw new Error('Usuário não encontrado.')
-    if (!senhaAtual || !(await bcrypt.compare(senhaAtual, user.password))) throw new Error('Senha atual incorreta.')
-    const rowsDel = await UserRepository.delete(userIdToken)
-    if (!rowsDel) throw new Error('Usuário não encontrado.')
+    if (!user) throw new AppError('Usuário não encontrado.', 404, 'USER_NOT_FOUND')
+    if (!senhaAtual || !(await bcrypt.compare(senhaAtual, user.password))) {
+      throw new AppError('A senha atual está incorreta. Revise-a antes de excluir sua conta.', 400, 'INVALID_CURRENT_PASSWORD')
+    }
+
+    const deletion = await UserRepository.deletePreservingLastAdmin(userIdToken)
+    if (deletion.status === 'last_admin') {
+      throw new AppError(
+        'Esta é a única conta administradora. Promova outro usuário antes de excluir sua conta.',
+        409,
+        'LAST_ADMIN_REQUIRED'
+      )
+    }
+    if (deletion.status === 'not_found') {
+      throw new AppError('Usuário não encontrado.', 404, 'USER_NOT_FOUND')
+    }
     return { message: 'Usuário excluído com sucesso' }
   }
 }

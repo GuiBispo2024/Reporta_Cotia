@@ -1,4 +1,4 @@
-const {User, Denuncia, sequelize} = require('../models/rel')
+const {User, Denuncia, sequelize, Role, Permission, UserRoleHistory} = require('../models/rel')
 const { Op } = require('sequelize')
 
 class UserRepository{
@@ -6,6 +6,23 @@ class UserRepository{
     //Cria um novo usuário
     static async create(data){
         return User.create(data)
+    }
+
+    static async createWithRoles(data, roleNames, roleDescriptions = {}) {
+        return sequelize.transaction(async transaction => {
+            const user = await User.create(data, { transaction })
+            for (const roleName of roleNames) {
+                const [role] = await Role.findOrCreate({
+                    where: { name: roleName },
+                    defaults: {
+                        description: roleDescriptions[roleName] || `Perfil ${roleName}`
+                    },
+                    transaction
+                })
+                await user.addRole(role, { transaction })
+            }
+            return user
+        })
     }
 
     //Procura usuário pelo email
@@ -20,7 +37,15 @@ class UserRepository{
 
     //Lista todos os usuários
     static async findAll() {
-        return User.findAll({ attributes: ['id', 'username', 'adm', 'avatarUrl'] })
+        return User.findAll({
+            attributes: ['id', 'username', 'avatarUrl'],
+            include: [{
+                model: Role,
+                as: 'roles',
+                attributes: ['name'],
+                through: { attributes: [] }
+            }]
+        })
     }
 
     //Lista todos os usuários com a contagem de denúncias feitas por cada um
@@ -43,7 +68,6 @@ class UserRepository{
             attributes: [
                 "id",
                 "username",
-                "adm",
                 "avatarUrl",
                 ...(includeEmail ? ["email"] : []),
                 [sequelize.fn("COUNT", sequelize.col("Denuncia.id")), "totalDenuncias"]
@@ -54,7 +78,27 @@ class UserRepository{
             offset,
             subQuery: false
          }), User.count({ where })])
-        return { data: rows, total, page, limit, totalPages: Math.ceil(total / limit) }
+
+        const accessRows = rows.length ? await User.findAll({
+            where: { id: { [Op.in]: rows.map(user => user.id) } },
+            attributes: ['id'],
+            include: [{
+                model: Role,
+                as: 'roles',
+                attributes: ['name'],
+                through: { attributes: [] }
+            }]
+        }) : []
+        const rolesByUser = new Map(accessRows.map(user => [
+            Number(user.id),
+            (user.roles || []).map(role => role.name)
+        ]))
+        const data = rows.map(user => ({
+            ...(user.get ? user.get({ plain: true }) : user),
+            roles: rolesByUser.get(Number(user.id)) || []
+        }))
+
+        return { data, total, page, limit, totalPages: Math.ceil(total / limit) }
     }
 
     //Busca um usuário específico
@@ -62,8 +106,183 @@ class UserRepository{
         return User.findByPk(id)
     }
 
+    static async findByIdWithAccess(id, attributes = null) {
+        const options = {
+            include: [{
+                model: Role,
+                as: 'roles',
+                attributes: ['name'],
+                through: { attributes: [] },
+                include: [{
+                    model: Permission,
+                    as: 'permissions',
+                    attributes: ['key'],
+                    through: { attributes: [] }
+                }]
+            }]
+        }
+        if (attributes) options.attributes = attributes
+        return User.findByPk(id, options)
+    }
+
+    static async findRolesWithPermissions() {
+        return Role.findAll({
+            attributes: ['name', 'description'],
+            include: [{
+                model: Permission,
+                as: 'permissions',
+                attributes: ['key', 'description'],
+                through: { attributes: [] }
+            }],
+            order: [
+                ['name', 'ASC'],
+                [{ model: Permission, as: 'permissions' }, 'key', 'ASC']
+            ]
+        })
+    }
+
+    static async findRoleHistory({ page = 1, limit = 20, sort = 'newest' } = {}) {
+        const direction = sort === 'oldest' ? 'ASC' : 'DESC'
+
+        const { rows, count } = await UserRoleHistory.findAndCountAll({
+            attributes: [
+                'id', 'targetUsername', 'changedByUsername',
+                'previousRoles', 'newRoles', 'createdAt'
+            ],
+            order: [['createdAt', direction], ['id', direction]],
+            limit,
+            offset: (page - 1) * limit
+        })
+
+        return {
+            data: rows,
+            total: count,
+            page,
+            limit,
+            totalPages: Math.ceil(count / limit)
+        }
+    }
+
+    static async replaceRoles(userId, roleNames, changedByUserId) {
+        return sequelize.transaction(async transaction => {
+            await Role.findOne({
+                where: { name: 'ADMIN' },
+                attributes: ['id'],
+                transaction,
+                lock: transaction.LOCK.UPDATE
+            })
+            const user = await User.findByPk(userId, {
+                transaction,
+                lock: transaction.LOCK.UPDATE
+            })
+            if (!user) return { status: 'not_found' }
+
+            const changedByUser = await User.findByPk(changedByUserId, {
+                attributes: ['id', 'username'],
+                transaction
+            })
+            if (!changedByUser) {
+                throw new Error('Usuário responsável pela alteração de perfis não encontrado.')
+            }
+
+            const roles = await Role.findAll({
+                where: { name: { [Op.in]: roleNames } },
+                transaction
+            })
+            const currentRoles = await user.getRoles({
+                attributes: ['name'],
+                joinTableAttributes: [],
+                transaction
+            })
+            const previousRoles = currentRoles.map(role => role.name).sort()
+            const newRoles = roles.map(role => role.name).sort()
+
+            if (
+                Number(userId) === Number(changedByUserId)
+                && previousRoles.includes('ADMIN')
+                && !newRoles.includes('ADMIN')
+            ) {
+                return { status: 'self_admin_demotion' }
+            }
+            if (
+                previousRoles.includes('ADMIN')
+                && !newRoles.includes('ADMIN')
+                && await UserRepository.countUsersWithRole('ADMIN', { transaction }) <= 1
+            ) {
+                return { status: 'last_admin' }
+            }
+
+            await user.setRoles(roles, { transaction })
+
+            if (JSON.stringify(previousRoles) !== JSON.stringify(newRoles)) {
+                await UserRoleHistory.create({
+                    targetUserId: user.id,
+                    targetUsername: user.username,
+                    changedByUserId: changedByUser.id,
+                    changedByUsername: changedByUser.username,
+                    previousRoles,
+                    newRoles
+                }, { transaction })
+            }
+            return { status: 'updated', user }
+        })
+    }
+
+    static async countUsersWithRole(roleName, { transaction } = {}) {
+        return User.count({
+            include: [{
+                model: Role,
+                as: 'roles',
+                where: { name: roleName },
+                through: { attributes: [] },
+                required: true
+            }],
+            distinct: true,
+            transaction
+        })
+    }
+
+    static async deletePreservingLastAdmin(userId) {
+        return sequelize.transaction(async transaction => {
+            await Role.findOne({
+                where: { name: 'ADMIN' },
+                attributes: ['id'],
+                transaction,
+                lock: transaction.LOCK.UPDATE
+            })
+            const user = await User.findByPk(userId, {
+                transaction,
+                lock: transaction.LOCK.UPDATE
+            })
+            if (!user) return { status: 'not_found' }
+
+            const roles = await user.getRoles({
+                attributes: ['name'],
+                joinTableAttributes: [],
+                transaction
+            })
+            if (
+                roles.some(role => role.name === 'ADMIN')
+                && await UserRepository.countUsersWithRole('ADMIN', { transaction }) <= 1
+            ) {
+                return { status: 'last_admin' }
+            }
+
+            await user.destroy({ transaction })
+            return { status: 'deleted' }
+        })
+    }
+
     static async findPublicById(id) {
-        return User.findByPk(id, { attributes: ['id', 'username', 'adm', 'avatarUrl'] })
+        return User.findByPk(id, {
+            attributes: ['id', 'username', 'avatarUrl'],
+            include: [{
+                model: Role,
+                as: 'roles',
+                attributes: ['name'],
+                through: { attributes: [] }
+            }]
+        })
     }
 
     //Altera um usuário
@@ -71,20 +290,6 @@ class UserRepository{
         return User.update(data, { where: { id } })
     }
 
-    //Conta quantos usuários administradores existem
-    static async countAdmins() {
-        return User.count({ where: { adm: true } })
-    }
-
-    //Altera perfil de administrador(apenas adm pode fazer)
-    static async updateAdm(id, adm) {
-        return User.update({ adm }, { where: { id } })
-    }
-
-    //Deleta um usuário
-    static async delete(id) {
-        return User.destroy({ where: { id } })
-    }
 }
 
 module.exports = UserRepository

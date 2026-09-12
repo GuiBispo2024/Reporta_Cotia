@@ -1,4 +1,4 @@
-import {createContext,useState, useEffect} from "react";
+import {createContext, useCallback, useEffect, useRef, useState} from "react";
 import authService from "../services/authService"
 import api from "../api/api";
 
@@ -7,6 +7,8 @@ export const AuthContext = createContext();
 export const AuthProvider = ({children}) => {
     const [user, setUser] = useState(authService.getUser());
     const [token, setToken] = useState(authService.getToken());
+    const tokenRef = useRef(token);
+    tokenRef.current = token;
 
     const login = async (credentials) => {
     const { token, user } = await authService.login(credentials)
@@ -27,6 +29,24 @@ export const AuthProvider = ({children}) => {
 
     const isAuthenticated = !!token
 
+    const refreshUser = useCallback(async () => {
+        const sessionToken = token;
+        if (!sessionToken) return null;
+
+        try {
+            const currentUser = await authService.me();
+            if (tokenRef.current === sessionToken) setUser(currentUser);
+            return currentUser;
+        } catch (error) {
+            if (tokenRef.current === sessionToken && error.response?.status === 401) {
+                authService.clearSession();
+                setUser(null);
+                setToken(null);
+            }
+            return null;
+        }
+    }, [token]);
+
     useEffect(() => {
         if (user) {
             localStorage.setItem("user", JSON.stringify(user));
@@ -43,29 +63,24 @@ export const AuthProvider = ({children}) => {
     }, [token])
 
     useEffect(() => {
-        if (!token) return;
+        if (!token) return undefined;
 
-        let active = true;
-        authService.me()
-            .then(currentUser => {
-                if (active) setUser(currentUser);
-            })
-            .catch((error) => {
-                if (!active) return;
-                // Falhas temporárias de rede ou limite não invalidam a sessão.
-                // O interceptor global cuida exclusivamente de respostas 401.
-                if (error.response?.status === 401) {
-                    authService.clearSession();
-                    setUser(null);
-                    setToken(null);
-                }
-            });
+        refreshUser();
+        const refreshOnFocus = () => { refreshUser(); };
+        const refreshOnVisibility = () => {
+            if (document.visibilityState === 'visible') refreshUser();
+        };
 
-        return () => { active = false; };
-    }, [token]);
+        window.addEventListener('focus', refreshOnFocus);
+        document.addEventListener('visibilitychange', refreshOnVisibility);
+        return () => {
+            window.removeEventListener('focus', refreshOnFocus);
+            document.removeEventListener('visibilitychange', refreshOnVisibility);
+        };
+    }, [refreshUser, token]);
 
     return (
-        <AuthContext.Provider value={{ user, setUser, token, setToken, isAuthenticated, login, logout }}>
+        <AuthContext.Provider value={{ user, setUser, token, setToken, isAuthenticated, login, logout, refreshUser }}>
             {children}
         </AuthContext.Provider>
     )
