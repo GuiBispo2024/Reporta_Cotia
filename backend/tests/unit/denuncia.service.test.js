@@ -53,7 +53,7 @@ describe('DenunciaService (unit)', () => {
   // -----------------------------
   // moderar()
   // -----------------------------
-  test('moderar: admin aprova denúncia', async () => {
+  test('moderar: aprova denúncia após autorização da rota', async () => {
     console.log("➡️ Testando: moderar()");
 
     DenunciaRepository.findById.mockResolvedValue({ id: 1, status: "pendente" });
@@ -63,7 +63,7 @@ describe('DenunciaService (unit)', () => {
       status: "aprovada"
     });
 
-    const res = await DenunciaService.moderar(1, "aprovada", true);
+    const res = await DenunciaService.moderar(1, "aprovada");
 
     console.log("📦 Resultado:", res);
 
@@ -71,19 +71,11 @@ describe('DenunciaService (unit)', () => {
     expect(res.denuncia.status).toBe("aprovada");
   });
 
-  test('moderar: erro se não for admin', async () => {
-    console.log("➡️ Testando: moderar() — não admin");
-
-    await expect(
-      DenunciaService.moderar(1, "aprovada", false)
-    ).rejects.toThrow("Acesso negado. Apenas administradores podem moderar denúncias.");
-  });
-
   test('moderar: erro se status inválido', async () => {
     console.log("➡️ Testando: moderar() — status inválido");
 
     await expect(
-      DenunciaService.moderar(1, "xxxx", true)
+      DenunciaService.moderar(1, "xxxx")
     ).rejects.toThrow("Status de moderação inválido.");
   });
 
@@ -93,7 +85,7 @@ describe('DenunciaService (unit)', () => {
     DenunciaRepository.findById.mockResolvedValue(null);
 
     await expect(
-      DenunciaService.moderar(99, "aprovada", true)
+      DenunciaService.moderar(99, "aprovada")
     ).rejects.toThrow("Denúncia não encontrada.");
   });
 

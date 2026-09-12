@@ -3,6 +3,8 @@ const router = express.Router()
 const CommentService = require('../services/CommentService')
 const auth = require('../middlewares/auth')
 const optionalAuth = require('../middlewares/optionalAuth')
+const requirePermission = require('../middlewares/requirePermission')
+const { PERMISSIONS } = require('../constants/accessControl')
 
 /**
  * @swagger
@@ -88,7 +90,8 @@ router.get('/:denunciaId/comentarios', optionalAuth, async (req, res, next) => {
     const page = req.query.page ? Math.max(Number(req.query.page), 1) : null
     const limit = req.query.limit ? Math.min(Math.max(Number(req.query.limit), 1), 50) : null
     const sort = req.query.sort === 'oldest' ? 'oldest' : 'newest'
-    const comentarios = await CommentService.listarPorDenuncia(req.params.denunciaId, Boolean(req.user?.adm), { page, limit, sort })
+    const canReviewCensorship = Boolean(req.user?.adm || req.user?.permissions?.includes(PERMISSIONS.CENSORSHIP_REVIEW))
+    const comentarios = await CommentService.listarPorDenuncia(req.params.denunciaId, canReviewCensorship, { page, limit, sort })
     res.status(200).json(comentarios)
   } catch (error) { next(error) }
 })
@@ -98,7 +101,7 @@ router.get('/:denunciaId/comentarios', optionalAuth, async (req, res, next) => {
  * /denuncia/comentario/{id}/censura:
  *   patch:
  *     summary: Revisa a censura automática de um comentário
- *     description: Permite ao administrador manter ou retirar a censura antes de encerrar a revisão.
+ *     description: Permite manter ou retirar a censura antes de encerrar a revisão. Exige `censorship.review`; administradores legados permanecem autorizados temporariamente.
  *     tags: [Comentários]
  *     security:
  *       - bearerAuth: []
@@ -117,14 +120,12 @@ router.get('/:denunciaId/comentarios', optionalAuth, async (req, res, next) => {
  *       200: { description: Decisão de censura registrada }
  *       400: { description: Comentário ou decisão inválidos }
  *       401: { description: Sessão ausente, expirada ou revogada }
- *       403: { description: Ação restrita ao administrador nesta etapa da migração }
+ *       403: { description: Usuário sem `censorship.review` }
  */
-router.patch('/comentario/:id/censura', auth, async (req, res) => {
+router.patch('/comentario/:id/censura', auth, requirePermission(PERMISSIONS.CENSORSHIP_REVIEW), async (req, res, next) => {
   try {
-    res.status(200).json(await CommentService.revisarCensura(req.params.id, req.body.manterCensura, req.user.adm))
-  } catch (error) {
-    res.status(error.message.includes('Apenas administradores') ? 403 : 400).json({ message: error.message })
-  }
+    res.status(200).json(await CommentService.revisarCensura(req.params.id, req.body.manterCensura))
+  } catch (error) { next(error) }
 })
 
 /**
@@ -196,7 +197,8 @@ router.put('/comentario/:id',auth, async (req, res, next) => {
 // Deleta comentário
 router.delete('/comentario/:id',auth, async (req, res, next) => {
   try {
-    const result = await CommentService.deletar(req.params.id, req.user.id, req.user.adm)
+    const canModerateContent = Boolean(req.user.adm || req.user.permissions?.includes(PERMISSIONS.CENSORSHIP_REVIEW))
+    const result = await CommentService.deletar(req.params.id, req.user.id, canModerateContent)
     res.status(200).json(result)
   } catch (error) { next(error) }
 })

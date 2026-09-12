@@ -42,4 +42,11 @@ describe('Documentação OpenAPI', () => {
     expect(updateRoles.requestBody.content['application/json'].schema.required).toContain('roles')
     expect(updateRoles.responses[409]).toBeDefined()
   })
+
+  test('documenta as permissões específicas das ações de moderação', () => {
+    expect(swaggerSpec.paths['/denuncia/{id}/moderar'].patch.description).toContain('moderation.review')
+    expect(swaggerSpec.paths['/denuncia/{id}/censura'].patch.description).toContain('censorship.review')
+    expect(swaggerSpec.paths['/denuncia/{id}/resolucao'].patch.description).toContain('resolution.update')
+    expect(swaggerSpec.paths['/denuncia/comentario/{id}/censura'].patch.description).toContain('censorship.review')
+  })
 })

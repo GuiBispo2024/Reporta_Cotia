@@ -43,7 +43,7 @@ router.post('/', auth, upload.array('imagens', 4), async (req, res, next) => {
  * /denuncia/{id}/moderar:
  *   patch:
  *     summary: Aprova ou rejeita uma denúncia
- *     description: Nesta etapa da migração, a ação ainda exige administrador legado. Ao rejeitar, o motivo é obrigatório e fica disponível ao autor.
+ *     description: Exige a permissão `moderation.review`. Ao rejeitar, o motivo é obrigatório e fica disponível ao autor. Administradores legados permanecem autorizados temporariamente.
  *     tags: [Denúncias]
  *     security:
  *       - bearerAuth: []
@@ -63,12 +63,12 @@ router.post('/', auth, upload.array('imagens', 4), async (req, res, next) => {
  *       200: { description: Moderação registrada }
  *       400: { description: Status ou motivo inválido }
  *       401: { description: Sessão ausente, expirada ou revogada }
- *       403: { description: Ação restrita ao administrador nesta etapa da migração }
+ *       403: { description: Usuário sem `moderation.review` }
  *       404: { description: Denúncia não encontrada }
  */
-router.patch('/:id/moderar', auth, async (req, res, next) => {
+router.patch('/:id/moderar', auth, requirePermission(PERMISSIONS.MODERATION_REVIEW), async (req, res, next) => {
   try {
-    res.status(200).json(await DenunciaService.moderar(req.params.id, req.body.status, req.user.adm, req.body.motivoRejeicao, req.user.id));
+    res.status(200).json(await DenunciaService.moderar(req.params.id, req.body.status, req.body.motivoRejeicao, req.user.id));
   } catch (error) { next(error); }
 });
 
@@ -77,7 +77,7 @@ router.patch('/:id/moderar', auth, async (req, res, next) => {
  * /denuncia/{id}/censura:
  *   patch:
  *     summary: Revisa a censura automática de uma denúncia
- *     description: Permite manter ou retirar a censura do título ou da descrição. A ação ainda exige administrador legado.
+ *     description: Permite manter ou retirar a censura do título ou da descrição. Exige `censorship.review`; administradores legados permanecem autorizados temporariamente.
  *     tags: [Denúncias]
  *     security:
  *       - bearerAuth: []
@@ -97,14 +97,14 @@ router.patch('/:id/moderar', auth, async (req, res, next) => {
  *       200: { description: Decisão de censura registrada }
  *       400: { description: Campo ou decisão inválidos }
  *       401: { description: Sessão ausente, expirada ou revogada }
- *       403: { description: Ação restrita ao administrador nesta etapa da migração }
+ *       403: { description: Usuário sem `censorship.review` }
  *       404: { description: Denúncia não encontrada }
  *       409: { description: Campo sem conteúdo censurado para revisão }
  */
-router.patch('/:id/censura', auth, async (req, res, next) => {
+router.patch('/:id/censura', auth, requirePermission(PERMISSIONS.CENSORSHIP_REVIEW), async (req, res, next) => {
   try {
     res.status(200).json(await DenunciaService.revisarCensura(
-      req.params.id, req.body.field, req.body.manterCensura, req.user.adm
+      req.params.id, req.body.field, req.body.manterCensura
     ));
   } catch (error) { next(error); }
 });
@@ -114,7 +114,7 @@ router.patch('/:id/censura', auth, async (req, res, next) => {
  * /denuncia/{id}/resolucao:
  *   patch:
  *     summary: Atualiza o progresso da resolução
- *     description: Ação ainda restrita ao administrador legado durante a migração de permissões.
+ *     description: Exige a permissão `resolution.update`. Administradores legados permanecem autorizados temporariamente.
  *     tags: [Denúncias]
  *     security:
  *       - bearerAuth: []
@@ -133,13 +133,13 @@ router.patch('/:id/censura', auth, async (req, res, next) => {
  *     responses:
  *       200: { description: Andamento atualizado ou nenhuma alteração necessária }
  *       400: { description: Status ou setor inválido }
- *       403: { description: Ação restrita ao administrador nesta etapa da migração }
+ *       403: { description: Usuário sem `resolution.update` }
  *       404: { description: Denúncia não encontrada }
  */
-router.patch('/:id/resolucao', auth, async (req, res, next) => {
+router.patch('/:id/resolucao', auth, requirePermission(PERMISSIONS.RESOLUTION_UPDATE), async (req, res, next) => {
   try {
     res.status(200).json(
-      await DenunciaService.atualizarResolucao(req.params.id, req.body.resolucaoStatus, req.user.adm, req.body, req.user.id)
+      await DenunciaService.atualizarResolucao(req.params.id, req.body.resolucaoStatus, req.body, req.user.id)
     );
   } catch (error) { next(error); }
 });

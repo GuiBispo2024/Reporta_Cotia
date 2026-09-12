@@ -53,8 +53,7 @@ class CommentService {
     return { message: 'Comentário atualizado com sucesso.' }
   }
 
-  static async revisarCensura(id, manterCensura, adm) {
-    if (!adm) throw new AppError('Apenas administradores podem revisar a censura.', 403, 'FORBIDDEN')
+  static async revisarCensura(id, manterCensura) {
     if (typeof manterCensura !== 'boolean') throw new AppError('Informe uma decisão de censura válida.', 400, 'VALIDATION_ERROR')
     const comment = await CommentRepository.findById(id)
     if (!comment) throw new AppError('Comentário não encontrado.', 404, 'NOT_FOUND')
@@ -64,10 +63,10 @@ class CommentService {
     return { message: manterCensura ? 'A censura do comentário foi mantida.' : 'A censura do comentário foi removida.', comentario, censurado: manterCensura }
   }
 
-  static async deletar(id, userId, adm) {
+  static async deletar(id, userId, canModerate = false) {
     const comment = await CommentRepository.findById(id)
     if (!comment) throw new AppError('Comentário não encontrado.', 404, 'NOT_FOUND')
-    if (Number(comment.userId) !== Number(userId) && !adm) throw new AppError('Você não tem permissão para excluir este comentário.', 403, 'FORBIDDEN')
+    if (Number(comment.userId) !== Number(userId) && !canModerate) throw new AppError('Você não tem permissão para excluir este comentário.', 403, 'FORBIDDEN')
     await CommentRepository.delete(id)
     return { message: 'Comentário excluído com sucesso.' }
   }

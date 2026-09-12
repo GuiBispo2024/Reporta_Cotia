@@ -42,8 +42,7 @@ class DenunciaService {
     };
   }
 
-  static async moderar(id, status, isAdm, motivoRejeicao = null, moderatorId = null) {
-    if (!isAdm) throw new AppError('Acesso negado. Apenas administradores podem moderar denúncias.', 403, 'FORBIDDEN');
+  static async moderar(id, status, motivoRejeicao = null, moderatorId = null) {
     if (!['pendente', 'aprovada', 'rejeitada'].includes(status)) {
       throw new AppError('Status de moderação inválido.', 400, 'VALIDATION_ERROR');
     }
@@ -66,8 +65,7 @@ class DenunciaService {
     return { message: status === 'rejeitada' ? 'Denúncia rejeitada. O autor poderá consultar o motivo e corrigir o registro.' : `Denúncia marcada como ${status}.`, denuncia };
   }
 
-  static async revisarCensura(id, field, manterCensura, isAdm) {
-    if (!isAdm) throw new AppError('Apenas administradores podem revisar a censura.', 403, 'FORBIDDEN');
+  static async revisarCensura(id, field, manterCensura) {
     if (!['titulo', 'descricao'].includes(field) || typeof manterCensura !== 'boolean') {
       throw new AppError('Informe um campo e uma decisão de censura válidos.', 400, 'VALIDATION_ERROR');
     }
@@ -82,8 +80,7 @@ class DenunciaService {
     return { message: manterCensura ? 'A censura foi mantida.' : 'A censura foi removida após revisão.', field, value, censurado: manterCensura };
   }
 
-  static async atualizarResolucao(id, resolucaoStatus, isAdm, details = {}, moderatorId = null) {
-    if (!isAdm) throw new AppError('Apenas administradores podem atualizar a resolução.', 403, 'FORBIDDEN');
+  static async atualizarResolucao(id, resolucaoStatus, details = {}, moderatorId = null) {
     if (!['aberta', 'em_andamento', 'resolvida'].includes(resolucaoStatus)) {
       throw new AppError('Status de resolução inválido.', 400, 'VALIDATION_ERROR');
     }
