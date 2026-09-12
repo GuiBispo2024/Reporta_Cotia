@@ -49,8 +49,11 @@ describe('Documentação OpenAPI', () => {
     expect(updateRoles.responses[409]).toBeDefined()
     expect(roleHistory.description).toContain('audit.view')
     expect(roleHistory.security).toEqual([{ bearerAuth: [] }])
+    expect(roleHistory.parameters.map(parameter => parameter.name)).toEqual(['page', 'limit', 'sort'])
     expect(roleHistory.responses[200].content['application/json'].schema.allOf[1].properties.data.items.$ref)
       .toBe('#/components/schemas/UserRoleHistory')
+    expect(swaggerSpec.components.schemas.UserRoleHistory.properties.targetUserId).toBeUndefined()
+    expect(swaggerSpec.components.schemas.UserRoleHistory.properties.changedByUserId).toBeUndefined()
     expect(swaggerSpec.paths['/users/{id}/adm']).toBeUndefined()
   })
 

@@ -567,14 +567,13 @@ body {
 .rc-role-modal > footer { padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: .65rem; border-top: 1px solid var(--rc-border); background: rgba(244,247,245,.6); }
 .rc-role-modal > footer .btn { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; }
 
-.rc-role-history-filters { padding: 1rem; display: grid; grid-template-columns: minmax(230px, 1fr) repeat(2, minmax(150px, .65fr)) auto; align-items: end; gap: .85rem; border: 1px solid var(--rc-border); border-radius: 16px; background: white; box-shadow: 0 8px 24px rgba(24,48,40,.05); }
+.rc-role-history-toolbar { padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1.25rem; border: 1px solid var(--rc-border); border-radius: 16px; background: white; box-shadow: 0 8px 24px rgba(24,48,40,.05); }
 .rc-role-history-filter-heading { display: flex; align-items: center; gap: .75rem; }
 .rc-role-history-filter-heading > span { width: 2.5rem; height: 2.5rem; flex: 0 0 2.5rem; display: grid; place-items: center; border-radius: 10px; background: #e5f2eb; color: var(--rc-primary); }
 .rc-role-history-filter-heading h2 { margin: 0; font-size: .95rem; font-weight: 800; }
 .rc-role-history-filter-heading p { margin: .2rem 0 0; color: #74827b; font-size: .7rem; }
-.rc-role-history-filters label > span { display: block; margin-bottom: .35rem; color: #526159; font-size: .72rem; font-weight: 750; }
-.rc-role-history-filter-actions { display: flex; gap: .5rem; }
-.rc-role-history-filter-actions .btn { display: inline-flex; align-items: center; gap: .4rem; white-space: nowrap; }
+.rc-role-history-toolbar label { width: min(260px, 100%); }
+.rc-role-history-toolbar label > span { display: block; margin-bottom: .35rem; color: #526159; font-size: .72rem; font-weight: 750; }
 .rc-role-history-card { overflow: hidden; border: 1px solid var(--rc-border); border-radius: 18px; background: white; box-shadow: 0 8px 25px rgba(24,48,40,.06); }
 .rc-role-history-table thead th { padding: 1rem; border: 0; background: #f2f7f4; color: #68776f; font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; }
 .rc-role-history-table tbody td { padding: 1rem; border-color: #edf2ef; font-size: .82rem; }
@@ -732,9 +731,8 @@ body {
   .rc-section-header-actions { width: 100%; align-items: stretch; flex-direction: column; }
   .rc-audit-link { justify-content: center; }
   .rc-community-filters { grid-template-columns: 1fr; }
-  .rc-role-history-filters { grid-template-columns: 1fr; align-items: stretch; }
-  .rc-role-history-filter-actions { flex-direction: column-reverse; }
-  .rc-role-history-filter-actions .btn { justify-content: center; }
+  .rc-role-history-toolbar { align-items: stretch; flex-direction: column; }
+  .rc-role-history-toolbar label { width: 100%; }
   .rc-role-options { grid-template-columns: 1fr; }
   .rc-role-modal > footer { align-items: stretch; flex-direction: column-reverse; }
   .rc-role-modal > footer .btn { width: 100%; }

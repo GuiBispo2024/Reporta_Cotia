@@ -51,25 +51,23 @@ test('apresenta as alterações de perfis com responsável e paginação', async
   expect(userService.getRoleHistory).toHaveBeenCalledWith({
     page: 1,
     limit: 20,
-    targetUserId: undefined,
-    changedByUserId: undefined
+    sort: 'newest'
   })
+  expect(screen.queryByText(/ID 15|ID 2/)).not.toBeInTheDocument()
 })
 
-test('aplica filtros somente após a confirmação do usuário', async () => {
+test('altera a ordenação do histórico pela data', async () => {
   renderPage()
   await screen.findByText('Administrador')
 
-  fireEvent.change(screen.getByLabelText('Usuário alterado'), { target: { value: '15' } })
-  fireEvent.change(screen.getByLabelText('Responsável'), { target: { value: '2' } })
-  expect(userService.getRoleHistory).toHaveBeenCalledTimes(1)
-  fireEvent.click(screen.getByRole('button', { name: /aplicar filtros/i }))
+  expect(screen.queryByLabelText('Usuário alterado')).not.toBeInTheDocument()
+  expect(screen.queryByLabelText('Responsável')).not.toBeInTheDocument()
+  fireEvent.change(screen.getByLabelText('Ordenar por data'), { target: { value: 'oldest' } })
 
   await waitFor(() => expect(userService.getRoleHistory).toHaveBeenLastCalledWith({
     page: 1,
     limit: 20,
-    targetUserId: '15',
-    changedByUserId: '2'
+    sort: 'oldest'
   }))
 })
 

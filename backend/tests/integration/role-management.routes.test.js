@@ -132,30 +132,44 @@ describe('Gerenciamento de perfis de acesso', () => {
     expect(updatedUser.toJSON()).not.toHaveProperty('adm')
   })
 
-  test('consulta o histórico paginado e filtrado pelo usuário alterado', async () => {
+  test('consulta o histórico e ordena do mais antigo', async () => {
     const response = await request(app)
-      .get(`/users/access/role-history?page=1&limit=1&targetUserId=${citizen.id}`)
+      .get('/users/access/role-history?page=1&limit=1&sort=oldest')
       .set('Authorization', `Bearer ${admin.token}`)
 
     expect(response.status).toBe(200)
     expect(response.body).toMatchObject({ total: 2, page: 1, limit: 1, totalPages: 2 })
     expect(response.body.data).toHaveLength(1)
     expect(response.body.data[0]).toMatchObject({
-      targetUserId: citizen.id,
-      changedByUserId: admin.id,
-      previousRoles: ['CITIZEN', 'MODERATOR'],
-      newRoles: ['ADMIN', 'CITIZEN']
+      targetUsername: 'role-citizen',
+      changedByUsername: 'role-admin',
+      previousRoles: ['CITIZEN'],
+      newRoles: ['CITIZEN', 'MODERATOR']
     })
+    expect(response.body.data[0]).not.toHaveProperty('targetUserId')
+    expect(response.body.data[0]).not.toHaveProperty('changedByUserId')
     expect(response.body.data[0]).not.toHaveProperty('updatedAt')
   })
 
-  test('rejeita filtro inválido no histórico de perfis', async () => {
+  test('ordena o histórico do mais recente por padrão', async () => {
     const response = await request(app)
-      .get('/users/access/role-history?changedByUserId=invalido')
+      .get('/users/access/role-history')
+      .set('Authorization', `Bearer ${admin.token}`)
+
+    expect(response.status).toBe(200)
+    expect(response.body.data[0]).toMatchObject({
+      previousRoles: ['CITIZEN', 'MODERATOR'],
+      newRoles: ['ADMIN', 'CITIZEN']
+    })
+  })
+
+  test('rejeita ordenação inválida no histórico de perfis', async () => {
+    const response = await request(app)
+      .get('/users/access/role-history?sort=invalido')
       .set('Authorization', `Bearer ${admin.token}`)
 
     expect(response.status).toBe(400)
-    expect(response.body.code).toBe('INVALID_USER_FILTER')
+    expect(response.body.code).toBe('INVALID_HISTORY_SORT')
   })
 
   test('inclui os perfis atuais na listagem administrativa', async () => {

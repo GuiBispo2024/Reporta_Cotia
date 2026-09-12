@@ -103,24 +103,18 @@ class UserService {
     })
   }
 
-  static async getRoleHistory({ page, limit, targetUserId, changedByUserId } = {}) {
+  static async getRoleHistory({ page, limit, sort = 'newest' } = {}) {
     const normalizedPage = Math.max(Number.parseInt(page || '1', 10) || 1, 1)
     const normalizedLimit = Math.min(Math.max(Number.parseInt(limit || '20', 10) || 20, 1), 50)
-    const filters = {}
-
-    for (const [field, value] of Object.entries({ targetUserId, changedByUserId })) {
-      if (value === undefined || value === '') continue
-      const normalizedValue = Number.parseInt(value, 10)
-      if (!Number.isInteger(normalizedValue) || normalizedValue < 1 || String(normalizedValue) !== String(value)) {
-        throw new AppError('Os filtros de usuário devem conter identificadores numéricos válidos.', 400, 'INVALID_USER_FILTER')
-      }
-      filters[field] = normalizedValue
+    const normalizedSort = String(sort).trim().toLowerCase()
+    if (!['newest', 'oldest'].includes(normalizedSort)) {
+      throw new AppError('Selecione uma ordenação válida para o histórico.', 400, 'INVALID_HISTORY_SORT')
     }
 
     return UserRepository.findRoleHistory({
       page: normalizedPage,
       limit: normalizedLimit,
-      ...filters
+      sort: normalizedSort
     })
   }
 

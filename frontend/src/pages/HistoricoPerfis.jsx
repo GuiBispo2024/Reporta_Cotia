@@ -31,8 +31,7 @@ export default function HistoricoPerfis() {
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
-  const [draftFilters, setDraftFilters] = useState({ targetUserId: '', changedByUserId: '' })
-  const [filters, setFilters] = useState({ targetUserId: '', changedByUserId: '' })
+  const [sort, setSort] = useState('newest')
 
   useEffect(() => {
     if (!canViewAudit) return undefined
@@ -43,8 +42,7 @@ export default function HistoricoPerfis() {
     userService.getRoleHistory({
         page,
         limit: 20,
-        targetUserId: filters.targetUserId || undefined,
-        changedByUserId: filters.changedByUserId || undefined
+        sort
       })
       .then(result => {
         if (!active) return
@@ -60,21 +58,13 @@ export default function HistoricoPerfis() {
       })
 
     return () => { active = false }
-  }, [canViewAudit, filters, page])
+  }, [canViewAudit, page, sort])
 
   if (!canViewAudit) return null
 
-  const applyFilters = event => {
-    event.preventDefault()
+  const changeSort = event => {
     setPage(1)
-    setFilters(draftFilters)
-  }
-
-  const clearFilters = () => {
-    const emptyFilters = { targetUserId: '', changedByUserId: '' }
-    setDraftFilters(emptyFilters)
-    setFilters(emptyFilters)
-    setPage(1)
+    setSort(event.target.value)
   }
 
   return <div className="rc-page">
@@ -87,12 +77,10 @@ export default function HistoricoPerfis() {
         <div className="rc-users-total"><strong>{total}</strong><span>{total === 1 ? 'alteração' : 'alterações'}</span></div>
       </header>
 
-      <form className="rc-role-history-filters" onSubmit={applyFilters}>
-        <div className="rc-role-history-filter-heading"><span><i className="bi bi-funnel" /></span><div><h2>Filtrar registros</h2><p>Informe o ID do usuário alterado ou do responsável.</p></div></div>
-        <label><span>Usuário alterado</span><input className="form-control" type="number" min="1" inputMode="numeric" placeholder="Ex.: 15" value={draftFilters.targetUserId} onChange={event => setDraftFilters(current => ({ ...current, targetUserId: event.target.value }))} /></label>
-        <label><span>Responsável</span><input className="form-control" type="number" min="1" inputMode="numeric" placeholder="Ex.: 2" value={draftFilters.changedByUserId} onChange={event => setDraftFilters(current => ({ ...current, changedByUserId: event.target.value }))} /></label>
-        <div className="rc-role-history-filter-actions"><button type="button" className="btn btn-outline-secondary" onClick={clearFilters} disabled={!draftFilters.targetUserId && !draftFilters.changedByUserId}>Limpar</button><button type="submit" className="btn btn-primary"><i className="bi bi-search" /> Aplicar filtros</button></div>
-      </form>
+      <section className="rc-role-history-toolbar" aria-label="Ordenação do histórico">
+        <div className="rc-role-history-filter-heading"><span><i className="bi bi-calendar3" /></span><div><h2>Ordenar histórico</h2><p>Escolha a ordem de exibição pela data da alteração.</p></div></div>
+        <label><span>Ordenar por data</span><select className="form-select" value={sort} onChange={changeSort}><option value="newest">Mais recentes primeiro</option><option value="oldest">Mais antigos primeiro</option></select></label>
+      </section>
 
       {error && <div className="alert alert-danger mt-3" role="alert">{error}</div>}
 
@@ -102,10 +90,10 @@ export default function HistoricoPerfis() {
         : <div className="table-responsive"><table className="table rc-role-history-table align-middle mb-0">
           <thead><tr><th>Usuário alterado</th><th>Perfis anteriores</th><th>Novos perfis</th><th>Responsável</th><th>Data e hora</th></tr></thead>
           <tbody>{history.map(item => <tr key={item.id}>
-            <td><div className="rc-role-history-person"><span>{item.targetUsername?.charAt(0).toUpperCase() || '?'}</span><div><strong>{item.targetUsername}</strong><small>ID {item.targetUserId}</small></div></div></td>
+            <td><div className="rc-role-history-person"><span>{item.targetUsername?.charAt(0).toUpperCase() || '?'}</span><strong>{item.targetUsername}</strong></div></td>
             <td><RoleList roles={item.previousRoles} emptyLabel="Sem perfil" /></td>
             <td><RoleList roles={item.newRoles} emptyLabel="Sem perfil" /></td>
-            <td><strong>{item.changedByUsername}</strong><small className="d-block text-muted">ID {item.changedByUserId}</small></td>
+            <td><strong>{item.changedByUsername}</strong></td>
             <td><time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleString('pt-BR')}</time></td>
           </tr>)}</tbody>
         </table></div>}

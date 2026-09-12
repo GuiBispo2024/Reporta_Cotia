@@ -247,15 +247,14 @@ router.get('/access/roles', auth, requirePermission(PERMISSIONS.USERS_MANAGE_ROL
  * /users/access/role-history:
  *   get:
  *     summary: Consulta o histórico de alterações de perfis
- *     description: Requer `audit.view`. Retorna primeiro as alterações mais recentes e permite filtrar pelo usuário alterado ou pelo responsável.
+ *     description: Requer `audit.view`. Permite ordenar o histórico pela data da alteração.
  *     tags: [Usuários]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
  *       - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
- *       - { in: query, name: targetUserId, schema: { type: integer, minimum: 1 }, description: Identificador do usuário que teve os perfis alterados. }
- *       - { in: query, name: changedByUserId, schema: { type: integer, minimum: 1 }, description: Identificador do usuário responsável pela alteração. }
+ *       - { in: query, name: sort, schema: { type: string, enum: [newest, oldest], default: newest }, description: Ordenação pela data da alteração. }
  *     responses:
  *       200:
  *         description: Histórico paginado de alterações de perfis
@@ -269,7 +268,7 @@ router.get('/access/roles', auth, requirePermission(PERMISSIONS.USERS_MANAGE_ROL
  *                     data:
  *                       type: array
  *                       items: { $ref: '#/components/schemas/UserRoleHistory' }
- *       400: { description: Filtro de usuário inválido }
+ *       400: { description: Ordenação inválida }
  *       401: { description: Sessão ausente, expirada ou revogada }
  *       403: { description: Requer a permissão `audit.view` }
  */

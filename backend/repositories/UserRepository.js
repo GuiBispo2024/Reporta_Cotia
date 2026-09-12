@@ -141,18 +141,15 @@ class UserRepository{
         })
     }
 
-    static async findRoleHistory({ page = 1, limit = 20, targetUserId, changedByUserId } = {}) {
-        const where = {}
-        if (targetUserId) where.targetUserId = targetUserId
-        if (changedByUserId) where.changedByUserId = changedByUserId
+    static async findRoleHistory({ page = 1, limit = 20, sort = 'newest' } = {}) {
+        const direction = sort === 'oldest' ? 'ASC' : 'DESC'
 
         const { rows, count } = await UserRoleHistory.findAndCountAll({
-            where,
             attributes: [
-                'id', 'targetUserId', 'targetUsername', 'changedByUserId',
-                'changedByUsername', 'previousRoles', 'newRoles', 'createdAt'
+                'id', 'targetUsername', 'changedByUsername',
+                'previousRoles', 'newRoles', 'createdAt'
             ],
-            order: [['createdAt', 'DESC'], ['id', 'DESC']],
+            order: [['createdAt', direction], ['id', direction]],
             limit,
             offset: (page - 1) * limit
         })

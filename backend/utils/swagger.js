@@ -93,14 +93,12 @@ const options = {
                 UserRoleHistory: {
                     type: 'object',
                     required: [
-                        'id', 'targetUserId', 'targetUsername', 'changedByUserId',
-                        'changedByUsername', 'previousRoles', 'newRoles', 'createdAt'
+                        'id', 'targetUsername', 'changedByUsername',
+                        'previousRoles', 'newRoles', 'createdAt'
                     ],
                     properties: {
                         id: { type: 'integer', example: 25 },
-                        targetUserId: { type: 'integer', example: 10 },
                         targetUsername: { type: 'string', example: 'maria.cotia' },
-                        changedByUserId: { type: 'integer', example: 1 },
                         changedByUsername: { type: 'string', example: 'administrador' },
                         previousRoles: {
                             type: 'array',
