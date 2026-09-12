@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import UserAvatar from '../components/UserAvatar';
+import { getPrimaryRoleLabel, getPrimaryRole } from '../utils/accessControl';
 import userService from '../services/userService';
 import { friendlyError } from '../utils/errorMessage';
 
@@ -38,7 +39,7 @@ export default function Perfil() {
           <div className="rc-profile-cover-content">
             <UserAvatar user={user} className="rc-profile-main-avatar" />
             <div><h1>{user?.username}</h1><p><i className="bi bi-geo-alt-fill me-1" />Cidadão de Cotia</p></div>
-            <span className="rc-profile-role"><i className={`bi ${user?.adm ? "bi-shield-check" : "bi-person-check"}`} />{user?.adm ? "Administrador" : "Usuário comum"}</span>
+            <span className="rc-profile-role"><i className={`bi ${getPrimaryRole(user) === 'ADMIN' ? "bi-shield-check" : "bi-person-check"}`} />{getPrimaryRoleLabel(user)}</span>
           </div>
         </header>
 
@@ -48,7 +49,7 @@ export default function Perfil() {
             <div className="rc-profile-detail-grid">
               <div className="rc-profile-detail"><span className="rc-profile-detail-icon"><i className="bi bi-person" /></span><div><small>Nome de usuário</small><strong>{user?.username}</strong></div></div>
               <div className="rc-profile-detail"><span className="rc-profile-detail-icon"><i className="bi bi-envelope" /></span><div><small>E-mail</small><strong>{user?.email}</strong></div></div>
-              <div className="rc-profile-detail"><span className="rc-profile-detail-icon"><i className="bi bi-patch-check" /></span><div><small>Tipo de conta</small><strong>{user?.adm ? "Administrador" : "Cidadão"}</strong></div></div>
+              <div className="rc-profile-detail"><span className="rc-profile-detail-icon"><i className="bi bi-patch-check" /></span><div><small>Perfil principal</small><strong>{getPrimaryRoleLabel(user)}</strong></div></div>
             </div>
             <section className="rc-danger-zone">
               <div><strong>Excluir conta</strong><p>Esta ação remove permanentemente sua conta e os dados relacionados.</p></div>

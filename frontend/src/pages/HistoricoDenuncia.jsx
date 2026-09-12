@@ -5,6 +5,7 @@ import denunciaService from '../services/denunciaService';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { friendlyError } from '../utils/errorMessage';
+import { hasPermission, PERMISSIONS } from '../utils/accessControl';
 
 const STATUS = {
   pendente: 'Pendente',
@@ -23,9 +24,10 @@ export default function HistoricoDenuncia() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const canViewAudit = hasPermission(user, PERMISSIONS.AUDIT_VIEW);
 
   useEffect(() => {
-    if (!user?.adm) return;
+    if (!canViewAudit) return;
     Promise.all([
       denunciaService.buscarPorId(id),
       denunciaService.buscarHistorico(id)
@@ -36,9 +38,9 @@ export default function HistoricoDenuncia() {
       })
       .catch(err => setError(friendlyError(err, 'Não foi possível carregar a rastreabilidade desta denúncia.')))
       .finally(() => setLoading(false));
-  }, [id, user]);
+  }, [id, canViewAudit]);
 
-  if (!user?.adm) return <div className="container py-5"><div className="alert alert-danger">Apenas administradores podem acessar esta página.</div></div>;
+  if (!canViewAudit) return null;
 
   return (
     <div className="rc-page">

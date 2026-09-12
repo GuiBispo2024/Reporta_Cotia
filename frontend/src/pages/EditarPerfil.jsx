@@ -7,6 +7,7 @@ import userService from "../services/userService";
 import UserAvatar from '../components/UserAvatar';
 import { friendlyError } from '../utils/errorMessage';
 import AvatarCropper from '../components/AvatarCropper';
+import { getPrimaryRoleLabel } from '../utils/accessControl';
 
 export default function EditarPerfil() {
   const { user, setUser, setToken } = useContext(AuthContext);
@@ -91,7 +92,7 @@ export default function EditarPerfil() {
           </div> : <UserAvatar user={user} className="rc-profile-avatar" />}
           <h2>{user?.username}</h2>
           <p>{user?.email}</p>
-          <span className="badge bg-light text-dark">{user?.adm ? "Administrador" : "Cidadão"}</span>
+          <span className="badge bg-light text-dark">{getPrimaryRoleLabel(user)}</span>
           <button className="btn btn-outline-light mt-4" onClick={() => navigate("/perfil")}><i className="bi bi-arrow-left me-2" />Voltar ao perfil</button>
           {!avatarPreview && <label className="btn btn-light btn-sm mt-3 rc-avatar-upload"><i className="bi bi-camera me-2" />Adicionar foto<input type="file" accept="image/*" onChange={escolherAvatar} /></label>}
         </aside>

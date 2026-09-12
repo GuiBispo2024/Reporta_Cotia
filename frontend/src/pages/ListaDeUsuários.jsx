@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import UserAvatar from '../components/UserAvatar'
 import { friendlyError } from '../utils/errorMessage'
+import { hasPermission, PERMISSIONS } from '../utils/accessControl'
 
 const ROLE_LABELS = { CITIZEN: 'Cidadão', MODERATOR: 'Moderador', ANALYST: 'Analista', ADMIN: 'Administrador' }
 const ROLE_ICONS = { CITIZEN: 'bi-person-check', MODERATOR: 'bi-shield-check', ANALYST: 'bi-bar-chart', ADMIN: 'bi-shield-lock' }
@@ -30,7 +31,7 @@ export default function ListaDeUsuários() {
   const [selectedRoles, setSelectedRoles] = useState([])
   const [savingRoles, setSavingRoles] = useState(false)
 
-  const canManageRoles = Boolean(user?.adm || user?.permissions?.includes('users.manage_roles'))
+  const canManageRoles = hasPermission(user, PERMISSIONS.USERS_MANAGE_ROLES)
 
   const carregar = useCallback(async () => {
     try {

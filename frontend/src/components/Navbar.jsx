@@ -2,11 +2,13 @@ import { NavLink, Link } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "../context/authContext";
 import UserAvatar from './UserAvatar';
+import { getPrimaryRoleLabel, hasPermission, PERMISSIONS } from '../utils/accessControl';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useContext(AuthContext);
   const linkClass = ({ isActive }) => `nav-link rc-nav-link${isActive ? " active" : ""}`;
   const sair = () => logout();
+  const canViewModeration = hasPermission(user, PERMISSIONS.MODERATION_VIEW);
 
   return <nav className="navbar navbar-expand-lg navbar-dark rc-navbar sticky-top">
     <div className="container">
@@ -26,10 +28,10 @@ export default function Navbar() {
           </> : <>
             <li className="nav-item"><NavLink className={linkClass} to="/minhas-denuncias"><i className="bi bi-clipboard-check" /> Minhas denúncias</NavLink></li>
             <li className="nav-item"><NavLink className={linkClass} to="/lista-de-usuarios"><i className="bi bi-people" /> Comunidade</NavLink></li>
-            {user?.adm && <li className="nav-item"><NavLink className={({ isActive }) => `nav-link rc-nav-link rc-nav-admin${isActive ? " active" : ""}`} to="/moderacao"><i className="bi bi-shield-check" /> Moderação</NavLink></li>}
+            {canViewModeration && <li className="nav-item"><NavLink className={({ isActive }) => `nav-link rc-nav-link rc-nav-admin${isActive ? " active" : ""}`} to="/moderacao"><i className="bi bi-shield-check" /> Moderação</NavLink></li>}
             <li className="nav-item ms-lg-1"><NavLink className="btn rc-nav-report" to="/nova-denuncia"><i className="bi bi-plus-lg" /> Nova denúncia</NavLink></li>
             <li className="nav-item dropdown ms-lg-2">
-              <button className="btn rc-user-menu dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><UserAvatar user={user} className="rc-nav-avatar" /><span className="rc-nav-user-text"><strong>{user?.username}</strong><small>{user?.adm ? "Administrador" : "Minha conta"}</small></span></button>
+              <button className="btn rc-user-menu dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><UserAvatar user={user} className="rc-nav-avatar" /><span className="rc-nav-user-text"><strong>{user?.username}</strong><small>{getPrimaryRoleLabel(user)}</small></span></button>
               <ul className="dropdown-menu dropdown-menu-end rc-user-dropdown">
                 <li><NavLink className="dropdown-item" to="/perfil"><i className="bi bi-person-circle" /> Meu perfil</NavLink></li>
                 <li><NavLink className="dropdown-item" to={`/usuarios/${user?.id}`}><i className="bi bi-eye" /> Perfil público</NavLink></li>

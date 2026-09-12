@@ -107,6 +107,18 @@ describe('Autorização por permissão nas rotas', () => {
     expect(response.body.denuncia.status).toBe('aprovada')
   })
 
+  test('entrega texto original censurado somente a quem pode revisar', async () => {
+    const [citizenResponse, moderatorResponse] = await Promise.all([
+      request(app).get(`/denuncia/${reportId}/comentarios`).set('Authorization', `Bearer ${citizenToken}`),
+      request(app).get(`/denuncia/${reportId}/comentarios`).set('Authorization', `Bearer ${moderatorToken}`)
+    ])
+
+    expect(citizenResponse.status).toBe(200)
+    expect(citizenResponse.body.comments[0]).not.toHaveProperty('comentarioOriginal')
+    expect(moderatorResponse.status).toBe(200)
+    expect(moderatorResponse.body.comments[0].comentarioOriginal).toBe('termo')
+  })
+
   test('autoriza moderador a revisar censura com censorship.review', async () => {
     const reportResponse = await request(app)
       .patch(`/denuncia/${reportId}/censura`)
