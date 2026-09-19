@@ -75,7 +75,7 @@ export default function DetalheDenuncia() {
         : error ? <div className="alert alert-danger">{error}</div>
         : <article className="rc-detail mx-auto">
           <button className="btn btn-link px-0 mb-3" onClick={() => navigate('/', { replace: true })}>← Voltar para a página inicial</button>
-          <ImageCarousel images={denuncia.imageUrls} fallback={denuncia.imageUrl} alt={`Evidência de ${denuncia.titulo}`} />
+          <ImageCarousel setorResponsavel={denuncia.setorResponsavel} categoria={denuncia.categoria} images={denuncia.imageUrls} fallback={denuncia.imageUrl} alt={`Evidência de ${denuncia.titulo}`} />
           <div className="d-flex flex-wrap justify-content-between gap-2 mt-4">
             <span className="badge rc-category">{denuncia.categoria || "Outros"}</span>
             <span className={`badge ${denuncia.status === "aprovada" ? "bg-success" : denuncia.status === "rejeitada" ? "bg-danger" : "bg-warning text-dark"}`}>

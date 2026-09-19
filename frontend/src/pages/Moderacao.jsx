@@ -205,7 +205,7 @@ export default function Moderacao() {
           {denuncias.map(d => (
             <div className="col-12 col-md-6 col-lg-4" key={d.id}>
               <article className="card rc-card h-100">
-                <ImageCarousel images={d.imageUrls} fallback={d.imageUrl} alt={d.titulo} compact />
+                <ImageCarousel setorResponsavel={d.setorResponsavel} categoria={d.categoria} images={d.imageUrls} fallback={d.imageUrl} alt={d.titulo} compact />
                 <div className="card-body">
                   <span className="badge rc-category mb-2">{d.categoria || "Outros"}</span>
                   <h5 className="fw-bold">{d.titulo}</h5>
@@ -342,7 +342,7 @@ export default function Moderacao() {
           </header>
           <div className="rc-moderation-detail-grid">
             <div className="rc-moderation-detail-content">
-              <ImageCarousel images={selectedReport.imageUrls} fallback={selectedReport.imageUrl} alt={selectedReport.titulo} />
+              <ImageCarousel setorResponsavel={selectedReport.setorResponsavel} categoria={selectedReport.categoria} images={selectedReport.imageUrls} fallback={selectedReport.imageUrl} alt={selectedReport.titulo} />
               <div className="rc-moderation-detail-badges"><span className="badge rc-category">{selectedReport.categoria || 'Outros'}</span><span className={`badge ${selectedReport.status === 'aprovada' ? 'bg-success' : selectedReport.status === 'rejeitada' ? 'bg-danger' : 'bg-warning text-dark'}`}>{selectedReport.status}</span></div>
               <h3>{selectedReport.titulo}</h3>
               <p className="rc-moderation-description">{selectedReport.descricao}</p>

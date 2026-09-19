@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">Serviços públicos</title><desc id="desc">Ilustração de serviço público para ocorrência sem foto.</desc>
+  <rect width="1200" height="675" fill="#f1f5f4"/>
+  <circle cx="1100" cy="80" r="270" fill="#587f85" opacity=".08"/>
+  <circle cx="90" cy="620" r="240" fill="#587f85" opacity=".08"/>
+  <circle cx="600" cy="275" r="150" fill="#587f85" opacity=".12"/>
+  <g transform="translate(600 270)" fill="none" stroke="#587f85" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><path d="M-90-35L0-85l90 50ZM-75-15v75M-25-15v75M25-15v75M75-15v75M-95 80H95M-105 100H105"/></g>
+  <text x="600" y="500" text-anchor="middle" fill="#23434a" font-family="Arial, sans-serif" font-size="42" font-weight="700">Serviços públicos</text>
+  <text x="600" y="550" text-anchor="middle" fill="#5c7276" font-family="Arial, sans-serif" font-size="24">Imagem ilustrativa • Ocorrência sem foto</text>
+</svg>

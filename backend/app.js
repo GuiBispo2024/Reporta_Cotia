@@ -58,6 +58,7 @@ app.use(cors({
 }));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), { maxAge: '7d', immutable: true }));
+app.use('/imagens_padrao', express.static(path.join(__dirname, 'imagens_padrao'), { maxAge: '1d' }));
 
 app.get('/', async (req, res) => {
   try {

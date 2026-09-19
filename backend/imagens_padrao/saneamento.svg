@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">Água e saneamento</title><desc id="desc">Ilustração de serviço público para ocorrência sem foto.</desc>
+  <rect width="1200" height="675" fill="#f1f5f4"/>
+  <circle cx="1100" cy="80" r="270" fill="#438fb0" opacity=".08"/>
+  <circle cx="90" cy="620" r="240" fill="#438fb0" opacity=".08"/>
+  <circle cx="600" cy="275" r="150" fill="#438fb0" opacity=".12"/>
+  <g transform="translate(600 270)" fill="none" stroke="#438fb0" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><path d="M0-90Q-110 25-55 70Q0 110 55 70Q110 25 0-90ZM-35 25q-10 25 20 35"/></g>
+  <text x="600" y="500" text-anchor="middle" fill="#23434a" font-family="Arial, sans-serif" font-size="42" font-weight="700">Água e saneamento</text>
+  <text x="600" y="550" text-anchor="middle" fill="#5c7276" font-family="Arial, sans-serif" font-size="24">Imagem ilustrativa • Ocorrência sem foto</text>
+</svg>

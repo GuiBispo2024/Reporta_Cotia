@@ -100,7 +100,7 @@ const Home = () => {
                 {result.data.map((d) => (
                   <div key={d.id} className="col-12 col-md-6 col-lg-4 rc-report-column">
                     <article className="card rc-card">
-                      <ImageCarousel images={d.imageUrls} fallback={d.imageUrl} alt={`Evidência: ${d.titulo}`} compact />
+                      <ImageCarousel setorResponsavel={d.setorResponsavel} categoria={d.categoria} images={d.imageUrls} fallback={d.imageUrl} alt={`Evidência: ${d.titulo}`} compact />
                       <div className="card-body">
                         <div className="rc-card-topline">
                           <span className="badge rc-category">{d.categoria || "Outros"}</span>

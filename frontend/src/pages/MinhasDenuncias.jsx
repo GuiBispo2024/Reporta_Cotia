@@ -56,7 +56,7 @@ export default function MinhasDenuncias() {
           {denuncias.map(d => (
             <div className="col-12 col-md-6" key={d.id}>
               <article className="card rc-card h-100">
-                <ImageCarousel images={d.imageUrls} fallback={d.imageUrl} alt={d.titulo} compact />
+                <ImageCarousel setorResponsavel={d.setorResponsavel} categoria={d.categoria} images={d.imageUrls} fallback={d.imageUrl} alt={d.titulo} compact />
                 <div className="card-body">
                   <div className="d-flex justify-content-between align-items-start gap-2">
                     <h5 className="fw-bold">{d.titulo}</h5>
