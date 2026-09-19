@@ -1,23 +1,13 @@
-const ShareRepository = require('../repositories/ShareRepository');
-const UserRepository = require('../repositories/UserRepository');
-const DenunciaRepository = require('../repositories/DenunciaRepository');
+const { Share } = require('../models/rel');
+const ShareService = require('../services/ShareService');
 
-module.exports = async () => {
-    console.log('Iniciando seed de compartilhamentos...');
-
-    const users = await UserRepository.findAll();
-    const denuncias = await DenunciaRepository.findAll();
-
-    if (!users.length || !denuncias.length) {
-        throw new Error("Users ou Denúncias não existem para gerar shares.");
+module.exports = async ({ users, reports }) => {
+  for (const key of ['obras', 'limpeza']) {
+    const report = reports[key];
+    if (report.status !== 'aprovada') continue;
+    const data = { denunciaId: report.id, comentario: 'Compartilhando para que os moradores acompanhem o atendimento.' };
+    if (!await Share.findOne({ where: { ...data, userId: users.neighbor.id } })) {
+      await ShareService.compartilhar(data, users.neighbor);
     }
-
-    //Criação de compartilhamento de exemplo
-    await ShareRepository.create({
-        comentario: "Compartilhando para ajudar!",
-        userId: users[0].id,
-        denunciaId: denuncias[0].id
-    })
-    
-    console.log('Seed de compartilhamentos concluída.');
-}
+  }
+};

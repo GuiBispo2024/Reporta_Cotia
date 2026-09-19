@@ -146,11 +146,27 @@ npm run db:migrate
 
 As migrações incluem controle de sessão, perfis e permissões, auditoria das mudanças de acesso, histórico das denúncias, setor responsável, respostas a comentários, tokens e histórico de redefinição de senha e suporte a múltiplas imagens.
 
-Para inserir os dados iniciais:
+Para inserir dados fictícios de demonstração em desenvolvimento, após as migrações:
 
 ```bash
 npm run seed
 ```
+
+O comando cria tabelas ausentes em bancos locais novos, preserva dados existentes e reutiliza os exemplos encontrados por e-mail e por título/autor, sem duplicá-los em execuções consecutivas. Tabelas existentes devem ser atualizadas pelas migrações. Não redefine senhas, perfis ou o andamento de exemplos já existentes. Não execute as seeds simultaneamente. Se o título de um exemplo for alterado, a próxima execução criará novamente o exemplo com o título original.
+
+São criadas cinco contas com a senha `ReportaCotia123!`:
+
+| E-mail | Perfis |
+| --- | --- |
+| `morador@reporta-cotia.example` | Cidadão |
+| `moradora@reporta-cotia.example` | Cidadã |
+| `moderador@reporta-cotia.example` | Cidadão e moderador |
+| `analista@reporta-cotia.example` | Cidadão e analista |
+| `admin@reporta-cotia.example` | Cidadão e administrador |
+
+Os exemplos incluem as oito categorias, denúncias pendentes, aprovadas e rejeitadas, os três estados de resolução, setores responsáveis, históricos de moderação/resolução e de atribuição de perfis, comentários com resposta e censura para revisão, curtidas e compartilhamentos apenas em denúncias aprovadas. Endereços e ocorrências são fictícios. As denúncias ficam sem anexos para utilizar as imagens padrão por setor/categoria, sem gravá-las como fotos do usuário.
+
+As seeds de demonstração são bloqueadas com `NODE_ENV=production`. O catálogo de perfis e permissões também é criado pelas migrações de controle de acesso, sem as contas de demonstração.
 
 Evite `DB_SYNC_ALTER=true` em produção. Prefira migrações versionadas.
 

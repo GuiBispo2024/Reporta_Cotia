@@ -1,22 +1,14 @@
-const LikeRepository = require('../repositories/LikeRepository');
-const UserRepository = require('../repositories/UserRepository');
-const DenunciaRepository = require('../repositories/DenunciaRepository');
+const { Like } = require('../models/rel');
+const LikeService = require('../services/LikeService');
 
-module.exports = async () => {
-    console.log('Iniciando seed de likes...');
-
-    const users = await UserRepository.findAll();
-    const denuncias = await DenunciaRepository.findAll();
-
-    if (!users.length || !denuncias.length) {
-        throw new Error("Users ou Denúncias não existem para gerar likes.");
+module.exports = async ({ users, reports }) => {
+  for (const key of ['obras', 'iluminacao', 'limpeza', 'transito', 'arvore']) {
+    const report = reports[key];
+    if (report.status !== 'aprovada') continue;
+    for (const user of [users.citizen, users.neighbor]) {
+      if (!await Like.findOne({ where: { userId: user.id, denunciaId: report.id } })) {
+        await LikeService.curtir({ denunciaId: report.id }, user);
+      }
     }
-
-    //Criação de like de exemplo
-    await LikeRepository.createOrFind({
-        userId: users[0].id,
-        denunciaId: denuncias[1].id
-    });
-
-    console.log('Seed de likes concluída.');
-}
+  }
+};
