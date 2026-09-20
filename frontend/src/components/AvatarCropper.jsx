@@ -1,3 +1,4 @@
+import useDialogAccessibility from '../hooks/useDialogAccessibility';
 import { useEffect, useRef, useState } from 'react';
 
 const PREVIEW_SIZE = 320;
@@ -19,6 +20,7 @@ function drawCrop(canvas, image, zoom, positionX, positionY, size) {
 }
 
 export default function AvatarCropper({ file, onConfirm, onCancel }) {
+  const dialogRef = useDialogAccessibility(true, () => { if (!saving) onCancel(); });
   const canvasRef = useRef(null);
   const imageRef = useRef(null);
   const [imageUrl, setImageUrl] = useState('');
@@ -62,10 +64,10 @@ export default function AvatarCropper({ file, onConfirm, onCancel }) {
   };
 
   return <div className="rc-cropper-backdrop" role="presentation">
-    <section className="rc-cropper" role="dialog" aria-modal="true" aria-labelledby="avatar-crop-title">
+    <section ref={dialogRef} tabIndex={-1} className="rc-cropper" role="dialog" aria-modal="true" aria-labelledby="avatar-crop-title">
       <div className="rc-cropper-header">
         <div><span className="rc-eyebrow">FOTO DE PERFIL</span><h2 id="avatar-crop-title">Ajuste o enquadramento</h2></div>
-        <button type="button" onClick={onCancel} aria-label="Fechar recorte"><i className="bi bi-x-lg" /></button>
+        <button type="button" onClick={onCancel} aria-label="Fechar recorte"><i aria-hidden="true" className="bi bi-x-lg" /></button>
       </div>
 
       <div className="rc-cropper-preview">
@@ -74,12 +76,12 @@ export default function AvatarCropper({ file, onConfirm, onCancel }) {
       </div>
 
       <div className="rc-cropper-controls">
-        <label><span><i className="bi bi-zoom-in" /> Zoom</span><input type="range" min="1" max="3" step="0.01" value={zoom} onChange={event => setZoom(Number(event.target.value))} /></label>
-        <label><span><i className="bi bi-arrows" /> Posição horizontal</span><input type="range" min="-100" max="100" value={positionX} onChange={event => setPositionX(Number(event.target.value))} /></label>
-        <label><span><i className="bi bi-arrows-vertical" /> Posição vertical</span><input type="range" min="-100" max="100" value={positionY} onChange={event => setPositionY(Number(event.target.value))} /></label>
+        <label><span><i aria-hidden="true" className="bi bi-zoom-in" /> Zoom</span><input type="range" min="1" max="3" step="0.01" value={zoom} onChange={event => setZoom(Number(event.target.value))} /></label>
+        <label><span><i aria-hidden="true" className="bi bi-arrows" /> Posição horizontal</span><input type="range" min="-100" max="100" value={positionX} onChange={event => setPositionX(Number(event.target.value))} /></label>
+        <label><span><i aria-hidden="true" className="bi bi-arrows-vertical" /> Posição vertical</span><input type="range" min="-100" max="100" value={positionY} onChange={event => setPositionY(Number(event.target.value))} /></label>
       </div>
 
-      <p className="rc-cropper-help"><i className="bi bi-info-circle" /> Somente a área exibida no quadrado será usada no perfil.</p>
+      <p className="rc-cropper-help"><i aria-hidden="true" className="bi bi-info-circle" /> Somente a área exibida no quadrado será usada no perfil.</p>
       <div className="rc-cropper-actions">
         <button type="button" className="btn btn-outline-secondary" onClick={onCancel}>Cancelar</button>
         <button type="button" className="btn btn-primary" disabled={!ready || saving} onClick={confirmar}>{saving ? 'Aplicando...' : 'Usar este recorte'}</button>

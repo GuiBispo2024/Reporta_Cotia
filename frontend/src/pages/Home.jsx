@@ -66,7 +66,7 @@ const Home = () => {
   return (
     <div className="rc-page">
       <Navbar />
-      <main className="container py-4 flex-grow-1">
+      <main tabIndex={-1} id="main-content" className="container py-4 flex-grow-1">
         <section className="rc-hero mb-4">
           <div>
             <span className="rc-eyebrow">COTIA • PARTICIPAÇÃO CIDADÃ</span>
@@ -83,9 +83,9 @@ const Home = () => {
         <FilterAndSearch onFilter={aplicarFiltros} />
 
         {loading ? (
-          <div className="text-center py-5"><div className="spinner-border text-primary" /><p className="mt-3">Carregando denúncias...</p></div>
+          <div className="text-center py-5"><div role="status" aria-label="Carregando" className="spinner-border text-primary" /><p className="mt-3">Carregando denúncias...</p></div>
         ) : error ? (
-          <div className="alert alert-danger">{error}</div>
+          <div role="alert" className="alert alert-danger">{error}</div>
         ) : (
           <>
             <div className="d-flex justify-content-between align-items-center mb-3">
@@ -108,10 +108,10 @@ const Home = () => {
                         </div>
                         <h5 className="rc-card-title">{d.titulo}</h5>
                         <p className="rc-card-description">{d.descricao}</p>
-                        <div className="rc-card-location"><i className="bi bi-geo-alt-fill" /><span>{d.localizacao}</span></div>
-                        {d.setorResponsavel && <div className="rc-card-sector"><i className="bi bi-building" /><span><small>Setor responsável</small>{d.setorResponsavel}</span></div>}
-                        <div className="rc-card-meta"><span><i className="bi bi-person-circle" /> {d.User?.username || "Usuário não identificado"}</span><time><i className="bi bi-calendar3" /> {new Date(d.createdAt).toLocaleDateString("pt-BR")}</time></div>
-                        <button className="rc-details-button" onClick={() => navigate(`/denuncia/${d.id}`)}><span>Ver detalhes</span><i className="bi bi-arrow-right" /></button>
+                        <div className="rc-card-location"><i aria-hidden="true" className="bi bi-geo-alt-fill" /><span>{d.localizacao}</span></div>
+                        {d.setorResponsavel && <div className="rc-card-sector"><i aria-hidden="true" className="bi bi-building" /><span><small>Setor responsável</small>{d.setorResponsavel}</span></div>}
+                        <div className="rc-card-meta"><span><i aria-hidden="true" className="bi bi-person-circle" /> {d.User?.username || "Usuário não identificado"}</span><time><i aria-hidden="true" className="bi bi-calendar3" /> {new Date(d.createdAt).toLocaleDateString("pt-BR")}</time></div>
+                        <button className="rc-details-button" onClick={() => navigate(`/denuncia/${d.id}`)}><span>Ver detalhes</span><i aria-hidden="true" className="bi bi-arrow-right" /></button>
                       </div>
                       <div className="card-footer bg-white border-0 rc-card-footer">
                         <Like denunciaId={d.id} initialCount={d.likesCount} initialLiked={d.likedByMe} />

@@ -73,7 +73,7 @@ test('adiciona o perfil de moderador e confirma a atualização', async () => {
   fireEvent.click(within(dialog).getByRole('button', { name: /salvar perfis/i }))
 
   await waitFor(() => expect(userService.updateRoles).toHaveBeenCalledWith(2, ['CITIZEN', 'MODERATOR']))
-  expect(await screen.findByRole('status')).toHaveTextContent('Perfis do usuário atualizados com sucesso.')
+  await waitFor(() => expect(screen.getByText('Perfis do usuário atualizados com sucesso.').closest('[role="status"]')).toBeInTheDocument())
   expect(screen.getByText('Moderador')).toBeInTheDocument()
 })
 

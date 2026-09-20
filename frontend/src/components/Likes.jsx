@@ -59,11 +59,11 @@ export default function Like({ denunciaId, initialCount = 0, initialLiked = fals
     } finally { setUpdating(false); }
   };
 
-  return <div className="rc-social-action" ref={detailsRef}>
-    <button onClick={toggleLike} disabled={updating} className={`btn btn-sm ${curtido ? "btn-primary" : "btn-outline-primary"}`}>
+  return <div className="rc-social-action" ref={detailsRef} onKeyDown={event => { if (event.key === "Escape" && open) { event.stopPropagation(); setOpen(false); detailsRef.current?.querySelector(".rc-social-details-trigger")?.focus(); } }}>
+    <button aria-label={`${curtido ? "Descurtir" : "Curtir"} denúncia, ${count} curtidas`} aria-pressed={curtido} onClick={toggleLike} disabled={updating} className={`btn btn-sm ${curtido ? "btn-primary" : "btn-outline-primary"}`}>
       <i className={`bi ${curtido ? 'bi-hand-thumbs-up-fill' : 'bi-hand-thumbs-up'}`} /> {count}
     </button>
-    {count > 0 && <button className="rc-social-details-trigger" title="Ver quem curtiu" aria-label="Ver quem curtiu" aria-expanded={open} onClick={() => { const next = !open; setOpen(next); if (next && !likes.length) loadLikes(); }}><i className="bi bi-people" /></button>}
+    {count > 0 && <button className="rc-social-details-trigger" title="Ver quem curtiu" aria-label="Ver quem curtiu" aria-expanded={open} onClick={() => { const next = !open; setOpen(next); if (next && !likes.length) loadLikes(); }}><i aria-hidden="true" className="bi bi-people" /></button>}
     {open && <div className="rc-engagement-popover">
       <strong>Quem curtiu</strong>
       <div className="rc-engagement-list">

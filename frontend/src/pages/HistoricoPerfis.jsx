@@ -69,8 +69,8 @@ export default function HistoricoPerfis() {
 
   return <div className="rc-page">
     <Navbar />
-    <main id="main-content" className="container py-4 flex-grow-1">
-      <button type="button" className="btn btn-link px-0 mb-3" onClick={() => navigate('/lista-de-usuarios')}><i className="bi bi-arrow-left me-1" />Voltar para usuários</button>
+    <main tabIndex={-1} id="main-content" className="container py-4 flex-grow-1">
+      <button type="button" className="btn btn-link px-0 mb-3" onClick={() => navigate('/lista-de-usuarios')}><i aria-hidden="true" className="bi bi-arrow-left me-1" />Voltar para usuários</button>
 
       <header className="rc-section-header">
         <div><span className="rc-eyebrow">SEGURANÇA E RASTREABILIDADE</span><h1>Histórico de perfis</h1><p>Acompanhe quem alterou os acessos dos usuários e quais perfis foram modificados.</p></div>
@@ -78,15 +78,15 @@ export default function HistoricoPerfis() {
       </header>
 
       <section className="rc-role-history-toolbar" aria-label="Ordenação do histórico">
-        <div className="rc-role-history-filter-heading"><span><i className="bi bi-calendar3" /></span><div><h2>Ordenar histórico</h2><p>Escolha a ordem de exibição pela data da alteração.</p></div></div>
+        <div className="rc-role-history-filter-heading"><span><i aria-hidden="true" className="bi bi-calendar3" /></span><div><h2>Ordenar histórico</h2><p>Escolha a ordem de exibição pela data da alteração.</p></div></div>
         <label><span>Ordenar por data</span><select className="form-select" value={sort} onChange={changeSort}><option value="newest">Mais recentes primeiro</option><option value="oldest">Mais antigos primeiro</option></select></label>
       </section>
 
       {error && <div className="alert alert-danger mt-3" role="alert">{error}</div>}
 
       <section className="rc-role-history-card mt-3" aria-busy={loading}>
-        {loading ? <div className="text-center py-5"><div className="spinner-border text-primary" /><p className="text-muted mt-3">Carregando histórico...</p></div>
-        : !history.length ? <div className="rc-empty"><i className="bi bi-clock-history" /><strong>Nenhuma alteração encontrada</strong><span>Ajuste os filtros ou aguarde uma mudança de perfil.</span></div>
+        {loading ? <div className="text-center py-5"><div role="status" aria-label="Carregando" className="spinner-border text-primary" /><p className="text-muted mt-3">Carregando histórico...</p></div>
+        : !history.length ? <div className="rc-empty"><i aria-hidden="true" className="bi bi-clock-history" /><strong>Nenhuma alteração encontrada</strong><span>Ajuste os filtros ou aguarde uma mudança de perfil.</span></div>
         : <div className="table-responsive"><table className="table rc-role-history-table align-middle mb-0">
           <thead><tr><th>Usuário alterado</th><th>Perfis anteriores</th><th>Novos perfis</th><th>Responsável</th><th>Data e hora</th></tr></thead>
           <tbody>{history.map(item => <tr key={item.id}>

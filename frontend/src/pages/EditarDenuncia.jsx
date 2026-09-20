@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { useEffect, useState, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import denunciaService from "../services/denunciaService";
@@ -9,6 +10,7 @@ import { friendlyError } from '../utils/errorMessage';
 const CATEGORIAS = ["Buraco e pavimentação","Iluminação pública","Limpeza urbana","Saneamento","Água e esgoto","Trânsito e sinalização","Árvore e área verde","Outros"];
 
 export default function EditarDenuncia() {
+  const accessibilityId = useId();
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
@@ -80,28 +82,28 @@ export default function EditarDenuncia() {
   return (
     <div className="rc-page">
       <Navbar />
-      <main className="container py-4 flex-grow-1">
+      <main tabIndex={-1} id="main-content" className="container py-4 flex-grow-1">
         <div className="rc-form-card mx-auto">
           <span className="rc-eyebrow">CORRIGIR REGISTRO</span>
           <h2 className="fw-bold">Editar denúncia</h2>
 
-          {loading ? <div className="text-center py-5"><div className="spinner-border text-primary" /></div>
-          : error ? <div className="alert alert-danger">{error}</div>
-          : !user?.id ? <div className="alert alert-danger">Você precisa estar logado.</div>
-          : Number(denuncia.userId) !== Number(user.id) ? <div className="alert alert-danger">Apenas o autor pode editar esta denúncia.</div>
+          {loading ? <div className="text-center py-5"><div role="status" aria-label="Carregando" className="spinner-border text-primary" /></div>
+          : error ? <div role="alert" className="alert alert-danger">{error}</div>
+          : !user?.id ? <div role="alert" className="alert alert-danger">Você precisa estar logado.</div>
+          : Number(denuncia.userId) !== Number(user.id) ? <div role="alert" className="alert alert-danger">Apenas o autor pode editar esta denúncia.</div>
           : denuncia.status !== "rejeitada" ? <div className="alert alert-warning">Apenas denúncias rejeitadas podem ser editadas.</div>
           : <form onSubmit={submit}>
-            <div className="mb-3"><label className="form-label fw-semibold">Título</label><input className="form-control" name="titulo" value={form.titulo} onChange={change} required /></div>
+            <div className="mb-3"><label htmlFor={`${accessibilityId}-field-1`} className="form-label fw-semibold">Título</label><input id={`${accessibilityId}-field-1`} className="form-control" name="titulo" value={form.titulo} onChange={change} required /></div>
             <div className="row g-3">
-              <div className="col-md-6"><label className="form-label fw-semibold">Categoria</label><select className="form-select" name="categoria" value={form.categoria} onChange={change}>{CATEGORIAS.map(c => <option key={c}>{c}</option>)}</select></div>
-              <div className="col-md-6"><label className="form-label fw-semibold">Localização</label><input className="form-control" name="localizacao" value={form.localizacao} onChange={change} required /></div>
+              <div className="col-md-6"><label htmlFor={`${accessibilityId}-field-2`} className="form-label fw-semibold">Categoria</label><select id={`${accessibilityId}-field-2`} className="form-select" name="categoria" value={form.categoria} onChange={change}>{CATEGORIAS.map(c => <option key={c}>{c}</option>)}</select></div>
+              <div className="col-md-6"><label htmlFor={`${accessibilityId}-field-3`} className="form-label fw-semibold">Localização</label><input id={`${accessibilityId}-field-3`} className="form-control" name="localizacao" value={form.localizacao} onChange={change} required /></div>
             </div>
-            <div className="mb-3 mt-3"><label className="form-label fw-semibold">Descrição</label><textarea className="form-control" rows="5" name="descricao" value={form.descricao} onChange={change} required /></div>
+            <div className="mb-3 mt-3"><label htmlFor={`${accessibilityId}-field-4`} className="form-label fw-semibold">Descrição</label><textarea id={`${accessibilityId}-field-4`} className="form-control" rows="5" name="descricao" value={form.descricao} onChange={change} required /></div>
             <div className="row g-3 mb-4">
-              <div className="col-6"><label className="form-label small">Latitude</label><input className="form-control" name="latitude" value={form.latitude} onChange={change} /></div>
-              <div className="col-6"><label className="form-label small">Longitude</label><input className="form-control" name="longitude" value={form.longitude} onChange={change} /></div>
+              <div className="col-6"><label htmlFor={`${accessibilityId}-field-5`} className="form-label small">Latitude</label><input id={`${accessibilityId}-field-5`} className="form-control" name="latitude" value={form.latitude} onChange={change} /></div>
+              <div className="col-6"><label htmlFor={`${accessibilityId}-field-6`} className="form-label small">Longitude</label><input id={`${accessibilityId}-field-6`} className="form-control" name="longitude" value={form.longitude} onChange={change} /></div>
             </div>
-            <div className="mb-4"><label className="form-label fw-semibold">Imagens da denúncia <span className="text-muted fw-normal">(até 4)</span></label><input className="form-control" type="file" accept="image/*" multiple onChange={escolherImagem} /><small className="text-muted d-block mt-1">Ao selecionar novos arquivos, o conjunto anterior será substituído.</small>{!!previews.length && <div className="rc-upload-gallery mt-3">{previews.map((preview, index) => <div key={preview}><img src={preview} alt={`Imagem ${index + 1}`} /><button type="button" onClick={() => removerImagem(index)} aria-label={`Remover imagem ${index + 1}`}><i className="bi bi-x-lg" /></button></div>)}</div>}{removeImages && !previews.length && <small className="text-muted d-block mt-2">As imagens atuais serão removidas ao salvar.</small>}</div>
+            <div className="mb-4"><label htmlFor={`${accessibilityId}-field-7`} className="form-label fw-semibold">Imagens da denúncia <span className="text-muted fw-normal">(até 4)</span></label><input id={`${accessibilityId}-field-7`} className="form-control" type="file" accept="image/*" multiple onChange={escolherImagem} /><small className="text-muted d-block mt-1">Ao selecionar novos arquivos, o conjunto anterior será substituído.</small>{!!previews.length && <div className="rc-upload-gallery mt-3">{previews.map((preview, index) => <div key={preview}><img src={preview} alt={`Imagem ${index + 1}`} /><button type="button" onClick={() => removerImagem(index)} aria-label={`Remover imagem ${index + 1}`}><i aria-hidden="true" className="bi bi-x-lg" /></button></div>)}</div>}{removeImages && !previews.length && <small className="text-muted d-block mt-2">As imagens atuais serão removidas ao salvar.</small>}</div>
             <button className="btn btn-primary w-100">Reenviar para moderação</button>
           </form>}
         </div>

@@ -25,11 +25,11 @@ export default function PerfilPublico() {
     return () => { active = false; };
   }, [id]);
 
-  return <div className="rc-page"><Navbar /><main className="container py-4 flex-grow-1">
-    {loading ? <div className="text-center py-5"><div className="spinner-border text-primary" /></div> : error ? <div className="alert alert-danger">{error}</div> : <>
+  return <div className="rc-page"><Navbar /><main tabIndex={-1} id="main-content" className="container py-4 flex-grow-1">
+    {loading ? <div className="text-center py-5"><div role="status" aria-label="Carregando" className="spinner-border text-primary" /></div> : error ? <div role="alert" className="alert alert-danger">{error}</div> : <>
       <header className="rc-public-profile"><UserAvatar user={profile} className="rc-profile-main-avatar" /><div><span className="rc-eyebrow">PERFIL PÚBLICO</span><h1>{profile.username}</h1><p>{getPrimaryRoleLabel(profile)} · {reports.length} contribuições públicas nesta página</p></div></header>
       <h2 className="h4 fw-bold my-4">Denúncias publicadas</h2>
-      {!reports.length ? <div className="rc-empty">Este usuário ainda não possui denúncias aprovadas.</div> : <div className="row g-3">{reports.map(report => <div className="col-12 col-md-6" key={report.id}><Link className="rc-public-report" to={`/denuncia/${report.id}`}><strong>{report.titulo}</strong><span><i className="bi bi-geo-alt" /> {report.localizacao}</span><small>{report.likesCount || 0} curtidas · {report.commentsCount || 0} comentários</small></Link></div>)}</div>}
+      {!reports.length ? <div className="rc-empty">Este usuário ainda não possui denúncias aprovadas.</div> : <div className="row g-3">{reports.map(report => <div className="col-12 col-md-6" key={report.id}><Link className="rc-public-report" to={`/denuncia/${report.id}`}><strong>{report.titulo}</strong><span><i aria-hidden="true" className="bi bi-geo-alt" /> {report.localizacao}</span><small>{report.likesCount || 0} curtidas · {report.commentsCount || 0} comentários</small></Link></div>)}</div>}
     </>}
   </main><Footer /></div>;
 }

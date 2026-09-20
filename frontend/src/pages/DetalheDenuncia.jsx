@@ -77,9 +77,9 @@ export default function DetalheDenuncia() {
   return (
     <div className="rc-page">
       <Navbar />
-      <main className="container py-4 flex-grow-1">
-        {loading ? <div className="text-center py-5"><div className="spinner-border text-primary" /></div>
-        : error ? <div className="alert alert-danger">{error}</div>
+      <main tabIndex={-1} id="main-content" className="container py-4 flex-grow-1">
+        {loading ? <div className="text-center py-5"><div role="status" aria-label="Carregando" className="spinner-border text-primary" /></div>
+        : error ? <div role="alert" className="alert alert-danger">{error}</div>
         : <article className="rc-detail mx-auto">
           <button className="btn btn-link px-0 mb-3" onClick={() => navigate('/', { replace: true })}>← Voltar para a página inicial</button>
           <ImageCarousel setorResponsavel={denuncia.setorResponsavel} categoria={denuncia.categoria} images={denuncia.imageUrls} fallback={denuncia.imageUrl} alt={`Evidência de ${denuncia.titulo}`} />
@@ -91,7 +91,7 @@ export default function DetalheDenuncia() {
           </div>
           <h1 className="fw-bold mt-3">{denuncia.titulo}</h1>
           <p className="lead text-secondary">{denuncia.descricao}</p>
-          <div className="rc-detail-location"><span><i className="bi bi-geo-alt-fill" /></span><div><small>Localização da denúncia</small><strong>{resolvedAddress || denuncia.localizacao || 'Endereço não informado'}</strong></div></div>
+          <div className="rc-detail-location"><span><i aria-hidden="true" className="bi bi-geo-alt-fill" /></span><div><small>Localização da denúncia</small><strong>{resolvedAddress || denuncia.localizacao || 'Endereço não informado'}</strong></div></div>
 
           <section className="rc-detail-engagement mt-4" aria-labelledby="detail-engagement-title">
             <div>
@@ -99,8 +99,8 @@ export default function DetalheDenuncia() {
               <p>Veja todas as pessoas que apoiaram ou compartilharam esta publicação.</p>
             </div>
             <nav aria-label="Históricos da denúncia">
-              <Link to={`/denuncia/${id}/curtidas`}><i className="bi bi-hand-thumbs-up-fill" /><span><strong>Histórico de curtidas</strong><small>Ver todas as curtidas</small></span><i className="bi bi-chevron-right" /></Link>
-              <Link to={`/denuncia/${id}/compartilhamentos`}><i className="bi bi-share-fill" /><span><strong>Histórico de compartilhamentos</strong><small>Ver todos os compartilhamentos</small></span><i className="bi bi-chevron-right" /></Link>
+              <Link to={`/denuncia/${id}/curtidas`}><i aria-hidden="true" className="bi bi-hand-thumbs-up-fill" /><span><strong>Histórico de curtidas</strong><small>Ver todas as curtidas</small></span><i aria-hidden="true" className="bi bi-chevron-right" /></Link>
+              <Link to={`/denuncia/${id}/compartilhamentos`}><i aria-hidden="true" className="bi bi-share-fill" /><span><strong>Histórico de compartilhamentos</strong><small>Ver todos os compartilhamentos</small></span><i aria-hidden="true" className="bi bi-chevron-right" /></Link>
             </nav>
             {denuncia.status === 'aprovada' && <div className="rc-detail-social-actions"><Like denunciaId={denuncia.id} initialCount={denuncia.likesCount} initialLiked={denuncia.likedByMe} /><Compartilhar denunciaId={denuncia.id} titulo={denuncia.titulo} initialCount={denuncia.sharesCount} /></div>}
           </section>
@@ -109,7 +109,7 @@ export default function DetalheDenuncia() {
             <section className="rc-progress mt-4">
               <h5 className="fw-bold">Acompanhamento da solução</h5>
               <ResolutionTimeline status={denuncia.resolucaoStatus} />
-              {denuncia.setorResponsavel && <div className="rc-responsible-sector"><i className="bi bi-building" /><div><small>Setor responsável</small><strong>{denuncia.setorResponsavel}</strong></div></div>}
+              {denuncia.setorResponsavel && <div className="rc-responsible-sector"><i aria-hidden="true" className="bi bi-building" /><div><small>Setor responsável</small><strong>{denuncia.setorResponsavel}</strong></div></div>}
               {denuncia.resolucaoAtualizadaEm && (
                 <small className="text-muted">Última atualização: {new Date(denuncia.resolucaoAtualizadaEm).toLocaleString("pt-BR")}</small>
               )}
@@ -119,12 +119,12 @@ export default function DetalheDenuncia() {
 
           {mapUrl ? (
             <section className="rc-map-section mt-4">
-              <div className="rc-map-header"><div><h2><i className="bi bi-map me-2" />Local do problema</h2><p>Visualize a localização sem sair do Reporta Cotia.</p></div><span className="rc-map-coordinates">{Number(denuncia.latitude).toFixed(5)}, {Number(denuncia.longitude).toFixed(5)}</span></div>
+              <div className="rc-map-header"><div><h2><i aria-hidden="true" className="bi bi-map me-2" />Local do problema</h2><p>Visualize a localização sem sair do Reporta Cotia.</p></div><span className="rc-map-coordinates">{Number(denuncia.latitude).toFixed(5)}, {Number(denuncia.longitude).toFixed(5)}</span></div>
               <iframe className="rc-map-frame" src={mapUrl} title={`Mapa da localização de ${denuncia.titulo}`} loading="lazy" referrerPolicy="no-referrer" />
-              <div className="rc-map-caption"><i className="bi bi-geo-alt-fill" /><span>{resolvedAddress || denuncia.localizacao}</span><small>Mapa fornecido pelo OpenStreetMap</small></div>
+              <div className="rc-map-caption"><i aria-hidden="true" className="bi bi-geo-alt-fill" /><span>{resolvedAddress || denuncia.localizacao}</span><small>Mapa fornecido pelo OpenStreetMap</small></div>
             </section>
           ) : (
-            <div className="rc-map-unavailable mt-4"><i className="bi bi-map" /><div><strong>Mapa indisponível</strong><span>Esta denúncia não possui coordenadas geográficas.</span></div></div>
+            <div className="rc-map-unavailable mt-4"><i aria-hidden="true" className="bi bi-map" /><div><strong>Mapa indisponível</strong><span>Esta denúncia não possui coordenadas geográficas.</span></div></div>
           )}
 
           {denuncia.status === 'aprovada' && (

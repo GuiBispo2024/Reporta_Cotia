@@ -12,9 +12,9 @@ const PrivateRoute = ({ children, permission }) => {
   if (permission && !hasPermission(user, permission)) {
     return <div className="rc-page">
       <Navbar />
-      <main className="container py-5 flex-grow-1">
+      <main tabIndex={-1} id="main-content" className="container py-5 flex-grow-1">
         <section className="rc-access-denied" role="alert">
-          <span><i className="bi bi-shield-lock" /></span>
+          <span><i aria-hidden="true" className="bi bi-shield-lock" /></span>
           <h1>Acesso não disponível</h1>
           <p>Sua conta não possui o perfil necessário para acessar esta área.</p>
           <Link className="btn btn-primary" to="/">Voltar ao início</Link>

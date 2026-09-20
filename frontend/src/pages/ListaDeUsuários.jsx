@@ -1,3 +1,4 @@
+import useDialogAccessibility from '../hooks/useDialogAccessibility';
 import { useCallback, useEffect, useMemo, useState, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import userService from '../services/userService'
@@ -78,6 +79,8 @@ export default function ListaDeUsuários() {
     setSelectedRoles([])
   }
 
+  const dialogRef = useDialogAccessibility(!!selectedUser, fecharPerfis);
+
   const alternarPerfil = roleName => {
     const isOwnAdmin = Number(selectedUser?.id) === Number(user?.id) && roleName === 'ADMIN'
     if (roleName === 'CITIZEN' || isOwnAdmin) return
@@ -103,25 +106,25 @@ export default function ListaDeUsuários() {
 
   return <div className="rc-page">
     <Navbar />
-    <main className="container py-4 flex-grow-1">
+    <main tabIndex={-1} id="main-content" className="container py-4 flex-grow-1">
       <header className="rc-section-header">
         <div><span className="rc-eyebrow">COMUNIDADE</span><h1>Usuários do Reporta Cotia</h1><p>Conheça quem participa e quantas denúncias aprovadas cada pessoa publicou.</p></div>
         <div className="rc-section-header-actions">
-          {canViewAudit && <button type="button" className="btn rc-audit-link" onClick={() => navigate('/administracao/historico-perfis')}><i className="bi bi-clock-history" /> Histórico de perfis</button>}
+          {canViewAudit && <button type="button" className="btn rc-audit-link" onClick={() => navigate('/administracao/historico-perfis')}><i aria-hidden="true" className="bi bi-clock-history" /> Histórico de perfis</button>}
           <div className="rc-users-total"><strong>{totalUsers}</strong><span>participantes</span></div>
         </div>
       </header>
 
-      {notice && <div className="alert alert-success rc-users-message" role="status"><i className="bi bi-check-circle" />{notice}<button type="button" aria-label="Fechar mensagem" onClick={() => setNotice('')}><i className="bi bi-x" /></button></div>}
-      {error && <div className="alert alert-danger">{error}</div>}
+      {notice && <div className="alert alert-success rc-users-message" role="status"><i aria-hidden="true" className="bi bi-check-circle" />{notice}<button type="button" aria-label="Fechar mensagem" onClick={() => setNotice('')}><i aria-hidden="true" className="bi bi-x" /></button></div>}
+      {error && <div role="alert" className="alert alert-danger">{error}</div>}
       {canManageRoles && rolesError && !selectedUser && <div className="alert alert-warning">{rolesError}</div>}
 
       <div className="rc-community-filters">
-        <div className="rc-community-search"><i className="bi bi-search" /><input className="form-control" placeholder="Buscar participante" aria-label="Buscar participante" value={search} onChange={event => { setPage(1); setSearch(event.target.value) }} /></div>
+        <div className="rc-community-search"><i aria-hidden="true" className="bi bi-search" /><input className="form-control" placeholder="Buscar participante" aria-label="Buscar participante" value={search} onChange={event => { setPage(1); setSearch(event.target.value) }} /></div>
         <select className="form-select" aria-label="Ordenar participantes" value={sort} onChange={event => { setPage(1); setSort(event.target.value) }}><option value="username">Ordenar por nome</option><option value="contributions">Mais contribuições</option></select>
       </div>
 
-      {loading ? <div className="text-center py-5"><div className="spinner-border text-primary" /><p className="text-muted mt-3">Carregando participantes...</p></div> : !users.length ? <div className="rc-empty">Nenhum usuário encontrado.</div> :
+      {loading ? <div className="text-center py-5"><div role="status" aria-label="Carregando" className="spinner-border text-primary" /><p className="text-muted mt-3">Carregando participantes...</p></div> : !users.length ? <div className="rc-empty">Nenhum usuário encontrado.</div> :
       <div className="rc-users-card"><div className="table-responsive"><table className="table rc-users-table align-middle mb-0">
         <thead><tr><th>Participante</th>{canManageRoles && <th>E-mail</th>}<th>Contribuições</th><th>Perfis</th>{canManageRoles && <th className="text-end">Ações</th>}</tr></thead>
         <tbody>{users.map(item => {
@@ -129,9 +132,9 @@ export default function ListaDeUsuários() {
           return <tr key={item.id}>
             <td><button className="rc-user-cell rc-user-profile-link" onClick={() => navigate(`/usuarios/${item.id}`)}><UserAvatar user={item} className="rc-user-avatar" /><strong>{item.username}</strong>{Number(item.id) === Number(user?.id) && <span className="rc-you-badge">Você</span>}</button></td>
             {canManageRoles && <td className="text-muted">{item.email}</td>}
-            <td><span className="rc-contribution"><i className="bi bi-megaphone" /> {item.totalDenuncias || 0}</span></td>
+            <td><span className="rc-contribution"><i aria-hidden="true" className="bi bi-megaphone" /> {item.totalDenuncias || 0}</span></td>
             <td><div className="rc-role-badges">{(itemRoles.length ? itemRoles : ['CITIZEN']).map(role => <span className={`rc-role-badge is-${role.toLowerCase()}`} key={role}>{ROLE_LABELS[role] || role}</span>)}</div></td>
-            {canManageRoles && <td className="text-end"><button className="btn btn-sm btn-outline-primary rc-manage-roles-button" disabled={rolesLoading || !availableRoles.length} onClick={() => abrirPerfis(item)}><i className="bi bi-person-gear" />{rolesLoading ? 'Carregando...' : 'Gerenciar perfis'}</button></td>}
+            {canManageRoles && <td className="text-end"><button className="btn btn-sm btn-outline-primary rc-manage-roles-button" disabled={rolesLoading || !availableRoles.length} onClick={() => abrirPerfis(item)}><i aria-hidden="true" className="bi bi-person-gear" />{rolesLoading ? 'Carregando...' : 'Gerenciar perfis'}</button></td>}
           </tr>
         })}</tbody>
       </table></div></div>}
@@ -140,21 +143,21 @@ export default function ListaDeUsuários() {
     </main>
 
     {selectedUser && <div className="rc-role-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) fecharPerfis() }}>
-      <section className="rc-role-modal" role="dialog" aria-modal="true" aria-labelledby="role-modal-title">
-        <header><div className="rc-role-modal-user"><UserAvatar user={selectedUser} className="rc-user-avatar" /><div><span>Gerenciar acesso</span><h2 id="role-modal-title">{selectedUser.username}</h2></div></div><button type="button" className="rc-role-modal-close" aria-label="Fechar" onClick={fecharPerfis}><i className="bi bi-x-lg" /></button></header>
+      <section ref={dialogRef} tabIndex={-1} className="rc-role-modal" role="dialog" aria-modal="true" aria-labelledby="role-modal-title">
+        <header><div className="rc-role-modal-user"><UserAvatar user={selectedUser} className="rc-user-avatar" /><div><span>Gerenciar acesso</span><h2 id="role-modal-title">{selectedUser.username}</h2></div></div><button type="button" className="rc-role-modal-close" aria-label="Fechar" onClick={fecharPerfis}><i aria-hidden="true" className="bi bi-x-lg" /></button></header>
         <p className="rc-role-modal-help">Selecione os perfis adequados às responsabilidades deste usuário. As permissões são aplicadas imediatamente.</p>
-        {rolesError && <div className="alert alert-danger">{rolesError}</div>}
+        {rolesError && <div role="alert" className="alert alert-danger">{rolesError}</div>}
         <div className="rc-role-options">{availableRoles.map(role => {
           const checked = selectedRoles.includes(role.name)
           const locked = role.name === 'CITIZEN' || (Number(selectedUser.id) === Number(user?.id) && role.name === 'ADMIN' && checked)
           return <label className={`rc-role-option ${checked ? 'is-selected' : ''} ${locked ? 'is-locked' : ''}`} key={role.name}>
             <input type="checkbox" checked={checked} disabled={locked || savingRoles} onChange={() => alternarPerfil(role.name)} />
             <span className="rc-role-option-icon"><i className={`bi ${ROLE_ICONS[role.name] || 'bi-person'}`} /></span>
-            <span className="rc-role-option-text"><strong>{ROLE_LABELS[role.name] || role.name}</strong><small>{role.description}</small>{locked && <em><i className="bi bi-lock" /> {role.name === 'CITIZEN' ? 'Perfil básico obrigatório' : 'Sua administração está protegida'}</em>}</span>
+            <span className="rc-role-option-text"><strong>{ROLE_LABELS[role.name] || role.name}</strong><small>{role.description}</small>{locked && <em><i aria-hidden="true" className="bi bi-lock" /> {role.name === 'CITIZEN' ? 'Perfil básico obrigatório' : 'Sua administração está protegida'}</em>}</span>
             <span className="rc-role-option-check"><i className={`bi ${checked ? 'bi-check-circle-fill' : 'bi-circle'}`} /></span>
           </label>
         })}</div>
-        <footer><button type="button" className="btn btn-outline-secondary" disabled={savingRoles} onClick={fecharPerfis}>Cancelar</button><button type="button" className="btn btn-primary" disabled={!hasChanges || savingRoles} onClick={salvarPerfis}>{savingRoles ? <><span className="spinner-border spinner-border-sm" /> Salvando...</> : <><i className="bi bi-check2" /> Salvar perfis</>}</button></footer>
+        <footer><button type="button" className="btn btn-outline-secondary" disabled={savingRoles} onClick={fecharPerfis}>Cancelar</button><button type="button" className="btn btn-primary" disabled={!hasChanges || savingRoles} onClick={salvarPerfis}>{savingRoles ? <><span role="status" aria-label="Carregando" className="spinner-border spinner-border-sm" /> Salvando...</> : <><i aria-hidden="true" className="bi bi-check2" /> Salvar perfis</>}</button></footer>
       </section>
     </div>}
     <Footer />

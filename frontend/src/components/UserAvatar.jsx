@@ -11,6 +11,6 @@ export default function UserAvatar({ user, className = '', alt, fallbackClassNam
   }
 
   return <span className={`${className} ${fallbackClassName}`} aria-label={alt || `Avatar de ${user?.username || 'usuário'}`}>
-    {user?.username?.charAt(0).toUpperCase() || <i className="bi bi-person" />}
+    {user?.username?.charAt(0).toUpperCase() || <i aria-hidden="true" className="bi bi-person" />}
   </span>;
 }

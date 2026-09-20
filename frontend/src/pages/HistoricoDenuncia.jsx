@@ -45,16 +45,16 @@ export default function HistoricoDenuncia() {
   return (
     <div className="rc-page">
       <Navbar />
-      <main className="container py-4 flex-grow-1">
-        <button className="btn btn-link px-0 mb-3" onClick={() => navigate('/moderacao')}><i className="bi bi-arrow-left me-1" />Voltar para a moderação</button>
+      <main tabIndex={-1} id="main-content" className="container py-4 flex-grow-1">
+        <button className="btn btn-link px-0 mb-3" onClick={() => navigate('/moderacao')}><i aria-hidden="true" className="bi bi-arrow-left me-1" />Voltar para a moderação</button>
 
         <header className="rc-history-page-header">
           <div><span className="rc-eyebrow">RASTREABILIDADE ADMINISTRATIVA</span><h1>Histórico de alterações</h1><p>Consulte todas as decisões registradas para esta denúncia.</p></div>
           {denuncia && <span className="badge rc-category">Denúncia #{denuncia.id}</span>}
         </header>
 
-        {loading ? <div className="text-center py-5"><div className="spinner-border text-primary" /></div>
-        : error ? <div className="alert alert-danger">{error}</div>
+        {loading ? <div className="text-center py-5"><div role="status" aria-label="Carregando" className="spinner-border text-primary" /></div>
+        : error ? <div role="alert" className="alert alert-danger">{error}</div>
         : <>
           <section className="rc-history-report-summary">
             <div><small>Denúncia</small><strong>{denuncia.titulo}</strong><span>{denuncia.localizacao}</span></div>
@@ -64,7 +64,7 @@ export default function HistoricoDenuncia() {
           </section>
 
           <section className="rc-history-page-table mt-4">
-            <div className="rc-history-table-title"><div><h2>Registros encontrados</h2><p>{history.length} {history.length === 1 ? 'alteração registrada' : 'alterações registradas'}</p></div><i className="bi bi-clock-history" /></div>
+            <div className="rc-history-table-title"><div><h2>Registros encontrados</h2><p>{history.length} {history.length === 1 ? 'alteração registrada' : 'alterações registradas'}</p></div><i aria-hidden="true" className="bi bi-clock-history" /></div>
             {!history.length ? <div className="rc-empty">Esta denúncia ainda não possui alterações registradas.</div>
             : <div className="table-responsive"><table className="table align-middle mb-0">
               <thead><tr><th>Tipo</th><th>Status anterior</th><th>Status novo</th><th>Motivo</th><th>Setor responsável</th><th>Administrador</th><th>Data e hora</th></tr></thead>

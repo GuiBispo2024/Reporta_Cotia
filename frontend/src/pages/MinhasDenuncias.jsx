@@ -42,15 +42,15 @@ export default function MinhasDenuncias() {
   return (
     <div className="rc-page">
       <Navbar />
-      <main className="container py-4 flex-grow-1">
+      <main tabIndex={-1} id="main-content" className="container py-4 flex-grow-1">
         <div className="text-center mb-4">
           <span className="rc-eyebrow">ACOMPANHAMENTO</span>
           <h2 className="fw-bold">Minhas denúncias</h2>
           <p className="text-muted">Acompanhe a moderação e o progresso dos problemas que você registrou.</p>
         </div>
 
-        {loading ? <div className="text-center py-5"><div className="spinner-border text-primary" /></div>
-        : error ? <div className="alert alert-danger">{error}</div>
+        {loading ? <div className="text-center py-5"><div role="status" aria-label="Carregando" className="spinner-border text-primary" /></div>
+        : error ? <div role="alert" className="alert alert-danger">{error}</div>
         : denuncias.length === 0 ? <div className="rc-empty">Você ainda não fez nenhuma denúncia.</div>
         : <div className="row g-4">
           {denuncias.map(d => (
@@ -65,14 +65,14 @@ export default function MinhasDenuncias() {
                     </span>
                   </div>
                   <p className="text-secondary">{d.descricao}</p>
-                  <p><i className="bi bi-geo-alt" /> {d.localizacao}</p>
+                  <p><i aria-hidden="true" className="bi bi-geo-alt" /> {d.localizacao}</p>
 
                   {d.status === "aprovada" && (
                     <>
                       <hr />
                       <div className="small text-muted mb-2">Progresso da solução</div>
                       <ResolutionTimeline status={d.resolucaoStatus} />
-                      {d.setorResponsavel && <p className="small mt-2 mb-0"><i className="bi bi-building me-1" /><strong>Setor responsável:</strong> {d.setorResponsavel}</p>}
+                      {d.setorResponsavel && <p className="small mt-2 mb-0"><i aria-hidden="true" className="bi bi-building me-1" /><strong>Setor responsável:</strong> {d.setorResponsavel}</p>}
                     </>
                   )}
 

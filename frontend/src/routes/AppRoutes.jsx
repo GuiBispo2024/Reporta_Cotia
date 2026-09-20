@@ -19,10 +19,12 @@ import HistoricoPerfis from '../pages/HistoricoPerfis.jsx';
 import EsqueciSenha from '../pages/EsqueciSenha.jsx';
 import RedefinirSenha from '../pages/RedefinirSenha.jsx';
 import { PERMISSIONS } from '../utils/accessControl';
+import RouteAccessibility from '../components/RouteAccessibility';
 
 function AppRoutes() {
     return(
         <Router>
+            <RouteAccessibility />
             <Routes>
                 <Route path="/" element={<Home/>}/>
                 <Route path="/login" element={<Login/>}/>

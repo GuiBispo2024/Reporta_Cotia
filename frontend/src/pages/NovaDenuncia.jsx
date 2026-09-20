@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import denunciaService from "../services/denunciaService";
@@ -13,6 +14,7 @@ const CATEGORIAS = [
 ];
 
 export default function NovaDenuncia() {
+  const accessibilityId = useId();
   const navigate = useNavigate();
   const [form, setForm] = useState({ titulo: "", descricao: "", localizacao: "", categoria: "Outros", latitude: "", longitude: "" });
   const [imagens, setImagens] = useState([]);
@@ -91,7 +93,7 @@ export default function NovaDenuncia() {
   return (
     <div className="rc-page">
       <Navbar />
-      <main className="container py-4 flex-grow-1">
+      <main tabIndex={-1} id="main-content" className="container py-4 flex-grow-1">
         <div className="rc-form-card mx-auto">
           <span className="rc-eyebrow">NOVO REGISTRO</span>
           <h2 className="fw-bold mb-2">O que precisa ser melhorado?</h2>
@@ -99,31 +101,31 @@ export default function NovaDenuncia() {
 
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
-              <label className="form-label fw-semibold">Título</label>
-              <input className="form-control" name="titulo" maxLength="120" placeholder="Ex.: Buraco grande na via" value={form.titulo} onChange={change} required />
+              <label htmlFor={`${accessibilityId}-field-1`} className="form-label fw-semibold">Título</label>
+              <input id={`${accessibilityId}-field-1`} className="form-control" name="titulo" maxLength="120" placeholder="Ex.: Buraco grande na via" value={form.titulo} onChange={change} required />
             </div>
 
             <div className="row g-3">
               <div className="col-md-6">
-                <label className="form-label fw-semibold">Categoria</label>
-                <select className="form-select" name="categoria" value={form.categoria} onChange={change}>
+                <label htmlFor={`${accessibilityId}-field-2`} className="form-label fw-semibold">Categoria</label>
+                <select id={`${accessibilityId}-field-2`} className="form-select" name="categoria" value={form.categoria} onChange={change}>
                   {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
                 </select>
               </div>
               <div className="col-md-6">
-                <label className="form-label fw-semibold">Localização</label>
-                <input className="form-control" name="localizacao" placeholder="Rua, número ou referência" value={form.localizacao} onChange={change} required />
+                <label htmlFor={`${accessibilityId}-field-3`} className="form-label fw-semibold">Localização</label>
+                <input id={`${accessibilityId}-field-3`} className="form-control" name="localizacao" placeholder="Rua, número ou referência" value={form.localizacao} onChange={change} required />
               </div>
             </div>
 
             <div className="row g-3 mt-1">
               <div className="col-6">
-                <label className="form-label small">Latitude</label>
-                <input className="form-control" name="latitude" value={form.latitude} onChange={change} placeholder="-23.0000000" />
+                <label htmlFor={`${accessibilityId}-field-4`} className="form-label small">Latitude</label>
+                <input id={`${accessibilityId}-field-4`} className="form-control" name="latitude" value={form.latitude} onChange={change} placeholder="-23.0000000" />
               </div>
               <div className="col-6">
-                <label className="form-label small">Longitude</label>
-                <input className="form-control" name="longitude" value={form.longitude} onChange={change} placeholder="-46.0000000" />
+                <label htmlFor={`${accessibilityId}-field-5`} className="form-label small">Longitude</label>
+                <input id={`${accessibilityId}-field-5`} className="form-control" name="longitude" value={form.longitude} onChange={change} placeholder="-46.0000000" />
               </div>
               <div className="col-12">
                 <button type="button" className="btn btn-outline-primary w-100" onClick={usarLocalizacao}>📍 Usar minha localização atual</button>
@@ -131,14 +133,14 @@ export default function NovaDenuncia() {
             </div>
 
             <div className="mb-3 mt-3">
-              <label className="form-label fw-semibold">Descrição</label>
-              <textarea className="form-control" name="descricao" maxLength="2000" rows="5" placeholder="Explique o problema, há quanto tempo ocorre e como afeta as pessoas..." value={form.descricao} onChange={change} required />
+              <label htmlFor={`${accessibilityId}-field-6`} className="form-label fw-semibold">Descrição</label>
+              <textarea id={`${accessibilityId}-field-6`} className="form-control" name="descricao" maxLength="2000" rows="5" placeholder="Explique o problema, há quanto tempo ocorre e como afeta as pessoas..." value={form.descricao} onChange={change} required />
             </div>
 
             <div className="mb-4">
-              <label className="form-label fw-semibold">Fotos do problema <span className="text-muted fw-normal">(até 4 imagens, 5 MB cada)</span></label>
-              <input className="form-control" type="file" accept="image/*" multiple onChange={escolherImagem} />
-              {!!previews.length && <div className="rc-upload-gallery mt-3">{previews.map((preview, index) => <div key={preview}><img src={preview} alt={`Pré-visualização ${index + 1}`} /><button type="button" onClick={() => removerImagem(index)} aria-label={`Remover imagem ${index + 1}`}><i className="bi bi-x-lg" /></button></div>)}</div>}
+              <label htmlFor={`${accessibilityId}-field-7`} className="form-label fw-semibold">Fotos do problema <span className="text-muted fw-normal">(até 4 imagens, 5 MB cada)</span></label>
+              <input id={`${accessibilityId}-field-7`} className="form-control" type="file" accept="image/*" multiple onChange={escolherImagem} />
+              {!!previews.length && <div className="rc-upload-gallery mt-3">{previews.map((preview, index) => <div key={preview}><img src={preview} alt={`Pré-visualização ${index + 1}`} /><button type="button" onClick={() => removerImagem(index)} aria-label={`Remover imagem ${index + 1}`}><i aria-hidden="true" className="bi bi-x-lg" /></button></div>)}</div>}
             </div>
 
             <button className="btn btn-primary btn-lg w-100" disabled={loading}>

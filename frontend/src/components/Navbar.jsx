@@ -21,23 +21,23 @@ export default function Navbar() {
 
       <div className="collapse navbar-collapse" id="navbarContent">
         <ul className="navbar-nav ms-auto align-items-lg-center gap-lg-1">
-          <li className="nav-item"><NavLink className={linkClass} to="/" end><i className="bi bi-house-door" /> Início</NavLink></li>
+          <li className="nav-item"><NavLink className={linkClass} to="/" end><i aria-hidden="true" className="bi bi-house-door" /> Início</NavLink></li>
           {!isAuthenticated ? <>
             <li className="nav-item"><NavLink className={linkClass} to="/login">Entrar</NavLink></li>
             <li className="nav-item ms-lg-1"><NavLink className="btn rc-nav-signup" to="/cadastro">Criar conta</NavLink></li>
           </> : <>
-            <li className="nav-item"><NavLink className={linkClass} to="/minhas-denuncias"><i className="bi bi-clipboard-check" /> Minhas denúncias</NavLink></li>
-            <li className="nav-item"><NavLink className={linkClass} to="/lista-de-usuarios"><i className="bi bi-people" /> Comunidade</NavLink></li>
-            {canViewModeration && <li className="nav-item"><NavLink className={({ isActive }) => `nav-link rc-nav-link rc-nav-admin${isActive ? " active" : ""}`} to="/moderacao"><i className="bi bi-shield-check" /> Moderação</NavLink></li>}
-            <li className="nav-item ms-lg-1"><NavLink className="btn rc-nav-report" to="/nova-denuncia"><i className="bi bi-plus-lg" /> Nova denúncia</NavLink></li>
+            <li className="nav-item"><NavLink className={linkClass} to="/minhas-denuncias"><i aria-hidden="true" className="bi bi-clipboard-check" /> Minhas denúncias</NavLink></li>
+            <li className="nav-item"><NavLink className={linkClass} to="/lista-de-usuarios"><i aria-hidden="true" className="bi bi-people" /> Comunidade</NavLink></li>
+            {canViewModeration && <li className="nav-item"><NavLink className={({ isActive }) => `nav-link rc-nav-link rc-nav-admin${isActive ? " active" : ""}`} to="/moderacao"><i aria-hidden="true" className="bi bi-shield-check" /> Moderação</NavLink></li>}
+            <li className="nav-item ms-lg-1"><NavLink className="btn rc-nav-report" to="/nova-denuncia"><i aria-hidden="true" className="bi bi-plus-lg" /> Nova denúncia</NavLink></li>
             <li className="nav-item dropdown ms-lg-2">
               <button className="btn rc-user-menu dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><UserAvatar user={user} className="rc-nav-avatar" /><span className="rc-nav-user-text"><strong>{user?.username}</strong><small>{getPrimaryRoleLabel(user)}</small></span></button>
               <ul className="dropdown-menu dropdown-menu-end rc-user-dropdown">
-                <li><NavLink className="dropdown-item" to="/perfil"><i className="bi bi-person-circle" /> Meu perfil</NavLink></li>
-                <li><NavLink className="dropdown-item" to={`/usuarios/${user?.id}`}><i className="bi bi-eye" /> Perfil público</NavLink></li>
-                <li><NavLink className="dropdown-item" to="/editar-perfil"><i className="bi bi-gear" /> Configurações</NavLink></li>
+                <li><NavLink className="dropdown-item" to="/perfil"><i aria-hidden="true" className="bi bi-person-circle" /> Meu perfil</NavLink></li>
+                <li><NavLink className="dropdown-item" to={`/usuarios/${user?.id}`}><i aria-hidden="true" className="bi bi-eye" /> Perfil público</NavLink></li>
+                <li><NavLink className="dropdown-item" to="/editar-perfil"><i aria-hidden="true" className="bi bi-gear" /> Configurações</NavLink></li>
                 <li><hr className="dropdown-divider" /></li>
-                <li><button className="dropdown-item text-danger" onClick={sair}><i className="bi bi-box-arrow-right" /> Sair da conta</button></li>
+                <li><button className="dropdown-item text-danger" onClick={sair}><i aria-hidden="true" className="bi bi-box-arrow-right" /> Sair da conta</button></li>
               </ul>
             </li>
           </>}

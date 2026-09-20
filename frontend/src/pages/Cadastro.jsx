@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { useState, useContext } from "react";
 import { AuthContext } from "../context/authContext";
 import { useNavigate } from "react-router-dom";
@@ -8,6 +9,7 @@ import { friendlyError } from '../utils/errorMessage';
 import AvatarCropper from '../components/AvatarCropper';
 
 export default function Cadastro() {
+  const accessibilityId = useId();
   const navigate = useNavigate();
   const { login } = useContext(AuthContext);
   const [form, setForm] = useState({ username: "", email: "", password: "" });
@@ -66,16 +68,16 @@ export default function Cadastro() {
 
   return <div className="rc-page">
     <Navbar />
-    <main className="rc-account-page">
+    <main tabIndex={-1} id="main-content" className="rc-account-page">
       <div className="rc-account-shell">
         <section className="rc-account-intro">
           <span className="rc-eyebrow">FAÇA PARTE</span>
           <h1>Sua voz ajuda a melhorar Cotia.</h1>
           <p>Crie sua conta para reportar problemas e acompanhar as melhorias da cidade.</p>
-          <i className="bi bi-geo-alt" />
+          <i aria-hidden="true" className="bi bi-geo-alt" />
         </section>
         <section className="rc-account-card">
-          <div className="rc-account-icon"><i className="bi bi-person-plus" /></div>
+          <div className="rc-account-icon"><i aria-hidden="true" className="bi bi-person-plus" /></div>
           <h2>Crie sua conta</h2>
           <p className="text-muted mb-4">É rápido, gratuito e leva menos de um minuto.</p>
           <form onSubmit={submit}>
@@ -83,24 +85,24 @@ export default function Cadastro() {
               <div className="rc-signup-avatar-preview">
                 {avatarPreview
                   ? <img src={avatarPreview} alt="Prévia da foto de perfil" />
-                  : <i className="bi bi-person" />}
+                  : <i aria-hidden="true" className="bi bi-person" />}
               </div>
               <div>
                 <label className="btn btn-outline-primary btn-sm rc-avatar-upload">
-                  <i className="bi bi-camera me-2" />Adicionar foto
+                  <i aria-hidden="true" className="bi bi-camera me-2" />Adicionar foto
                   <input type="file" accept="image/*" onChange={escolherAvatar} />
                 </label>
                 <small>Opcional · JPG, PNG ou outra imagem de até 5 MB</small>
-                {avatarPreview && <button type="button" className="btn btn-link btn-sm text-danger p-0 mt-2" onClick={removerAvatar}><i className="bi bi-trash me-1" />Remover foto</button>}
+                {avatarPreview && <button type="button" className="btn btn-link btn-sm text-danger p-0 mt-2" onClick={removerAvatar}><i aria-hidden="true" className="bi bi-trash me-1" />Remover foto</button>}
               </div>
             </div>
-            <label className="form-label fw-semibold">Nome de usuário</label>
-            <div className="input-group input-group-lg mb-3"><span className="input-group-text"><i className="bi bi-person" /></span><input className="form-control" name="username" placeholder="Como quer ser chamado?" value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} required /></div>
-            <label className="form-label fw-semibold">E-mail</label>
-            <div className="input-group input-group-lg mb-3"><span className="input-group-text"><i className="bi bi-envelope" /></span><input type="email" className="form-control" placeholder="seu@email.com" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required /></div>
-            <label className="form-label fw-semibold">Senha</label>
-            <div className="input-group input-group-lg mb-3"><span className="input-group-text"><i className="bi bi-lock" /></span><input type="password" className="form-control" placeholder="Crie uma senha segura" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required /></div>
-            {error && <div className="alert alert-danger py-2">{error}</div>}
+            <label htmlFor={`${accessibilityId}-field-1`} className="form-label fw-semibold">Nome de usuário</label>
+            <div className="input-group input-group-lg mb-3"><span className="input-group-text"><i aria-hidden="true" className="bi bi-person" /></span><input id={`${accessibilityId}-field-1`} className="form-control" name="username" placeholder="Como quer ser chamado?" value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} required /></div>
+            <label htmlFor={`${accessibilityId}-field-2`} className="form-label fw-semibold">E-mail</label>
+            <div className="input-group input-group-lg mb-3"><span className="input-group-text"><i aria-hidden="true" className="bi bi-envelope" /></span><input id={`${accessibilityId}-field-2`} type="email" className="form-control" placeholder="seu@email.com" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required /></div>
+            <label htmlFor={`${accessibilityId}-field-3`} className="form-label fw-semibold">Senha</label>
+            <div className="input-group input-group-lg mb-3"><span className="input-group-text"><i aria-hidden="true" className="bi bi-lock" /></span><input id={`${accessibilityId}-field-3`} type="password" className="form-control" placeholder="Crie uma senha segura" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required /></div>
+            {error && <div role="alert" className="alert alert-danger py-2">{error}</div>}
             <button className="btn btn-primary btn-lg w-100" disabled={loading}>{loading ? "Criando conta..." : "Criar minha conta"}</button>
           </form>
           <p className="text-center text-muted small mt-4 mb-0">Já tem conta? <button className="rc-text-action" onClick={() => navigate("/login")}>Faça login</button></p>

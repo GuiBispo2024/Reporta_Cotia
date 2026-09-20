@@ -124,7 +124,7 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
   const moveCarousel = direction => {
     const carousel = carouselRef.current;
     if (!carousel) return;
-    carousel.scrollBy({ left: direction * carousel.clientWidth, behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    carousel.scrollBy({ left: direction * carousel.clientWidth, behavior: document.documentElement.classList.contains('rc-reduced-motion') || window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ? 'auto' : 'smooth' });
   };
 
   const renderComment = (c, isReply = false) => (
@@ -137,7 +137,7 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
                   </div>
                   {editingId === c.id ? (
                     <div>
-                      <textarea className="form-control form-control-sm" rows="2" maxLength="255" value={editingText} onChange={e => setEditingText(e.target.value)} />
+                      <textarea aria-label="Editar comentário" className="form-control form-control-sm" rows="2" maxLength="255" value={editingText} onChange={e => setEditingText(e.target.value)} />
                       <div className="d-flex gap-2 mt-2">
                         <button className="btn btn-primary btn-sm" disabled={!editingText.trim()} onClick={salvarEdicao}>Salvar</button>
                         <button className="btn btn-link btn-sm text-secondary" onClick={() => setEditingId(null)}>Cancelar</button>
@@ -151,11 +151,11 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
                   </div>}
                   {!preview && editingId !== c.id && (Number(user?.id) === Number(c.userId) || canReviewCensorship) && (
                     <div className="rc-comment-actions">
-                      {user?.id === c.userId && <button onClick={() => iniciarEdicao(c)}><i className="bi bi-pencil" /> Editar</button>}
-                      <button className="text-danger" onClick={() => excluirComentario(c)}><i className="bi bi-trash" /> Excluir</button>
+                      {user?.id === c.userId && <button onClick={() => iniciarEdicao(c)}><i aria-hidden="true" className="bi bi-pencil" /> Editar</button>}
+                      <button className="text-danger" onClick={() => excluirComentario(c)}><i aria-hidden="true" className="bi bi-trash" /> Excluir</button>
                     </div>
                   )}
-                  {user && !preview && editingId !== c.id && <button className="rc-comment-reply-button" onClick={() => { setReplyingTo(c.id); setReplyText(isReply ? `@${c.User?.username || 'Usuário'} ` : ''); }}><i className="bi bi-reply" /> Responder</button>}
+                  {user && !preview && editingId !== c.id && <button className="rc-comment-reply-button" onClick={() => { setReplyingTo(c.id); setReplyText(isReply ? `@${c.User?.username || 'Usuário'} ` : ''); }}><i aria-hidden="true" className="bi bi-reply" /> Responder</button>}
 
                   {!preview && (c.Replies || []).length > 0 && <button type="button" className="rc-comment-replies-toggle" aria-expanded={!!expandedReplies[c.id]} aria-controls={`replies-${denunciaId}-${c.id}`} onClick={() => setExpandedReplies(current => ({ ...current, [c.id]: !current[c.id] }))}>
                     <i className={`bi bi-chevron-${expandedReplies[c.id] ? 'up' : 'down'}`} />
@@ -169,7 +169,7 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
                     <UserAvatar user={user} className="rc-comment-avatar" />
                     <div className="flex-grow-1">
                       <div className="rc-comment-input-wrap">
-                        <textarea className="form-control" rows="2" maxLength="255" autoFocus placeholder={`Responder a ${c.User?.username || 'este comentário'}...`} value={replyText} onChange={event => setReplyText(event.target.value)} />
+                        <textarea aria-label={`Resposta a ${c.User?.username || "este comentário"}`} className="form-control" rows="2" maxLength="255" autoFocus placeholder={`Responder a ${c.User?.username || 'este comentário'}...`} value={replyText} onChange={event => setReplyText(event.target.value)} />
                         <button aria-label="Publicar resposta" title="Publicar resposta" disabled={!replyText.trim() || sending} onClick={() => enviarResposta(c.id)}><i className={`bi ${sending ? 'bi-hourglass-split' : 'bi-send-fill'}`} /></button>
                       </div>
                       <div className="d-flex flex-wrap gap-2 justify-content-between align-items-center mt-2">
@@ -186,7 +186,7 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
   return (
     <div className={`rc-comments mt-3${preview ? " rc-comments-preview" : ""}`}>
       <button className="rc-comments-toggle" onClick={toggleComments} aria-expanded={open}>
-        <span><i className="bi bi-chat-left-text me-2" />Comentários</span>
+        <span><i aria-hidden="true" className="bi bi-chat-left-text me-2" />Comentários</span>
         <span className="rc-comments-count">{total}</span>
         <i className={`bi bi-chevron-${open ? "up" : "down"} ms-2`} />
       </button>
@@ -200,12 +200,12 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
 
           {preview && comments.length > 1 && <div className="rc-comment-carousel-controls">
             <span>Comentários principais</span>
-            <button type="button" aria-label="Comentários anteriores" onClick={() => moveCarousel(-1)}><i className="bi bi-chevron-left" /></button>
-            <button type="button" aria-label="Próximos comentários" onClick={() => moveCarousel(1)}><i className="bi bi-chevron-right" /></button>
+            <button type="button" aria-label="Comentários anteriores" onClick={() => moveCarousel(-1)}><i aria-hidden="true" className="bi bi-chevron-left" /></button>
+            <button type="button" aria-label="Próximos comentários" onClick={() => moveCarousel(1)}><i aria-hidden="true" className="bi bi-chevron-right" /></button>
           </div>}
           <div className={`rc-comment-list${preview ? ' rc-comment-carousel' : ''}`} ref={carouselRef} role={preview ? 'region' : undefined} aria-label={preview ? 'Carrossel de comentários principais' : undefined} tabIndex={preview ? 0 : undefined}>
             {!comments.length ? (
-              <div className="rc-comment-empty"><i className="bi bi-chat-square-dots" /><span>Seja o primeiro a comentar.</span></div>
+              <div className="rc-comment-empty"><i aria-hidden="true" className="bi bi-chat-square-dots" /><span>Seja o primeiro a comentar.</span></div>
             ) : comments.map(c => (
               renderComment(c)
             ))}
@@ -213,7 +213,7 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
 
           {preview && total > 0 && (
             <Link className="rc-comments-view-all" to={`/denuncia/${denunciaId}#comentarios`}>
-              Ver todos os comentários <i className="bi bi-arrow-right" />
+              Ver todos os comentários <i aria-hidden="true" className="bi bi-arrow-right" />
             </Link>
           )}
 
@@ -222,7 +222,7 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
               <UserAvatar user={user} className="rc-comment-avatar" />
               <div className="flex-grow-1">
                 <div className="rc-comment-input-wrap">
-                  <textarea className="form-control" rows={preview ? 1 : 2} maxLength="255" placeholder="Escreva um comentário..." value={text} onChange={e => setText(e.target.value)} />
+                  <textarea aria-label="Escreva um comentário" className="form-control" rows={preview ? 1 : 2} maxLength="255" placeholder="Escreva um comentário..." value={text} onChange={e => setText(e.target.value)} />
                   <button aria-label="Publicar comentário" title="Publicar comentário" disabled={!text.trim() || sending} onClick={enviarComentario}><i className={`bi ${sending ? 'bi-hourglass-split' : 'bi-send-fill'}`} /></button>
                 </div>
                 <div className="d-flex justify-content-between align-items-center mt-2">
@@ -231,9 +231,9 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
                 </div>
               </div>
             </div>
-          ) : <div className="rc-comment-login"><i className="bi bi-info-circle me-2" />Entre na sua conta para participar da conversa.</div>}
+          ) : <div className="rc-comment-login"><i aria-hidden="true" className="bi bi-info-circle me-2" />Entre na sua conta para participar da conversa.</div>}
 
-          {message && <div className="alert alert-danger py-2 small mt-3 mb-0">{message}</div>}
+          {message && <div role="alert" className="alert alert-danger py-2 small mt-3 mb-0">{message}</div>}
         </div>
       )}
     </div>
