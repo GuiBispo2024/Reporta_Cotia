@@ -1,6 +1,6 @@
 const request = require('supertest');
 const app = require('../../app');
-const { sequelize, User, Role, Permission, Denuncia } = require('../../models/rel');
+const { sequelize, User, Role, Permission, Denuncia, DenunciaHistorico } = require('../../models/rel');
 
 describe('Boards pessoais e analíticos', () => {
   let citizen, analyst, other;
@@ -30,6 +30,11 @@ describe('Boards pessoais e analíticos', () => {
       { titulo: 'Minha pendente', status: 'pendente', latitude: -23.64, longitude: -46.96, userId: citizen.id },
       { titulo: 'Privada de outro autor', status: 'rejeitada', latitude: -23.65, longitude: -46.97, userId: other.id }
     ].map(report => ({ descricao: 'Descrição pública', localizacao: 'Cotia', categoria: 'Outros', setorResponsavel: 'Defesa Civil', tituloOriginal: 'Texto reservado para censura', ...report })));
+    const resolvedReport = await Denuncia.findOne({ where: { titulo: 'Minha resolvida' } });
+    await DenunciaHistorico.bulkCreate([
+      { tipo: 'moderacao', statusAnterior: 'pendente', statusNovo: 'aprovada', denunciaId: resolvedReport.id, createdAt: new Date('2026-01-16T12:00:00.000Z') },
+      { tipo: 'resolucao', statusAnterior: 'aberta', statusNovo: 'resolvida', denunciaId: resolvedReport.id, createdAt: new Date('2026-01-18T12:00:00.000Z') }
+    ]);
   });
   afterAll(() => sequelize.close());
 
@@ -75,6 +80,12 @@ describe('Boards pessoais e analíticos', () => {
     expect(response.body.summary.total).toBe(6);
     expect(response.body.breakdown.categories).toEqual([{ label: 'Outros', total: 6 }]);
     expect(response.body.map).toMatchObject({ total: 6, truncated: false });
+    expect(response.body.metrics).toEqual({
+      averageModerationHours: 24,
+      averageResolutionHours: 48,
+      moderationSampleSize: 1,
+      resolutionSampleSize: 1
+    });
     expect(response.body.columns.find(item => item.key === 'rejeitada').reports[0].titulo).toBe('Privada de outro autor');
     expect(JSON.stringify(response.body)).not.toContain('Texto reservado para censura');
   });

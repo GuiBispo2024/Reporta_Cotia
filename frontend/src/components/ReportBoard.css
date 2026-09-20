@@ -10,6 +10,7 @@
 .rc-board-columns { display: grid; grid-template-columns: repeat(5, minmax(240px, 1fr)); align-items: start; gap: 1rem; overflow-x: auto; padding: .25rem .25rem 1rem; }
 .rc-board-columns.is-community { grid-template-columns: repeat(3, minmax(240px, 1fr)); }
 .rc-board-column { min-width: 0; padding: .8rem; border: 1px solid var(--rc-border); border-top: 4px solid var(--rc-primary); border-radius: 12px; background: var(--rc-surface, #edf3ef); }
+.rc-board-column.is-aberta { border-top-color: #7c3aed; }
 .rc-board-column.is-pendente { border-top-color: #9a7300; }
 .rc-board-column.is-em_andamento { border-top-color: #2269b1; }
 .rc-board-column.is-rejeitada { border-top-color: #bc4555; }
@@ -35,6 +36,13 @@
 .rc-board-filters { display: flex; align-items: flex-end; flex-wrap: wrap; gap: .75rem; padding: 1rem; margin-bottom: 1rem; background: var(--rc-surface, #fff); border: 1px solid var(--rc-border); border-radius: 12px; }
 .rc-board-filters label { flex: 1 1 220px; min-width: 0; font-size: .85rem; font-weight: 700; }
 .rc-board-filters :is(select, input) { margin-top: .35rem; }
+.rc-board-metrics { display: grid; grid-template-columns: minmax(220px, .7fr) minmax(300px, 1.3fr); gap: 1rem; align-items: center; margin-block: 1rem; padding: 1rem; border: 1px solid var(--rc-border); border-radius: 14px; background: var(--rc-surface, #fff); }
+.rc-board-metrics h2 { margin: .2rem 0; font-size: 1.15rem; font-weight: 800; }
+.rc-board-metrics p, .rc-board-metrics small { margin: 0; color: var(--rc-secondary-text, #526159); font-size: .75rem; }
+.rc-board-metrics dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin: 0; }
+.rc-board-metrics dl > div { padding: .85rem; border-radius: 10px; background: color-mix(in srgb, var(--rc-primary) 8%, var(--rc-surface, #fff)); }
+.rc-board-metrics dt { color: var(--rc-secondary-text, #526159); font-size: .75rem; font-weight: 700; }
+.rc-board-metrics dd { margin: .2rem 0; font-size: 1.35rem; font-weight: 850; }
 .rc-board-breakdowns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 1rem; margin-block: 1rem; }
 .rc-board-breakdowns section { padding: 1rem; border: 1px solid var(--rc-border); border-radius: 12px; background: var(--rc-surface, #fff); }
 .rc-board-breakdowns table { width: 100%; }
@@ -53,6 +61,7 @@
 .rc-board-map-canvas iframe { width: 100%; height: 100%; border: 0; pointer-events: none; filter: saturate(.8) contrast(.95); }
 .rc-board-map-markers { position: absolute; inset: 0; pointer-events: none; }
 .rc-board-map-marker { position: absolute; z-index: 1; width: 2rem; height: 2rem; display: grid; place-items: center; border: 0; border-radius: 50% 50% 50% 0; color: #fff; background: var(--rc-primary); box-shadow: 0 3px 9px rgba(15,45,36,.35); pointer-events: auto; transform: translate(-50%, -100%) rotate(-45deg); transition: transform .15s ease, box-shadow .15s ease; }
+.rc-board-map-marker.is-aberta { background: #7c3aed; }
 .rc-board-map-marker-dot { transform: rotate(45deg); font-size: .75rem; }
 .rc-board-map-marker:is(:hover, :focus-visible) { z-index: 2; color: #fff; transform: translate(-50%, -100%) rotate(-45deg) scale(1.18); box-shadow: 0 5px 14px rgba(15,45,36,.5); outline: 3px solid #fff; }
 .rc-board-map-marker.is-em_andamento { background: #2269b1; }
@@ -64,6 +73,7 @@
 .rc-board-map-legend { display: flex; flex-wrap: wrap; gap: .8rem; }
 .rc-board-map-legend span { display: inline-flex; align-items: center; gap: .35rem; font-size: .75rem; }
 .rc-board-map-legend i { width: .7rem; height: .7rem; border-radius: 50%; background: var(--rc-primary); }
+.rc-board-map-legend i.is-aberta { background: #7c3aed; }
 .rc-board-map-legend i.is-em_andamento { background: #2269b1; }
 .rc-board-map-legend i.is-resolvida { background: #2f7d4f; }
 .rc-board-map-empty { padding: 1.25rem; }
@@ -71,4 +81,4 @@
 .rc-board-map-empty > div > i { color: var(--rc-primary); font-size: 1.3rem; }
 .rc-board-map-empty p { margin: .5rem 0 0; color: var(--rc-secondary-text, #526159); }
 @media (prefers-reduced-motion: reduce) { .rc-board-map-marker { transition: none; } }
-@media (max-width: 767px) { .rc-board-columns { grid-template-columns: minmax(0, 1fr); overflow: visible; } }
+@media (max-width: 767px) { .rc-board-columns { grid-template-columns: minmax(0, 1fr); overflow: visible; } .rc-board-metrics { grid-template-columns: 1fr; } .rc-board-metrics dl { grid-template-columns: 1fr; } }

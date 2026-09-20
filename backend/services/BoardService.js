@@ -38,6 +38,38 @@ function dateFilter(value) {
   return parsed;
 }
 
+function average(values) {
+  if (!values.length) return null;
+  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length * 10) / 10;
+}
+
+function serviceMetrics(records) {
+  const moderationHours = [];
+  const resolutionHours = [];
+  for (const record of records) {
+    const plain = record.get ? record.get({ plain: true }) : record;
+    const history = (plain.DenunciaHistoricos || []).slice()
+      .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    const moderation = history.find(item => item.tipo === 'moderacao' && ['aprovada', 'rejeitada'].includes(item.statusNovo));
+    if (moderation) {
+      const duration = (new Date(moderation.createdAt) - new Date(plain.createdAt)) / 3600000;
+      if (Number.isFinite(duration) && duration >= 0) moderationHours.push(duration);
+    }
+    const approval = history.find(item => item.tipo === 'moderacao' && item.statusNovo === 'aprovada');
+    const resolution = approval && history.find(item => item.tipo === 'resolucao' && item.statusNovo === 'resolvida' && new Date(item.createdAt) >= new Date(approval.createdAt));
+    if (approval && resolution) {
+      const duration = (new Date(resolution.createdAt) - new Date(approval.createdAt)) / 3600000;
+      if (Number.isFinite(duration) && duration >= 0) resolutionHours.push(duration);
+    }
+  }
+  return {
+    averageModerationHours: average(moderationHours),
+    averageResolutionHours: average(resolutionHours),
+    moderationSampleSize: moderationHours.length,
+    resolutionSampleSize: resolutionHours.length
+  };
+}
+
 class BoardService {
   static async getBoard(user, query = {}, scopeType = 'mine') {
     if (!user?.id) throw new AppError('Entre na sua conta para consultar o painel.', 401, 'AUTH_REQUIRED');
@@ -79,12 +111,13 @@ class BoardService {
       ...(dataInicio || dataFim ? { createdAt } : {})
     };
     const includeBreakdown = analytical || publicView;
-    const [statuses, categories, sectors, locations, map] = await Promise.all([
+    const [statuses, categories, sectors, locations, map, metricRecords] = await Promise.all([
       BoardRepository.grouped(where, ['status', 'resolucaoStatus']),
       includeBreakdown ? BoardRepository.grouped(where, ['categoria']) : [],
       includeBreakdown ? BoardRepository.grouped(where, ['setorResponsavel']) : [],
       includeBreakdown ? BoardRepository.grouped(where, ['localizacao']) : [],
-      includeBreakdown ? BoardRepository.mapPoints(where) : null
+      includeBreakdown ? BoardRepository.mapPoints(where) : null,
+      includeBreakdown ? BoardRepository.serviceMetricRecords(where) : []
     ]);
     const counts = Object.fromEntries(COLUMNS.map(item => [item.key, 0]));
     for (const row of statuses) {
@@ -110,7 +143,7 @@ class BoardService {
         categories: breakdown(categories, 'categoria'),
         sectors: breakdown(sectors, 'setorResponsavel'),
         locations: breakdown(locations, 'localizacao')
-      }, map } : {}),
+      }, map, metrics: serviceMetrics(metricRecords) } : {}),
       filters: {
         categoria,
         setorResponsavel,

@@ -16,6 +16,8 @@ Os registros incluem título, descrição, localização, categoria, setor, esta
 
 As visões comunitária e analítica incluem `map.points` com até 500 denúncias que possuem coordenadas, além de `total`, `limit` e `truncated`. Os pontos respeitam os filtros ativos; no board comunitário, o conjunto geográfico contém exclusivamente denúncias aprovadas. O board pessoal não recebe esse conjunto adicional.
 
+As mesmas visões incluem `metrics`, com o tempo médio em horas até a primeira decisão de moderação e entre a aprovação e a resolução. Cada média informa também o tamanho da amostra e considera somente denúncias com o histórico necessário para o cálculo. Os filtros ativos são respeitados.
+
 ## Etapas
 
 1. API, validação, isolamento dos dados e testes de integração.
@@ -35,4 +37,4 @@ As visões comunitária e analítica incluem `map.points` com até 500 denúncia
 - As visões comunitária e analítica exibem os registros com coordenadas sobre um mapa do OpenStreetMap. Marcadores aprovados levam ao detalhe público; registros privados do board analítico não geram links públicos.
 - No celular e com texto ampliado, as colunas são empilhadas. Os boards usam os temas e recursos globais de acessibilidade.
 
-As cinco etapas acima estão implementadas. Exportação e métricas de tempo de atendimento ficam para incrementos futuros; não há arraste de cartões nem edição de status nesta primeira versão.
+As cinco etapas acima estão implementadas. Exportação fica para um incremento futuro; não há arraste de cartões nem edição de status nesta primeira versão.

@@ -15,6 +15,15 @@ const BREAKDOWN_LABELS = {
   locations: { title: 'Denúncias por localização', column: 'Localização' }
 };
 const dateLabel = value => value ? new Date(value).toLocaleDateString('pt-BR') : 'Não informada';
+const durationLabel = hours => {
+  if (hours === null || hours === undefined) return 'Sem dados';
+  const minutes = Math.round(hours * 60);
+  if (minutes < 60) return `${Math.max(minutes, 1)} min`;
+  const days = Math.floor(minutes / 1440);
+  const remainingHours = Math.floor((minutes % 1440) / 60);
+  const remainingMinutes = minutes % 60;
+  return [days && `${days} ${days === 1 ? 'dia' : 'dias'}`, remainingHours && `${remainingHours} h`, !days && remainingMinutes && `${remainingMinutes} min`].filter(Boolean).join(' ');
+};
 
 export default function ReportBoard({ analytical = false, community = false }) {
   const id = useId();
@@ -114,6 +123,13 @@ export default function ReportBoard({ analytical = false, community = false }) {
             {aggregated && <div><dt>Resolução das aprovadas</dt><dd>{data.summary.resolutionRate}%</dd></div>}
           </dl>
           {aggregated && <p className="rc-board-guidance">{community ? 'Os indicadores consideram somente denúncias aprovadas e não exibem conteúdos em moderação ou rejeitados.' : 'Os indicadores consideram todas as denúncias dos filtros aplicados. A taxa de resolução considera somente as aprovadas.'}</p>}
+          {aggregated && data.metrics && <section className="rc-board-metrics" aria-labelledby={`${id}-metrics-title`}>
+            <div><span className="rc-board-eyebrow">Eficiência do atendimento</span><h2 id={`${id}-metrics-title`}>Tempos médios</h2><p>Calculados somente com denúncias que possuem histórico completo no período selecionado.</p></div>
+            <dl>
+              <div><dt>Até a primeira moderação</dt><dd>{durationLabel(data.metrics.averageModerationHours)}</dd><small>{data.metrics.moderationSampleSize} {data.metrics.moderationSampleSize === 1 ? 'denúncia analisada' : 'denúncias analisadas'}</small></div>
+              <div><dt>Da aprovação até a resolução</dt><dd>{durationLabel(data.metrics.averageResolutionHours)}</dd><small>{data.metrics.resolutionSampleSize} {data.metrics.resolutionSampleSize === 1 ? 'denúncia resolvida' : 'denúncias resolvidas'}</small></div>
+            </dl>
+          </section>}
           {!data.summary.total && <div className="rc-board-state"><p>{aggregated ? 'Nenhuma denúncia encontrada para os filtros aplicados.' : 'Você ainda não tem denúncias para acompanhar.'}</p>{!aggregated && <Link className="btn btn-primary" to="/nova-denuncia">Registrar denúncia</Link>}</div>}
           {aggregated && <BoardMap map={data.map} />}
           {aggregated && data.breakdown && <div className="rc-board-breakdowns">
