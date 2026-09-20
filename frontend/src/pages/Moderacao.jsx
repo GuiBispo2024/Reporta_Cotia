@@ -48,7 +48,7 @@ export default function Moderacao() {
   const canReviewModeration = hasPermission(user, PERMISSIONS.MODERATION_REVIEW);
   const canReviewCensorship = hasPermission(user, PERMISSIONS.CENSORSHIP_REVIEW);
   const canUpdateResolution = hasPermission(user, PERMISSIONS.RESOLUTION_UPDATE);
-  const canViewAudit = hasPermission(user, PERMISSIONS.AUDIT_VIEW);
+  const canViewAudit = hasPermission(user, PERMISSIONS.DENUNCIA_AUDIT_VIEW);
 
   const hasResolutionChanges = report => {
     const draft = resolutionDetails[report.id] || {};

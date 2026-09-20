@@ -200,7 +200,7 @@ class DenunciaService {
   static async buscarHistorico(id, requester = null) {
     const denuncia = await DenunciaRepository.findById(id);
     if (!denuncia) throw new AppError('Denúncia não encontrada.', 404, 'NOT_FOUND');
-    const canSee = denuncia.status === 'aprovada' || hasPermission(requester, PERMISSIONS.AUDIT_VIEW) || Number(requester?.id) === Number(denuncia.userId);
+    const canSee = denuncia.status === 'aprovada' || hasPermission(requester, PERMISSIONS.DENUNCIA_AUDIT_VIEW) || Number(requester?.id) === Number(denuncia.userId);
     if (!canSee) throw new AppError('Denúncia não encontrada.', 404, 'NOT_FOUND');
     return DenunciaHistorico.findAll({
       where: { denunciaId: id },

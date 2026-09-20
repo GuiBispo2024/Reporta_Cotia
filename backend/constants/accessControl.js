@@ -25,7 +25,8 @@ const PERMISSIONS = Object.freeze({
   DASHBOARD_EXPORT: 'dashboard.export',
   USERS_VIEW: 'users.view',
   USERS_MANAGE_ROLES: 'users.manage_roles',
-  AUDIT_VIEW: 'audit.view'
+  DENUNCIA_AUDIT_VIEW: 'denuncia.audit.view',
+  USERS_AUDIT_VIEW: 'users.audit.view'
 })
 
 module.exports = { ROLES, ROLE_DESCRIPTIONS, PERMISSIONS }

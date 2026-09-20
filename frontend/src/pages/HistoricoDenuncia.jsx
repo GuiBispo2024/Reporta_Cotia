@@ -24,7 +24,7 @@ export default function HistoricoDenuncia() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const canViewAudit = hasPermission(user, PERMISSIONS.AUDIT_VIEW);
+  const canViewAudit = hasPermission(user, PERMISSIONS.DENUNCIA_AUDIT_VIEW);
 
   useEffect(() => {
     if (!canViewAudit) return;

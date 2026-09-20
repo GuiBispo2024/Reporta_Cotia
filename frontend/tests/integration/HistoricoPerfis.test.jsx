@@ -30,7 +30,7 @@ const entries = [{
 
 function renderPage() {
   render(
-    <AuthContext.Provider value={{ user: { permissions: ['audit.view'] } }}>
+    <AuthContext.Provider value={{ user: { permissions: ['users.audit.view'] } }}>
       <HistoricoPerfis />
     </AuthContext.Provider>
   )

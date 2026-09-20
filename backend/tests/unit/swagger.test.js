@@ -47,7 +47,7 @@ describe('Documentação OpenAPI', () => {
     expect(updateRoles.security).toEqual([{ bearerAuth: [] }])
     expect(updateRoles.requestBody.content['application/json'].schema.required).toContain('roles')
     expect(updateRoles.responses[409]).toBeDefined()
-    expect(roleHistory.description).toContain('audit.view')
+    expect(roleHistory.description).toContain('users.audit.view')
     expect(roleHistory.security).toEqual([{ bearerAuth: [] }])
     expect(roleHistory.parameters.map(parameter => parameter.name)).toEqual(['page', 'limit', 'sort'])
     expect(roleHistory.responses[200].content['application/json'].schema.allOf[1].properties.data.items.$ref)
@@ -68,7 +68,7 @@ describe('Documentação OpenAPI', () => {
     expect(swaggerSpec.paths['/users'].get.description).toContain('users.view')
     expect(swaggerSpec.paths['/denuncia/moderacao'].get.description).toContain('censorship.review')
     expect(swaggerSpec.paths['/denuncia/{id}'].get.description).toContain('moderation.view')
-    expect(swaggerSpec.paths['/denuncia/{id}/historico'].get.description).toContain('audit.view')
+    expect(swaggerSpec.paths['/denuncia/{id}/historico'].get.description).toContain('denuncia.audit.view')
   })
 
   test('documenta a proteção da exclusão da última conta administradora', () => {

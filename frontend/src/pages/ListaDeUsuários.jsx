@@ -34,7 +34,7 @@ export default function ListaDeUsuários() {
 
   const canViewUserEmails = hasPermission(user, PERMISSIONS.USERS_VIEW)
   const canManageRoles = hasPermission(user, PERMISSIONS.USERS_MANAGE_ROLES)
-  const canViewAudit = hasPermission(user, PERMISSIONS.AUDIT_VIEW)
+  const canViewAudit = hasPermission(user, PERMISSIONS.USERS_AUDIT_VIEW)
 
   const carregar = useCallback(async () => {
     try {

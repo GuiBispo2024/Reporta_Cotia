@@ -279,7 +279,7 @@ router.get('/user/:userId', auth, async (req, res, next) => {
  * /denuncia/{id}/historico:
  *   get:
  *     summary: Consulta o histórico de uma denúncia
- *     description: Denúncias públicas podem ser consultadas sem login. O histórico privado exige autoria ou `audit.view`.
+ *     description: Denúncias públicas podem ser consultadas sem login. O histórico privado exige autoria ou `denuncia.audit.view`.
  *     tags: [Denúncias]
  *     security: []
  *     parameters:

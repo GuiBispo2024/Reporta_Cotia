@@ -24,7 +24,7 @@ function RoleList({ roles, emptyLabel }) {
 export default function HistoricoPerfis() {
   const navigate = useNavigate()
   const { user } = useContext(AuthContext)
-  const canViewAudit = hasPermission(user, PERMISSIONS.AUDIT_VIEW)
+  const canViewAudit = hasPermission(user, PERMISSIONS.USERS_AUDIT_VIEW)
   const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')

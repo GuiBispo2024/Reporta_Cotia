@@ -223,7 +223,7 @@ Authorization: Bearer <token>
 | `GET` | `/users?withCounts=true` | Listar participantes e suas contribuições; o e-mail exige `users.view` |
 | `GET` | `/users/me` | Consultar os dados, perfis e permissões atuais da própria sessão |
 | `GET` | `/users/access/roles` | Listar os perfis disponíveis e suas permissões (`users.manage_roles`) |
-| `GET` | `/users/access/role-history` | Consultar o histórico paginado de perfis (`audit.view`) |
+| `GET` | `/users/access/role-history` | Consultar o histórico paginado de perfis (`users.audit.view`) |
 | `PUT` | `/users/:id/roles` | Substituir os perfis de um usuário (`users.manage_roles`) |
 | `GET` | `/users/:id` | Consultar perfil público, sem expor o e-mail |
 | `PUT` | `/users/update` | Atualizar o próprio perfil |
@@ -275,7 +275,7 @@ Os perfis são cumulativos: todo usuário mantém o perfil `CITIZEN` e pode rece
 | Perfil | Responsabilidade principal |
 | --- | --- |
 | `CITIZEN` | Criar e administrar as próprias denúncias e consultar indicadores públicos |
-| `MODERATOR` | Visualizar a fila, moderar denúncias, revisar censura e atualizar a resolução |
+| `MODERATOR` | Visualizar a fila, moderar denúncias, revisar censura, atualizar a resolução e consultar o histórico das denúncias |
 | `ANALYST` | Consultar o dashboard completo e exportar dados analíticos |
 | `ADMIN` | Gerenciar usuários e perfis, consultar auditorias e acessar as demais funções |
 
@@ -284,7 +284,7 @@ As mudanças de perfil passam a valer nas requisições seguintes. A interface t
 ## Regras de segurança e rastreabilidade
 
 - Alterações sensíveis exigem autenticação e validação de autoria ou permissão específica.
-- Endpoints protegidos verificam permissões específicas, como `moderation.review`, `users.manage_roles` e `audit.view`.
+- Endpoints protegidos verificam permissões específicas, como `moderation.review`, `denuncia.audit.view` e `users.audit.view`.
 - O perfil `CITIZEN` é obrigatório; um administrador não pode remover o próprio perfil `ADMIN`, e a plataforma sempre preserva ao menos uma conta administradora.
 - Mudanças de perfis são transacionais e registradas na trilha de auditoria somente quando há alteração efetiva.
 - O logout invalida tokens emitidos anteriormente por meio do versionamento da sessão.

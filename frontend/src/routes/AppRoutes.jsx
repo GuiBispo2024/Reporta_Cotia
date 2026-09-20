@@ -37,7 +37,7 @@ function AppRoutes() {
                 <Route path="/cadastro" element={<Cadastro/>}/>
                 <Route path="/usuarios/:id" element={<PerfilPublico/>}/>
                 <Route path="/moderacao" element={<PrivateRoute permission={PERMISSIONS.MODERATION_VIEW}><Moderacao/></PrivateRoute>}/>
-                <Route path="/moderacao/denuncia/:id/historico" element={<PrivateRoute permission={PERMISSIONS.AUDIT_VIEW}><HistoricoDenuncia/></PrivateRoute>}/>
+                <Route path="/moderacao/denuncia/:id/historico" element={<PrivateRoute permission={PERMISSIONS.DENUNCIA_AUDIT_VIEW}><HistoricoDenuncia/></PrivateRoute>}/>
                 <Route path="/minhas-denuncias" element={<PrivateRoute><MinhasDenuncias/></PrivateRoute>}/>
                 <Route path="/meu-board" element={<PrivateRoute><ReportBoard /></PrivateRoute>}/>
                 <Route path="/boards/comunidade" element={<PrivateRoute permission={PERMISSIONS.DASHBOARD_PUBLIC_VIEW}><ReportBoard community /></PrivateRoute>}/>
@@ -45,7 +45,7 @@ function AppRoutes() {
                 <Route path="/editar-denuncia/:id" element={<PrivateRoute><EditarDenuncia/></PrivateRoute>}/>
                 <Route path="/nova-denuncia" element={<PrivateRoute><NovaDenuncia/></PrivateRoute>}/>
                 <Route path="/lista-de-usuarios" element={<PrivateRoute><ListaDeUsuários/></PrivateRoute>}/>
-                <Route path="/administracao/historico-perfis" element={<PrivateRoute permission={PERMISSIONS.AUDIT_VIEW}><HistoricoPerfis/></PrivateRoute>}/>
+                <Route path="/administracao/historico-perfis" element={<PrivateRoute permission={PERMISSIONS.USERS_AUDIT_VIEW}><HistoricoPerfis/></PrivateRoute>}/>
                 <Route path="/perfil" element={<PrivateRoute><Perfil/></PrivateRoute>}/>
                 <Route path="/editar-perfil" element={<PrivateRoute><EditarPerfil /></PrivateRoute>} />
             </Routes>

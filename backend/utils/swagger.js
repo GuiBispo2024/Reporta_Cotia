@@ -66,7 +66,8 @@ const options = {
                         'dashboard.export',
                         'users.view',
                         'users.manage_roles',
-                        'audit.view'
+                        'denuncia.audit.view',
+                        'users.audit.view'
                     ]
                 },
                 AuthenticatedUser: {

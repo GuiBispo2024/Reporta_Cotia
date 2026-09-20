@@ -39,7 +39,7 @@ describe('Autorização por permissão nas rotas', () => {
     })
     await viewerRole.addPermission(permissions.find(permission => permission.key === 'moderation.view'))
     const readPermissions = await Permission.bulkCreate([
-      { key: 'audit.view', description: 'Consultar a trilha de auditoria.' },
+      { key: 'denuncia.audit.view', description: 'Consultar a trilha de auditoria das denúncias.' },
       { key: 'users.view', description: 'Consultar a listagem administrativa de usuários.' }
     ])
     const auditorRole = await Role.create({
@@ -177,7 +177,7 @@ describe('Autorização por permissão nas rotas', () => {
     expect(response.status).toBe(200)
   })
 
-  test('autoriza histórico privado somente com audit.view', async () => {
+  test('autoriza histórico privado somente com denuncia.audit.view', async () => {
     const response = await request(app)
       .get(`/denuncia/${reportId}/historico`)
       .set('Authorization', `Bearer ${auditorToken}`)

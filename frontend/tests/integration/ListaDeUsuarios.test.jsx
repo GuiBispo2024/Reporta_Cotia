@@ -107,8 +107,8 @@ test('mantém bloqueados os perfis básicos e o ADMIN da própria conta', async 
   expect(within(dialog).getByText(/sua administração está protegida/i)).toBeInTheDocument()
 })
 
-test('oferece acesso ao histórico para quem possui audit.view', async () => {
-  renderPage({ ...users[0], permissions: ['users.view', 'users.manage_roles', 'audit.view'] })
+test('oferece acesso ao histórico para quem possui users.audit.view', async () => {
+  renderPage({ ...users[0], permissions: ['users.view', 'users.manage_roles', 'users.audit.view'] })
 
   fireEvent.click(await screen.findByRole('button', { name: /histórico de perfis/i }))
   expect(mockNavigate).toHaveBeenCalledWith('/administracao/historico-perfis')
