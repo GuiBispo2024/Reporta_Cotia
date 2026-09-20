@@ -578,10 +578,12 @@ body {
 .rc-role-modal-backdrop { position: fixed; z-index: 2050; inset: 0; padding: 1rem; display: grid; place-items: center; overflow-y: auto; background: rgba(10,35,27,.72); backdrop-filter: blur(4px); }
 .rc-role-modal { width: min(620px, 100%); max-height: calc(100vh - 2rem); overflow-y: auto; border: 1px solid var(--rc-border); border-radius: 20px; background: white; box-shadow: 0 24px 70px rgba(0,0,0,.3); }
 .rc-role-modal > header { padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--rc-border); }
-.rc-role-modal-user { display: flex; align-items: center; gap: .8rem; }
-.rc-role-modal-user span { display: block; color: #74827b; font-size: .67rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
-.rc-role-modal-user h2 { margin: .15rem 0 0; color: var(--rc-text); font-size: 1.25rem; font-weight: 800; }
-.rc-role-modal-close { width: 2.25rem; height: 2.25rem; display: grid; place-items: center; border: 0; border-radius: 50%; background: #edf2ef; color: var(--rc-text); }
+.rc-role-modal-user { min-width: 0; display: flex; align-items: center; gap: .8rem; }
+.rc-role-modal-user > .rc-user-avatar { width: 3rem; height: 3rem; flex: 0 0 3rem; display: grid; place-items: center; overflow: hidden; font-size: 1.15rem; line-height: 1; }
+.rc-role-modal-user > div { min-width: 0; }
+.rc-role-modal-user > div > span { display: block; color: #74827b; font-size: .67rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+.rc-role-modal-user h2 { margin: .15rem 0 0; color: var(--rc-text); font-size: 1.25rem; font-weight: 800; overflow-wrap: anywhere; }
+.rc-role-modal-close { width: 2.25rem; height: 2.25rem; flex: 0 0 2.25rem; display: grid; place-items: center; border: 0; border-radius: 50%; background: #edf2ef; color: var(--rc-text); }
 .rc-role-modal-help { margin: 0; padding: 1rem 1.5rem .25rem; color: #66766e; font-size: .82rem; }
 .rc-role-modal .alert { margin: .75rem 1.5rem 0; }
 .rc-role-options { padding: 1rem 1.5rem 1.25rem; display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
