@@ -24,16 +24,16 @@ test.each([
   expect(api.get).toHaveBeenCalledWith(endpoint, { params, signal });
 });
 
-test('solicita a exportação analítica em CSV e preserva o nome do arquivo', async () => {
-  const blob = new Blob(['dados'], { type: 'text/csv' });
+test('solicita a exportação analítica em XLSX e preserva o nome do arquivo', async () => {
+  const blob = new Blob(['dados'], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   api.get.mockResolvedValueOnce({
     data: blob,
-    headers: { 'content-disposition': 'attachment; filename="indicadores.csv"' }
+    headers: { 'content-disposition': 'attachment; filename="indicadores.xlsx"' }
   });
 
   await expect(boardService.exportAnalytics({ categoria: 'Iluminação pública' })).resolves.toEqual({
     blob,
-    filename: 'indicadores.csv'
+    filename: 'indicadores.xlsx'
   });
   expect(api.get).toHaveBeenCalledWith('/boards/analytics/export', {
     params: { categoria: 'Iluminação pública' },

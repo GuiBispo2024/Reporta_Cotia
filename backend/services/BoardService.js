@@ -3,6 +3,7 @@ const AppError = require('../utils/AppError');
 const { PERMISSIONS } = require('../constants/accessControl');
 const { hasPermission } = require('../utils/authorization');
 const { Op } = require('sequelize');
+const ExcelJS = require('exceljs');
 
 const COLUMNS = [
   { key: 'pendente', label: 'Em moderação', where: { status: 'pendente' } },
@@ -115,33 +116,86 @@ function boardFilters(query = {}) {
   };
 }
 
-function csvCell(value) {
-  let text = value === null || value === undefined ? '' : String(value);
-  if (/^[=+\-@]/.test(text.trimStart())) text = `'${text}`;
-  const quote = String.fromCharCode(34);
-  return quote + text.split(quote).join(quote + quote) + quote;
-}
-
 function reportStatus(report) {
   if (report.status !== 'aprovada') return report.status === 'pendente' ? 'Em moderação' : 'Rejeitada';
   return { aberta: 'Aberta', em_andamento: 'Em andamento', resolvida: 'Resolvida' }[report.resolucaoStatus] || report.resolucaoStatus;
 }
 
-function exportCsv(records) {
-  const rows = records.map(report => [
-    report.id,
-    report.titulo,
-    report.categoria,
-    reportStatus(report),
-    report.setorResponsavel || 'Não informado',
-    report.localizacao,
-    report.createdAt ? new Date(report.createdAt).toISOString() : '',
-    report.updatedAt ? new Date(report.updatedAt).toISOString() : ''
-  ]);
-  return '\uFEFF' + [
-    ['ID', 'Título', 'Categoria', 'Situação', 'Setor responsável', 'Localização', 'Data de cadastro', 'Última atualização'],
-    ...rows
-  ].map(row => row.map(csvCell).join(',')).join('\r\n');
+function excelDate(value) {
+  if (!value) return null;
+  const parts = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).formatToParts(new Date(value));
+  const part = type => parts.find(item => item.type === type)?.value || '';
+  return new Date(Date.UTC(
+    Number(part('year')),
+    Number(part('month')) - 1,
+    Number(part('day')),
+    Number(part('hour')),
+    Number(part('minute'))
+  ));
+}
+
+async function exportWorkbook(records) {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'Reporta Cotia';
+  workbook.created = new Date();
+  const worksheet = workbook.addWorksheet('Denúncias', {
+    views: [{ state: 'frozen', ySplit: 1 }],
+    pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 }
+  });
+  worksheet.columns = [
+    { header: 'ID', key: 'id', width: 10 },
+    { header: 'Título', key: 'titulo', width: 38 },
+    { header: 'Categoria', key: 'categoria', width: 30 },
+    { header: 'Situação', key: 'situacao', width: 20 },
+    { header: 'Setor responsável', key: 'setor', width: 34 },
+    { header: 'Localização', key: 'localizacao', width: 44 },
+    { header: 'Data de cadastro', key: 'createdAt', width: 22 },
+    { header: 'Última atualização', key: 'updatedAt', width: 22 }
+  ];
+  worksheet.autoFilter = 'A1:H1';
+  worksheet.properties.defaultRowHeight = 22;
+
+  const header = worksheet.getRow(1);
+  header.height = 28;
+  header.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  header.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF176B4D' } };
+  header.alignment = { vertical: 'middle', horizontal: 'center' };
+
+  for (const report of records) {
+    const row = worksheet.addRow({
+      id: report.id,
+      titulo: report.titulo,
+      categoria: report.categoria,
+      situacao: reportStatus(report),
+      setor: report.setorResponsavel || 'Não informado',
+      localizacao: report.localizacao,
+      createdAt: excelDate(report.createdAt),
+      updatedAt: excelDate(report.updatedAt)
+    });
+    row.height = 32;
+    row.alignment = { vertical: 'middle', wrapText: true };
+  }
+  for (const columnNumber of [7, 8]) {
+    worksheet.getColumn(columnNumber).numFmt = 'dd/mm/yyyy hh:mm';
+    worksheet.getColumn(columnNumber).alignment = { vertical: 'middle', horizontal: 'center' };
+  }
+  worksheet.eachRow(row => {
+    row.eachCell(cell => {
+      cell.border = {
+        bottom: { style: 'thin', color: { argb: 'FFD9E2DE' } }
+      };
+    });
+  });
+
+  return Buffer.from(await workbook.xlsx.writeBuffer());
 }
 
 class BoardService {
@@ -216,8 +270,8 @@ class BoardService {
     const parsedFilters = boardFilters(query);
     const reports = await BoardRepository.exportReports(parsedFilters.where);
     return {
-      content: exportCsv(reports),
-      filename: `reporta-cotia-denuncias-${new Date().toISOString().slice(0, 10)}.csv`,
+      content: await exportWorkbook(reports),
+      filename: `reporta-cotia-denuncias-${new Date().toISOString().slice(0, 10)}.xlsx`,
       total: reports.length
     };
   }

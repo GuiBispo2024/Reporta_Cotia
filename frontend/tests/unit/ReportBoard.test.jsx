@@ -114,15 +114,15 @@ test('permite exportar somente quando o analista possui a permissão específica
   const downloadClick = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
   Object.defineProperty(window.URL, 'createObjectURL', { configurable: true, value: createObjectURL });
   Object.defineProperty(window.URL, 'revokeObjectURL', { configurable: true, value: revokeObjectURL });
-  boardService.exportAnalytics.mockResolvedValue({ blob: new Blob(['csv']), filename: 'indicadores.csv' });
+  boardService.exportAnalytics.mockResolvedValue({ blob: new Blob(['xlsx']), filename: 'indicadores.xlsx' });
   const user = { permissions: ['dashboard.full.view', 'dashboard.export'] };
 
   render(<AuthContext.Provider value={{ user }}><ReportBoard analytical /></AuthContext.Provider>);
-  fireEvent.click(await screen.findByRole('button', { name: 'Exportar CSV' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Exportar Excel' }));
 
   await waitFor(() => expect(boardService.exportAnalytics).toHaveBeenCalledWith({}));
   expect(createObjectURL).toHaveBeenCalled();
   expect(revokeObjectURL).toHaveBeenCalledWith('blob:board');
-  expect(await screen.findByText('Arquivo CSV gerado com os filtros aplicados.')).toBeInTheDocument();
+  expect(await screen.findByText('Planilha Excel gerada com os filtros aplicados.')).toBeInTheDocument();
   downloadClick.mockRestore();
 });

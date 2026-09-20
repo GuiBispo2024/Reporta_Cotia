@@ -25,7 +25,7 @@ router.get('/analytics', requirePermission(PERMISSIONS.DASHBOARD_FULL_VIEW), asy
  * @swagger
  * /boards/analytics/export:
  *   get:
- *     summary: Exporta as denúncias do board analítico em CSV
+ *     summary: Exporta as denúncias do board analítico em XLSX
  *     description: Requer as permissões dashboard.full.view e dashboard.export. Os filtros de categoria, setor e período são os mesmos do board analítico.
  *     tags: [Boards]
  *     security:
@@ -45,9 +45,9 @@ router.get('/analytics', requirePermission(PERMISSIONS.DASHBOARD_FULL_VIEW), asy
  *         schema: { type: string, format: date }
  *     responses:
  *       200:
- *         description: Arquivo CSV em UTF-8 com os registros filtrados
+ *         description: Planilha Excel formatada com os registros filtrados
  *         content:
- *           text/csv:
+ *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
  *             schema: { type: string, format: binary }
  *       400:
  *         description: Filtros inválidos
@@ -62,7 +62,7 @@ router.get('/analytics/export',
   async (req, res, next) => {
     try {
       const result = await BoardService.exportAnalytics(req.user, req.query);
-      res.type('text/csv');
+      res.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.attachment(result.filename);
       res.set('X-Total-Count', String(result.total));
       res.send(result.content);

@@ -1,9 +1,15 @@
 const request = require('supertest');
+const ExcelJS = require('exceljs');
 const app = require('../../app');
 const { sequelize, User, Role, Permission, Denuncia, DenunciaHistorico } = require('../../models/rel');
 
 describe('Boards pessoais e analíticos', () => {
   let citizen, analyst, other;
+  const binaryParser = (response, callback) => {
+    const chunks = [];
+    response.on('data', chunk => chunks.push(chunk));
+    response.on('end', () => callback(null, Buffer.concat(chunks)));
+  };
   const account = async name => {
     await request(app).post('/users').send({ username: name, email: `${name}@example.com`, password: '123456' });
     const login = await request(app).post('/users/login').send({ email: `${name}@example.com`, password: '123456' });
@@ -108,16 +114,29 @@ describe('Boards pessoais e analíticos', () => {
       expect((await get('/boards/mine', citizen, query)).status).toBe(400);
     }
   });
-  test('exporta CSV analítico com os mesmos filtros e exige permissão específica', async () => {
+  test('exporta XLSX formatado com os mesmos filtros e exige permissão específica', async () => {
     expect((await get('/boards/analytics/export', citizen)).status).toBe(403);
-    const response = await get('/boards/analytics/export', analyst, { dataInicio: '2026-01-01', dataFim: '2026-01-31' });
+    const response = await request(app)
+      .get('/boards/analytics/export')
+      .set('Authorization', `Bearer ${analyst.token}`)
+      .query({ dataInicio: '2026-01-01', dataFim: '2026-01-31' })
+      .buffer(true)
+      .parse(binaryParser);
     expect(response.status).toBe(200);
-    expect(response.headers['content-type']).toContain('text/csv');
-    expect(response.headers['content-disposition']).toMatch(/reporta-cotia-denuncias-\d{4}-\d{2}-\d{2}\.csv/);
+    expect(response.headers['content-type']).toContain('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    expect(response.headers['content-disposition']).toMatch(/reporta-cotia-denuncias-\d{4}-\d{2}-\d{2}\.xlsx/);
     expect(response.headers['x-total-count']).toBe('1');
-    expect(response.text).toContain('"ID","Título","Categoria","Situação"');
-    expect(response.text).toContain('"Minha resolvida"');
-    expect(response.text).not.toContain('"Minha aberta 0"');
-    expect(response.text).not.toContain('Texto reservado para censura');
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(response.body);
+    const worksheet = workbook.getWorksheet('Denúncias');
+    expect(worksheet.rowCount).toBe(2);
+    expect(worksheet.getRow(1).values.slice(1, 5)).toEqual(['ID', 'Título', 'Categoria', 'Situação']);
+    expect(worksheet.getCell('B2').value).toBe('Minha resolvida');
+    expect(worksheet.getCell('G2').value).toEqual(new Date('2026-01-15T09:00:00.000Z'));
+    expect(worksheet.getCell('G2').numFmt).toBe('dd/mm/yyyy hh:mm');
+    expect(worksheet.getColumn(2).width).toBe(38);
+    expect(worksheet.views[0]).toMatchObject({ state: 'frozen', ySplit: 1 });
+    expect(JSON.stringify(worksheet.getSheetValues())).not.toContain('Minha aberta 0');
+    expect(JSON.stringify(worksheet.getSheetValues())).not.toContain('Texto reservado para censura');
   });
 });

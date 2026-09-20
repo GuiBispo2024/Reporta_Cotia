@@ -78,10 +78,10 @@ describe('Documentação OpenAPI', () => {
     expect(endpoint.responses[409].description).toContain('única conta administradora')
   })
 
-  test('documenta a exportação CSV do board analítico', () => {
+  test('documenta a exportação XLSX do board analítico', () => {
     const endpoint = swaggerSpec.paths['/boards/analytics/export'].get
     expect(endpoint).toBeDefined()
     expect(endpoint.description).toContain('dashboard.export')
-    expect(endpoint.responses[200].content['text/csv']).toBeDefined()
+    expect(endpoint.responses[200].content['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']).toBeDefined()
   })
 })

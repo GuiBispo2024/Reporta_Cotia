@@ -10,7 +10,7 @@ const boardService = {
   async exportAnalytics(params = {}) {
     const response = await api.get('/boards/analytics/export', { params, responseType: 'blob' });
     const disposition = response.headers?.['content-disposition'] || '';
-    const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || 'reporta-cotia-denuncias.csv';
+    const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || 'reporta-cotia-denuncias.xlsx';
     return { blob: response.data, filename };
   }
 };

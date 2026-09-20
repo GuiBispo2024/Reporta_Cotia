@@ -120,7 +120,7 @@ export default function ReportBoard({ analytical = false, community = false }) {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      setExportMessage('Arquivo CSV gerado com os filtros aplicados.');
+      setExportMessage('Planilha Excel gerada com os filtros aplicados.');
     } catch (err) {
       setExportError(friendlyError(err, 'Não foi possível exportar os indicadores. Tente novamente.'));
     } finally {
@@ -133,7 +133,7 @@ export default function ReportBoard({ analytical = false, community = false }) {
     <main id="main-content" tabIndex={-1} className="container-fluid rc-board-page py-4 flex-grow-1">
       <header className="rc-board-header">
         <div><span className="rc-board-eyebrow">{viewCopy.eyebrow}</span><h1>{viewCopy.title}</h1><p>{viewCopy.description}</p></div>
-        <div className="d-flex flex-wrap gap-2"><Link className="btn btn-outline-primary" to={aggregated ? '/meu-board' : '/minhas-denuncias'}>{aggregated ? 'Meu board pessoal' : 'Ver em lista'}</Link>{canExport && <button className="btn btn-primary" onClick={exportBoard} disabled={loading || exporting}>{exporting ? 'Gerando arquivo...' : 'Exportar CSV'}</button>}<button className="btn btn-outline-secondary" onClick={() => setReload(value => value + 1)} disabled={loading}>Atualizar</button></div>
+        <div className="d-flex flex-wrap gap-2"><Link className="btn btn-outline-primary" to={aggregated ? '/meu-board' : '/minhas-denuncias'}>{aggregated ? 'Meu board pessoal' : 'Ver em lista'}</Link>{canExport && <button className="btn btn-primary" onClick={exportBoard} disabled={loading || exporting}>{exporting ? 'Gerando planilha...' : 'Exportar Excel'}</button>}<button className="btn btn-outline-secondary" onClick={() => setReload(value => value + 1)} disabled={loading}>Atualizar</button></div>
       </header>
       {exportMessage && <p className="alert alert-success" role="status">{exportMessage}</p>}
       {exportError && <p className="alert alert-danger" role="alert">{exportError}</p>}
