@@ -21,8 +21,8 @@ Os registros incluem título, descrição, localização, categoria, setor, esta
 
 ## Interface
 
-- `/meu-board`: board pessoal, também acessível em “Minhas denúncias” e no menu da conta.
-- `/boards/analitico`: disponível no menu da conta para quem possui `dashboard.full.view`.
+- `/meu-board`: board pessoal, também acessível em “Minhas denúncias” e na aba “Boards” do navbar.
+- `/boards/analitico`: destino da aba “Boards” para analistas e demais contas com `dashboard.full.view`. A visão analítica também oferece acesso ao board pessoal.
 - Detalhes em janela navegável por teclado; no board analítico, registros privados são consultados nessa janela. O link público é oferecido somente para denúncias aprovadas.
 - Filtros analíticos por categoria e setor, contagens por situação e distribuições por categoria e setor. Cada coluna tem “Carregar mais” e informa quantos registros estão visíveis.
 - No celular e com texto ampliado, as colunas são empilhadas. Os boards usam os temas e recursos globais de acessibilidade.

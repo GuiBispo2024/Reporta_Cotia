@@ -795,7 +795,7 @@ body {
   .rc-map-caption small { width: 100%; margin-left: 1.35rem; }
 }
 
-@media (max-width: 991px) {
+@media (max-width: 1199px) {
   .rc-navbar .navbar-collapse { margin-top: .7rem; padding: .8rem; border: 1px solid rgba(255,255,255,.1); border-radius: 13px; background: rgba(10,61,43,.98); }
   .rc-navbar .navbar-nav { align-items: stretch !important; }
   .rc-nav-link { padding: .7rem !important; }
