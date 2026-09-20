@@ -5,6 +5,7 @@ import { friendlyError } from '../utils/errorMessage';
 import useDialogAccessibility from '../hooks/useDialogAccessibility';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import BoardMap from './BoardMap';
 import './ReportBoard.css';
 
 const SUMMARY_LABELS = { total: 'Total de denúncias', pendente: 'Em moderação', aberta: 'Abertas', em_andamento: 'Em andamento', resolvida: 'Resolvidas', rejeitada: 'Rejeitadas' };
@@ -112,6 +113,7 @@ export default function ReportBoard({ analytical = false, community = false }) {
           </dl>
           {aggregated && <p className="rc-board-guidance">{community ? 'Os indicadores consideram somente denúncias aprovadas e não exibem conteúdos em moderação ou rejeitados.' : 'Os indicadores consideram todas as denúncias dos filtros aplicados. A taxa de resolução considera somente as aprovadas.'}</p>}
           {!data.summary.total && <div className="rc-board-state"><p>{aggregated ? 'Nenhuma denúncia encontrada para os filtros aplicados.' : 'Você ainda não tem denúncias para acompanhar.'}</p>{!aggregated && <Link className="btn btn-primary" to="/nova-denuncia">Registrar denúncia</Link>}</div>}
+          {aggregated && <BoardMap map={data.map} />}
           {aggregated && data.breakdown && <div className="rc-board-breakdowns">
             {Object.entries(BREAKDOWN_LABELS).map(([key, labels]) => <section key={key}>
               <table><caption>{labels.title}</caption><thead><tr><th scope="col">{labels.column}</th><th scope="col">Total</th></tr></thead><tbody>{(data.breakdown[key] || []).map(item => <tr key={item.label}><th scope="row">{item.label}</th><td>{item.total}</td></tr>)}</tbody></table>

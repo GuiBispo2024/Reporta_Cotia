@@ -22,6 +22,7 @@ As visões comunitária e analítica incluem `map.points` com até 500 denúncia
 2. Board pessoal com indicadores, colunas, paginação e detalhes.
 3. Board analítico com filtros e distribuições, respeitando a permissão existente.
 4. API do board comunitário, limitada a dados aprovados e preparada para visualização geográfica.
+5. Mapa das denúncias com coordenadas nas visões comunitária e analítica.
 
 ## Interface
 
@@ -31,6 +32,7 @@ As visões comunitária e analítica incluem `map.points` com até 500 denúncia
 - Detalhes em janela navegável por teclado; no board analítico, registros privados são consultados nessa janela. O link público é oferecido somente para denúncias aprovadas.
 - Filtros por categoria e setor, contagens por situação e distribuições por categoria, setor e localização. Cada coluna tem “Carregar mais” e informa quantos registros estão visíveis.
 - A aba “Boards” leva cidadãos ao board comunitário e contas com `dashboard.full.view` ao board analítico.
+- As visões comunitária e analítica exibem os registros com coordenadas sobre um mapa do OpenStreetMap. Marcadores aprovados levam ao detalhe público; registros privados do board analítico não geram links públicos.
 - No celular e com texto ampliado, as colunas são empilhadas. Os boards usam os temas e recursos globais de acessibilidade.
 
-As quatro etapas acima estão implementadas. Exportação, filtros por período e métricas de tempo de atendimento ficam para incrementos futuros; não há arraste de cartões nem edição de status nesta primeira versão.
+As cinco etapas acima estão implementadas. Exportação, filtros por período e métricas de tempo de atendimento ficam para incrementos futuros; não há arraste de cartões nem edição de status nesta primeira versão.

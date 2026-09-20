@@ -69,7 +69,8 @@ test('board comunitário apresenta somente indicadores públicos e localizaçõe
       categories: [{ label: 'Iluminação pública', total: 2 }],
       sectors: [{ label: 'Serviço de Iluminação Pública', total: 2 }],
       locations: [{ label: 'Centro, Cotia', total: 2 }]
-    }
+    },
+    map: { points: [{ ...report, latitude: -23.6, longitude: -46.92 }], total: 1, limit: 500, truncated: false }
   };
   boardService.getBoard.mockResolvedValue(community);
 
@@ -78,6 +79,7 @@ test('board comunitário apresenta somente indicadores públicos e localizaçõe
   expect(await screen.findByRole('heading', { name: 'Board da comunidade' })).toBeInTheDocument();
   expect(screen.getByText('Denúncias por localização')).toBeInTheDocument();
   expect(screen.getByText('Centro, Cotia')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Distribuição geográfica' })).toBeInTheDocument();
   expect(screen.queryByText('Em moderação')).not.toBeInTheDocument();
   expect(screen.queryByText('Rejeitadas')).not.toBeInTheDocument();
   expect(boardService.getBoard).toHaveBeenCalledWith(expect.objectContaining({ analytical: false, community: true }));
