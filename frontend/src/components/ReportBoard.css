@@ -2,6 +2,8 @@
 .rc-board-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
 .rc-board-header h1 { margin: .25rem 0; font-size: 2rem; font-weight: 800; }
 .rc-board-header p, .rc-board-guidance { color: var(--rc-secondary-text, #526159); }
+.rc-board-updated { display: flex; align-items: center; gap: .4rem; margin: -1rem 0 1rem; color: var(--rc-secondary-text, #526159); font-size: .8rem; }
+.rc-board-updated time { font-weight: 700; color: var(--rc-text); }
 .rc-board-eyebrow { color: var(--rc-primary); font-size: .8rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
 .rc-board-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .75rem; }
 .rc-board-summary > div { padding: 1rem; border: 1px solid var(--rc-border); border-radius: 12px; background: var(--rc-surface, #fff); }

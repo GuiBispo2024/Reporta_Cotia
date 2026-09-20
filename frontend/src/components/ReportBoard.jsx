@@ -18,6 +18,9 @@ const BREAKDOWN_LABELS = {
   locations: { title: 'Denúncias por localização', column: 'Localização' }
 };
 const dateLabel = value => value ? new Date(value).toLocaleDateString('pt-BR') : 'Não informada';
+const dateTimeLabel = value => value
+  ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' }).format(new Date(value)).replace(',', '')
+  : '';
 const durationLabel = hours => {
   if (hours === null || hours === undefined) return 'Sem dados';
   const minutes = Math.round(hours * 60);
@@ -135,6 +138,7 @@ export default function ReportBoard({ analytical = false, community = false }) {
         <div><span className="rc-board-eyebrow">{viewCopy.eyebrow}</span><h1>{viewCopy.title}</h1><p>{viewCopy.description}</p></div>
         <div className="d-flex flex-wrap gap-2"><Link className="btn btn-outline-primary" to={aggregated ? '/meu-board' : '/minhas-denuncias'}>{aggregated ? 'Meu board pessoal' : 'Ver em lista'}</Link>{canExport && <button className="btn btn-primary" onClick={exportBoard} disabled={loading || exporting}>{exporting ? 'Gerando planilha...' : 'Exportar Excel'}</button>}<button className="btn btn-outline-secondary" onClick={() => setReload(value => value + 1)} disabled={loading}>Atualizar</button></div>
       </header>
+      {data?.generatedAt && <p className="rc-board-updated" aria-live="polite"><i className="bi bi-clock-history" aria-hidden="true" /> Dados atualizados em <time dateTime={data.generatedAt}>{dateTimeLabel(data.generatedAt)}</time></p>}
       {exportMessage && <p className="alert alert-success" role="status">{exportMessage}</p>}
       {exportError && <p className="alert alert-danger" role="alert">{exportError}</p>}
 

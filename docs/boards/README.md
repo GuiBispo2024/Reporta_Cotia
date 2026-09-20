@@ -21,6 +21,8 @@ As mesmas visões incluem `metrics`, com o tempo médio em horas até a primeira
 
 O campo `trend` apresenta a quantidade mensal de denúncias nos últimos 12 meses que possuem registros no recorte consultado. A interface combina essa evolução com gráficos de situação e das categorias mais recorrentes.
 
+Cada resposta do board inclui `generatedAt`, e a interface apresenta essa data como a última atualização dos indicadores. O horário é renovado quando a página abre, quando os filtros são aplicados ou quando o usuário solicita uma atualização.
+
 ## Etapas
 
 1. API, validação, isolamento dos dados e testes de integração.

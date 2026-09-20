@@ -61,6 +61,7 @@ describe('Boards pessoais e analíticos', () => {
     const response = await get('/boards/public', citizen);
     expect(response.status).toBe(200);
     expect(response.body.scope).toBe('public');
+    expect(Number.isNaN(Date.parse(response.body.generatedAt))).toBe(false);
     expect(response.body.summary).toMatchObject({ total: 4, aberta: 3, resolvida: 1, pendente: 0, rejeitada: 0 });
     expect(response.body.columns.map(column => column.key)).toEqual(['aberta', 'em_andamento', 'resolvida']);
     expect(response.body.breakdown.locations).toEqual([{ label: 'Cotia', total: 4 }]);

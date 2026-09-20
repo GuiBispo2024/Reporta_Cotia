@@ -14,6 +14,7 @@ jest.mock('../../src/components/Footer', () => () => <footer />);
 
 const report = { id: 1, titulo: 'Iluminação da praça', descricao: 'Lâmpada apagada', categoria: 'Iluminação pública', status: 'aprovada', resolucaoStatus: 'aberta', localizacao: 'Rua Central', createdAt: '2026-09-20T12:00:00Z' };
 const initial = {
+  generatedAt: '2026-09-20T15:30:00Z',
   summary: { total: 2, pendente: 0, aberta: 2, em_andamento: 0, resolvida: 0, rejeitada: 0 },
   columns: [{ key: 'aberta', label: 'Abertas', page: 1, totalPages: 2, total: 2, reports: [report] }]
 };
@@ -90,6 +91,7 @@ test('board comunitário apresenta somente indicadores públicos e localizaçõe
   render(<ReportBoard community />);
 
   expect(await screen.findByRole('heading', { name: 'Board da comunidade' })).toBeInTheDocument();
+  expect(screen.getByText(/Dados atualizados em/)).toHaveTextContent('20/09/2026 12:30');
   expect(screen.getByText('Denúncias por localização')).toBeInTheDocument();
   expect(screen.getByText('Centro, Cotia')).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Distribuição geográfica' })).toBeInTheDocument();

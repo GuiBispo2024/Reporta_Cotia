@@ -250,6 +250,7 @@ class BoardService {
       .sort((a, b) => b.total - a.total || a.label.localeCompare(b.label, 'pt-BR'));
     return {
       scope: scopeType,
+      generatedAt: new Date().toISOString(),
       summary: { total, ...counts, resolutionRate: approved ? Math.round(counts.resolvida / approved * 100) : 0 },
       columns,
       ...(includeBreakdown ? { breakdown: {
