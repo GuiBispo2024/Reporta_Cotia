@@ -108,6 +108,40 @@ describe('Autorização por permissão nas rotas', () => {
     expect(response.body.code).toBe('FORBIDDEN')
   })
 
+  test('bloqueia operações de denúncia sem as permissões cidadãs correspondentes', async () => {
+    const ownedReport = await Denuncia.create({
+      titulo: 'Denúncia sem permissão',
+      descricao: 'Criada diretamente para validar a autorização.',
+      localizacao: 'Cotia - SP',
+      categoria: 'Outros',
+      status: 'rejeitada',
+      userId: citizenUserId
+    })
+
+    const [createResponse, updateResponse, deleteResponse] = await Promise.all([
+      request(app)
+        .post('/denuncia')
+        .set('Authorization', `Bearer ${citizenToken}`)
+        .send({ titulo: 'Tentativa', descricao: 'Sem permissão', localizacao: 'Cotia - SP' }),
+      request(app)
+        .put(`/denuncia/${ownedReport.id}`)
+        .set('Authorization', `Bearer ${citizenToken}`)
+        .send({ titulo: 'Tentativa de edição' }),
+      request(app)
+        .delete(`/denuncia/${ownedReport.id}`)
+        .set('Authorization', `Bearer ${citizenToken}`)
+    ])
+
+    await ownedReport.destroy()
+
+    expect([createResponse.status, updateResponse.status, deleteResponse.status]).toEqual([403, 403, 403])
+    expect([createResponse.body.code, updateResponse.body.code, deleteResponse.body.code]).toEqual([
+      'FORBIDDEN',
+      'FORBIDDEN',
+      'FORBIDDEN'
+    ])
+  })
+
   test('autoriza moderador com moderation.view', async () => {
     const response = await request(app)
       .get('/denuncia/moderacao')

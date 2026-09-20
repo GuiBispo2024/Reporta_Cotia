@@ -7,10 +7,12 @@ let userId;
 let denunciaId;
 let secondaryUserId;
 const { Denuncia, Share } = require('../../models/rel');
+const seedAccessControl = require('../../seed/accessControl.seed');
 
 describe("Denúncias routes (integration)", () => {
   beforeAll(async () => {
     await db.sequelize.sync({ force: true });
+    await seedAccessControl();
 
     // Criar usuário comum
     const user = await request(app).post("/users").send({

@@ -28,11 +28,12 @@ function pagination(req) {
  * /denuncia:
  *   post:
  *     summary: Cria uma denúncia
+ *     description: Exige a permissão `denuncia.create`.
  *     tags: [Denúncias]
  *     security:
  *       - bearerAuth: []
  */
-router.post('/', auth, upload.array('imagens', 4), async (req, res, next) => {
+router.post('/', auth, requirePermission(PERMISSIONS.DENUNCIA_CREATE), upload.array('imagens', 4), async (req, res, next) => {
   try {
     const imageUrls = await Promise.all((req.files || []).map(file => storeImage(file)));
     res.status(201).json(await DenunciaService.create({ ...req.body, imageUrls, imageUrl: imageUrls[0] || null }, req.user));
@@ -320,6 +321,7 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
  * /denuncia/{id}:
  *   put:
  *     summary: Atualiza uma denúncia do usuário autenticado
+ *     description: Exige a permissão `denuncia.update_own` e autoria da denúncia.
  *     tags: [Denúncias]
  *     security:
  *       - bearerAuth: []
@@ -342,7 +344,7 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
  *       403: { description: Usuário não é o autor }
  *       404: { description: Denúncia não encontrada }
  */
-router.put('/:id', auth, upload.array('imagens', 4), async (req, res, next) => {
+router.put('/:id', auth, requirePermission(PERMISSIONS.DENUNCIA_UPDATE_OWN), upload.array('imagens', 4), async (req, res, next) => {
   try {
     const current = await DenunciaService.buscarPorId(req.params.id, req.user);
     const newUrls = await Promise.all((req.files || []).map(file => storeImage(file)));
@@ -370,6 +372,7 @@ router.put('/:id', auth, upload.array('imagens', 4), async (req, res, next) => {
  * /denuncia/{id}:
  *   delete:
  *     summary: Exclui uma denúncia do próprio usuário
+ *     description: Exige a permissão `denuncia.delete_own` e autoria da denúncia.
  *     tags: [Denúncias]
  *     security:
  *       - bearerAuth: []
@@ -380,7 +383,7 @@ router.put('/:id', auth, upload.array('imagens', 4), async (req, res, next) => {
  *       403: { description: Usuário não é o autor }
  *       404: { description: Denúncia não encontrada }
  */
-router.delete('/:id', auth, async (req, res, next) => {
+router.delete('/:id', auth, requirePermission(PERMISSIONS.DENUNCIA_DELETE_OWN), async (req, res, next) => {
   try {
     res.status(200).json(await DenunciaService.deletar(req.params.id, req.user.id));
   } catch (error) { next(error); }
