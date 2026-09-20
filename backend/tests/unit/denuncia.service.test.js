@@ -92,6 +92,18 @@ describe('DenunciaService (unit)', () => {
   // -----------------------------
   // buscarPorId()
   // -----------------------------
+  test('moderar: não reabre denúncia resolvida nem apaga suas interações', async () => {
+    DenunciaRepository.findById.mockResolvedValue({ id: 7, status: 'aprovada', resolucaoStatus: 'resolvida' });
+    await expect(DenunciaService.moderar(7, 'pendente')).rejects.toMatchObject({ statusCode: 409, code: 'REPORT_RESOLVED' });
+    expect(DenunciaRepository.update).not.toHaveBeenCalled();
+    expect(DenunciaRepository.clearSocialHistory).not.toHaveBeenCalled();
+  });
+
+  test('moderar: permite reabrir denúncia ainda em andamento', async () => {
+    DenunciaRepository.findById.mockResolvedValue({ id: 7, status: 'aprovada', resolucaoStatus: 'em_andamento' });
+    await expect(DenunciaService.moderar(7, 'pendente')).resolves.toHaveProperty('denuncia.status', 'pendente');
+  });
+
   test('buscarPorId: retorna denúncia', async () => {
     console.log("➡️ Testando: buscarPorId()");
 

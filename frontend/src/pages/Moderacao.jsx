@@ -1,3 +1,4 @@
+import ReopenReportButton from '../components/ReopenReportButton';
 import useDialogAccessibility from '../hooks/useDialogAccessibility';
 import { useId } from 'react';
 import { useCallback, useEffect, useState, useContext } from "react";
@@ -318,7 +319,7 @@ export default function Moderacao() {
                   {canUpdateResolution && <button className="btn btn-primary mt-3 me-2" disabled={savingResolution === d.id || !hasResolutionChanges(d)} onClick={() => atualizarResolucao(d.id)}>
                     <i aria-hidden="true" className="bi bi-check2-circle me-1" />{savingResolution === d.id ? 'Salvando...' : 'Salvar mudanças'}
                   </button>}
-                  {canReviewModeration && <button className="btn btn-outline-warning btn-sm mt-3" onClick={() => reabrirModeracao(d.id)}><i aria-hidden="true" className="bi bi-arrow-counterclockwise me-1" />Reabrir moderação</button>}
+                  {canReviewModeration && <ReopenReportButton report={d} onReopen={reabrirModeracao} className="btn-sm mt-3" />}
                   {canViewAudit && <button className="btn btn-outline-secondary btn-sm mt-3 ms-2" onClick={() => navigate(`/moderacao/denuncia/${d.id}/historico`)}><i aria-hidden="true" className="bi bi-clock-history me-1" />Histórico de alterações</button>}
 
                 </div>
@@ -334,7 +335,7 @@ export default function Moderacao() {
       <section className={`mt-5 ${statusFilter === 'todos' || statusFilter === 'rejeitada' ? '' : 'd-none'}`}>
         <h4 className="fw-bold">Denúncias rejeitadas</h4>
         <p className="text-muted">Consulte os registros rejeitados ou reabra uma denúncia para uma nova análise.</p>
-        {!rejeitadas.length ? <div className="rc-empty">Não há denúncias rejeitadas.</div> : <div className="row g-3">{rejeitadas.map(d => <div className="col-12 col-lg-6" key={`rejected-${d.id}`}><article className="rc-filter-card"><div className="d-flex justify-content-between gap-2"><strong>{d.titulo}</strong><span className="badge bg-danger">Rejeitada</span></div><p className="small text-muted mt-2"><i aria-hidden="true" className="bi bi-person-circle me-1" />{d.User?.username || 'Usuário não identificado'}</p>{d.motivoRejeicao && <p className="rc-rejection-reason"><strong>Motivo:</strong> {d.motivoRejeicao}</p>}<button className="btn btn-outline-primary btn-sm" onClick={() => setSelectedReport({ ...d, queue: 'rejected' })}><i aria-hidden="true" className="bi bi-eye me-1" />Ver detalhes</button>{canReviewModeration && <button className="btn btn-outline-warning btn-sm ms-2" onClick={() => reabrirModeracao(d.id)}><i aria-hidden="true" className="bi bi-arrow-counterclockwise me-1" />Reabrir</button>}</article></div>)}</div>}
+        {!rejeitadas.length ? <div className="rc-empty">Não há denúncias rejeitadas.</div> : <div className="row g-3">{rejeitadas.map(d => <div className="col-12 col-lg-6" key={`rejected-${d.id}`}><article className="rc-filter-card"><div className="d-flex justify-content-between gap-2"><strong>{d.titulo}</strong><span className="badge bg-danger">Rejeitada</span></div><p className="small text-muted mt-2"><i aria-hidden="true" className="bi bi-person-circle me-1" />{d.User?.username || 'Usuário não identificado'}</p>{d.motivoRejeicao && <p className="rc-rejection-reason"><strong>Motivo:</strong> {d.motivoRejeicao}</p>}<button className="btn btn-outline-primary btn-sm" onClick={() => setSelectedReport({ ...d, queue: 'rejected' })}><i aria-hidden="true" className="bi bi-eye me-1" />Ver detalhes</button>{canReviewModeration && <ReopenReportButton report={d} onReopen={reabrirModeracao} className="btn-sm mt-2" />}</article></div>)}</div>}
         {rejectedMeta.totalPages > 1 && <div className="d-flex justify-content-center gap-3 mt-3"><button className="btn btn-outline-primary" disabled={rejectedMeta.page <= 1} onClick={() => carregar(pendingMeta.page, approvedMeta.page, rejectedMeta.page - 1)}>Anterior</button><span className="align-self-center">Página {rejectedMeta.page} de {rejectedMeta.totalPages}</span><button className="btn btn-outline-primary" disabled={rejectedMeta.page >= rejectedMeta.totalPages} onClick={() => carregar(pendingMeta.page, approvedMeta.page, rejectedMeta.page + 1)}>Próxima</button></div>}
       </section>
       </main>
@@ -369,7 +370,7 @@ export default function Moderacao() {
                 {canViewAudit && <button className="btn btn-outline-secondary btn-sm w-100 mt-2" onClick={() => navigate(`/moderacao/denuncia/${selectedReport.id}/historico`)}><i aria-hidden="true" className="bi bi-clock-history me-1" />Histórico de alterações</button>}
               </> : selectedReport.queue === 'rejected' ? <>
                 <div className="rc-rejection-reason"><strong>Motivo da rejeição</strong><p>{selectedReport.motivoRejeicao || 'Nenhum motivo registrado.'}</p></div>
-                {canReviewModeration && <button className="btn btn-outline-warning w-100 mt-3" onClick={() => reabrirModeracao(selectedReport.id)}><i aria-hidden="true" className="bi bi-arrow-counterclockwise me-1" />Reabrir moderação</button>}
+                {canReviewModeration && <ReopenReportButton report={selectedReport} onReopen={reabrirModeracao} className="w-100 mt-3" />}
                 {canViewAudit && <button className="btn btn-outline-secondary btn-sm w-100 mt-2" onClick={() => navigate(`/moderacao/denuncia/${selectedReport.id}/historico`)}><i aria-hidden="true" className="bi bi-clock-history me-1" />Histórico de alterações</button>}
               </> : canReviewModeration ? <>
                 <label htmlFor={`${accessibilityId}-field-6`} className="form-label fw-semibold">Motivo da rejeição <span className="text-danger">(obrigatório para rejeitar)</span></label>

@@ -66,6 +66,10 @@ class DenunciaService {
     const denuncia = await DenunciaRepository.findById(id);
     if (!denuncia) throw new AppError('Denúncia não encontrada.', 404, 'NOT_FOUND');
 
+    if (status === 'pendente' && denuncia.resolucaoStatus === 'resolvida') {
+      throw new AppError('Denúncias resolvidas não podem ter a moderação reaberta.', 409, 'REPORT_RESOLVED');
+    }
+
     if (status === 'rejeitada' && !motivoRejeicao?.trim()) {
       throw new AppError('Informe o motivo da rejeição.', 400, 'REJECTION_REASON_REQUIRED');
     }
