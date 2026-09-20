@@ -49,11 +49,12 @@ class BoardService {
     const scope = analytical ? {} : publicView ? { status: 'aprovada' } : { userId: user.id };
     const where = { ...scope, ...(categoria ? { categoria } : {}), ...(setorResponsavel ? { setorResponsavel } : {}) };
     const includeBreakdown = analytical || publicView;
-    const [statuses, categories, sectors, locations] = await Promise.all([
+    const [statuses, categories, sectors, locations, map] = await Promise.all([
       BoardRepository.grouped(where, ['status', 'resolucaoStatus']),
       includeBreakdown ? BoardRepository.grouped(where, ['categoria']) : [],
       includeBreakdown ? BoardRepository.grouped(where, ['setorResponsavel']) : [],
-      includeBreakdown ? BoardRepository.grouped(where, ['localizacao']) : []
+      includeBreakdown ? BoardRepository.grouped(where, ['localizacao']) : [],
+      includeBreakdown ? BoardRepository.mapPoints(where) : null
     ]);
     const counts = Object.fromEntries(COLUMNS.map(item => [item.key, 0]));
     for (const row of statuses) {
@@ -79,7 +80,7 @@ class BoardService {
         categories: breakdown(categories, 'categoria'),
         sectors: breakdown(sectors, 'setorResponsavel'),
         locations: breakdown(locations, 'localizacao')
-      } } : {}),
+      }, map } : {}),
       filters: { categoria, setorResponsavel },
       limit
     };

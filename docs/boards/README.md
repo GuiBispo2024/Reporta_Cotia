@@ -14,6 +14,8 @@ Colunas: `pendente` (em moderação), `aberta`, `em_andamento`, `resolvida` e `r
 
 Os registros incluem título, descrição, localização, categoria, setor, estados, datas e motivo da rejeição. Textos originais de censura, credenciais e dados pessoais do autor não são retornados. O ID de usuário informado na URL não altera o escopo pessoal.
 
+As visões comunitária e analítica incluem `map.points` com até 500 denúncias que possuem coordenadas, além de `total`, `limit` e `truncated`. Os pontos respeitam os filtros ativos; no board comunitário, o conjunto geográfico contém exclusivamente denúncias aprovadas. O board pessoal não recebe esse conjunto adicional.
+
 ## Etapas
 
 1. API, validação, isolamento dos dados e testes de integração.

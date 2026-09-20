@@ -25,10 +25,10 @@ describe('Boards pessoais e analíticos', () => {
     const citizenRole = await Role.findOne({ where: { name: 'CITIZEN' } });
     await citizenRole.addPermission(publicPermission);
     await Denuncia.bulkCreate([
-      ...Array.from({ length: 3 }, (_, i) => ({ titulo: `Minha aberta ${i}`, status: 'aprovada', resolucaoStatus: 'aberta', userId: citizen.id })),
-      { titulo: 'Minha resolvida', status: 'aprovada', resolucaoStatus: 'resolvida', userId: citizen.id },
-      { titulo: 'Minha pendente', status: 'pendente', userId: citizen.id },
-      { titulo: 'Privada de outro autor', status: 'rejeitada', userId: other.id }
+      ...Array.from({ length: 3 }, (_, i) => ({ titulo: `Minha aberta ${i}`, status: 'aprovada', resolucaoStatus: 'aberta', latitude: -23.60 - i * 0.01, longitude: -46.92 - i * 0.01, userId: citizen.id })),
+      { titulo: 'Minha resolvida', status: 'aprovada', resolucaoStatus: 'resolvida', latitude: -23.63, longitude: -46.95, userId: citizen.id },
+      { titulo: 'Minha pendente', status: 'pendente', latitude: -23.64, longitude: -46.96, userId: citizen.id },
+      { titulo: 'Privada de outro autor', status: 'rejeitada', latitude: -23.65, longitude: -46.97, userId: other.id }
     ].map(report => ({ descricao: 'Descrição pública', localizacao: 'Cotia', categoria: 'Outros', setorResponsavel: 'Defesa Civil', tituloOriginal: 'Texto reservado para censura', ...report })));
   });
   afterAll(() => sequelize.close());
@@ -43,6 +43,7 @@ describe('Boards pessoais e analíticos', () => {
     expect(response.body.summary).toMatchObject({ total: 5, aberta: 3, resolvida: 1, pendente: 1, rejeitada: 0, resolutionRate: 25 });
     expect(JSON.stringify(response.body)).not.toContain('Privada de outro autor');
     expect(JSON.stringify(response.body)).not.toContain('tituloOriginal');
+    expect(response.body).not.toHaveProperty('map');
   });
   test('board comunitário mostra somente denúncias aprovadas e indicadores agregados', async () => {
     const response = await get('/boards/public', citizen);
@@ -51,6 +52,10 @@ describe('Boards pessoais e analíticos', () => {
     expect(response.body.summary).toMatchObject({ total: 4, aberta: 3, resolvida: 1, pendente: 0, rejeitada: 0 });
     expect(response.body.columns.map(column => column.key)).toEqual(['aberta', 'em_andamento', 'resolvida']);
     expect(response.body.breakdown.locations).toEqual([{ label: 'Cotia', total: 4 }]);
+    expect(response.body.map).toMatchObject({ total: 4, limit: 500, truncated: false });
+    expect(response.body.map.points).toHaveLength(4);
+    expect(response.body.map.points.every(point => point.status === 'aprovada')).toBe(true);
+    expect(response.body.map.points[0]).toEqual(expect.objectContaining({ latitude: expect.anything(), longitude: expect.anything() }));
     expect(JSON.stringify(response.body)).not.toContain('Minha pendente');
     expect(JSON.stringify(response.body)).not.toContain('Privada de outro autor');
     expect((await get('/boards/public', citizen, { column: 'rejeitada' })).status).toBe(400);
@@ -69,6 +74,7 @@ describe('Boards pessoais e analíticos', () => {
     expect(response.status).toBe(200);
     expect(response.body.summary.total).toBe(6);
     expect(response.body.breakdown.categories).toEqual([{ label: 'Outros', total: 6 }]);
+    expect(response.body.map).toMatchObject({ total: 6, truncated: false });
     expect(response.body.columns.find(item => item.key === 'rejeitada').reports[0].titulo).toBe('Privada de outro autor');
     expect(JSON.stringify(response.body)).not.toContain('Texto reservado para censura');
   });
