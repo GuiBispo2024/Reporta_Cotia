@@ -11,8 +11,13 @@ router.get('/mine', async (req, res, next) => {
   catch (error) { next(error); }
 });
 
+router.get('/public', requirePermission(PERMISSIONS.DASHBOARD_PUBLIC_VIEW), async (req, res, next) => {
+  try { res.json(await BoardService.getBoard(req.user, req.query, 'public')); }
+  catch (error) { next(error); }
+});
+
 router.get('/analytics', requirePermission(PERMISSIONS.DASHBOARD_FULL_VIEW), async (req, res, next) => {
-  try { res.json(await BoardService.getBoard(req.user, req.query, true)); }
+  try { res.json(await BoardService.getBoard(req.user, req.query, 'analytical')); }
   catch (error) { next(error); }
 });
 

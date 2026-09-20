@@ -15,10 +15,15 @@ describe('Boards pessoais e analíticos', () => {
     citizen = await account('board-citizen');
     other = await account('board-other');
     analyst = await account('board-analyst');
-    const permission = await Permission.create({ key: 'dashboard.full.view', description: 'Consultar painel completo' });
+    const [permission, publicPermission] = await Promise.all([
+      Permission.create({ key: 'dashboard.full.view', description: 'Consultar painel completo' }),
+      Permission.create({ key: 'dashboard.public.view', description: 'Consultar indicadores públicos' })
+    ]);
     const role = await Role.create({ name: 'ANALYST', description: 'Analista' });
     await role.addPermission(permission);
     await (await User.findByPk(analyst.id)).addRole(role);
+    const citizenRole = await Role.findOne({ where: { name: 'CITIZEN' } });
+    await citizenRole.addPermission(publicPermission);
     await Denuncia.bulkCreate([
       ...Array.from({ length: 3 }, (_, i) => ({ titulo: `Minha aberta ${i}`, status: 'aprovada', resolucaoStatus: 'aberta', userId: citizen.id })),
       { titulo: 'Minha resolvida', status: 'aprovada', resolucaoStatus: 'resolvida', userId: citizen.id },
@@ -38,6 +43,17 @@ describe('Boards pessoais e analíticos', () => {
     expect(response.body.summary).toMatchObject({ total: 5, aberta: 3, resolvida: 1, pendente: 1, rejeitada: 0, resolutionRate: 25 });
     expect(JSON.stringify(response.body)).not.toContain('Privada de outro autor');
     expect(JSON.stringify(response.body)).not.toContain('tituloOriginal');
+  });
+  test('board comunitário mostra somente denúncias aprovadas e indicadores agregados', async () => {
+    const response = await get('/boards/public', citizen);
+    expect(response.status).toBe(200);
+    expect(response.body.scope).toBe('public');
+    expect(response.body.summary).toMatchObject({ total: 4, aberta: 3, resolvida: 1, pendente: 0, rejeitada: 0 });
+    expect(response.body.columns.map(column => column.key)).toEqual(['aberta', 'em_andamento', 'resolvida']);
+    expect(response.body.breakdown.locations).toEqual([{ label: 'Cotia', total: 4 }]);
+    expect(JSON.stringify(response.body)).not.toContain('Minha pendente');
+    expect(JSON.stringify(response.body)).not.toContain('Privada de outro autor');
+    expect((await get('/boards/public', citizen, { column: 'rejeitada' })).status).toBe(400);
   });
   test('pagina cada coluna sem alterar os indicadores gerais', async () => {
     const first = await get('/boards/mine', citizen, { column: 'aberta', limit: 2 });

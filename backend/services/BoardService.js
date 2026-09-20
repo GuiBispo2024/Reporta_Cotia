@@ -26,31 +26,41 @@ function textFilter(value) {
 }
 
 class BoardService {
-  static async getBoard(user, query = {}, analytical = false) {
+  static async getBoard(user, query = {}, scopeType = 'mine') {
     if (!user?.id) throw new AppError('Entre na sua conta para consultar o painel.', 401, 'AUTH_REQUIRED');
+    const analytical = scopeType === 'analytical';
+    const publicView = scopeType === 'public';
     if (analytical && !hasPermission(user, PERMISSIONS.DASHBOARD_FULL_VIEW)) {
       throw new AppError('Sua conta não possui acesso ao painel analítico.', 403, 'FORBIDDEN');
+    }
+    if (publicView && !hasPermission(user, PERMISSIONS.DASHBOARD_PUBLIC_VIEW)) {
+      throw new AppError('Sua conta não possui acesso aos indicadores da comunidade.', 403, 'FORBIDDEN');
     }
     const page = positiveInteger(query.page, 1, 1000000);
     const limit = positiveInteger(query.limit, 8, 50);
     const column = query.column;
-    if (column !== undefined && !COLUMNS.some(item => item.key === column)) throw new AppError('Coluna inválida.', 400, 'VALIDATION_ERROR');
+    const availableColumns = publicView
+      ? COLUMNS.filter(item => ['aberta', 'em_andamento', 'resolvida'].includes(item.key))
+      : COLUMNS;
+    if (column !== undefined && !availableColumns.some(item => item.key === column)) throw new AppError('Coluna inválida.', 400, 'VALIDATION_ERROR');
     const categoria = textFilter(query.categoria);
     const setorResponsavel = textFilter(query.setorResponsavel);
     // The authenticated account defines the personal scope; query parameters cannot replace it.
-    const scope = analytical ? {} : { userId: user.id };
+    const scope = analytical ? {} : publicView ? { status: 'aprovada' } : { userId: user.id };
     const where = { ...scope, ...(categoria ? { categoria } : {}), ...(setorResponsavel ? { setorResponsavel } : {}) };
-    const [statuses, categories, sectors] = await Promise.all([
+    const includeBreakdown = analytical || publicView;
+    const [statuses, categories, sectors, locations] = await Promise.all([
       BoardRepository.grouped(where, ['status', 'resolucaoStatus']),
-      BoardRepository.grouped(where, ['categoria']),
-      BoardRepository.grouped(where, ['setorResponsavel'])
+      includeBreakdown ? BoardRepository.grouped(where, ['categoria']) : [],
+      includeBreakdown ? BoardRepository.grouped(where, ['setorResponsavel']) : [],
+      includeBreakdown ? BoardRepository.grouped(where, ['localizacao']) : []
     ]);
     const counts = Object.fromEntries(COLUMNS.map(item => [item.key, 0]));
     for (const row of statuses) {
       const key = row.status === 'aprovada' ? row.resolucaoStatus : row.status;
       if (key in counts) counts[key] += Number(row.total);
     }
-    const columns = await Promise.all(COLUMNS.filter(item => !column || item.key === column).map(async item => {
+    const columns = await Promise.all(availableColumns.filter(item => !column || item.key === column).map(async item => {
       const total = counts[item.key];
       const totalPages = Math.ceil(total / limit);
       const currentPage = Math.min(page, Math.max(totalPages, 1));
@@ -62,10 +72,14 @@ class BoardService {
     const breakdown = (rows, field) => rows.map(row => ({ label: row[field] || 'Não informado', total: Number(row.total) }))
       .sort((a, b) => b.total - a.total || a.label.localeCompare(b.label, 'pt-BR'));
     return {
-      scope: analytical ? 'analytical' : 'mine',
+      scope: scopeType,
       summary: { total, ...counts, resolutionRate: approved ? Math.round(counts.resolvida / approved * 100) : 0 },
       columns,
-      ...(analytical ? { breakdown: { categories: breakdown(categories, 'categoria'), sectors: breakdown(sectors, 'setorResponsavel') } } : {}),
+      ...(includeBreakdown ? { breakdown: {
+        categories: breakdown(categories, 'categoria'),
+        sectors: breakdown(sectors, 'setorResponsavel'),
+        locations: breakdown(locations, 'localizacao')
+      } } : {}),
       filters: { categoria, setorResponsavel },
       limit
     };

@@ -5,6 +5,7 @@ Implementação incremental na branch `feat/boards`. Nesta versão, o board acom
 ## API
 
 - `GET /boards/mine`: requer sessão; consulta apenas denúncias do usuário autenticado.
+- `GET /boards/public`: requer `dashboard.public.view`; apresenta somente denúncias aprovadas e indicadores comunitários por categoria, setor e localização.
 - `GET /boards/analytics`: requer `dashboard.full.view`; consulta todas as denúncias e distribuições por categoria e setor.
 
 Parâmetros opcionais: `categoria`, `setorResponsavel`, `column`, `page` (a partir de 1) e `limit` (1–50, padrão 8). A paginação é independente por coluna. Sem `column`, todas as colunas são retornadas; com `column`, apenas a coluna solicitada é carregada. Os indicadores sempre consideram o conjunto filtrado completo.
@@ -18,6 +19,7 @@ Os registros incluem título, descrição, localização, categoria, setor, esta
 1. API, validação, isolamento dos dados e testes de integração.
 2. Board pessoal com indicadores, colunas, paginação e detalhes.
 3. Board analítico com filtros e distribuições, respeitando a permissão existente.
+4. API do board comunitário, limitada a dados aprovados e preparada para visualização geográfica.
 
 ## Interface
 

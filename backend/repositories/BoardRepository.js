@@ -1,6 +1,6 @@
 const { Denuncia, sequelize } = require('../models/rel');
 
-const REPORT_FIELDS = ['id', 'titulo', 'descricao', 'localizacao', 'categoria', 'status', 'resolucaoStatus', 'setorResponsavel', 'motivoRejeicao', 'createdAt', 'updatedAt', 'resolucaoAtualizadaEm'];
+const REPORT_FIELDS = ['id', 'titulo', 'descricao', 'localizacao', 'categoria', 'latitude', 'longitude', 'status', 'resolucaoStatus', 'setorResponsavel', 'motivoRejeicao', 'createdAt', 'updatedAt', 'resolucaoAtualizadaEm'];
 
 class BoardRepository {
   static grouped(where, fields) {
