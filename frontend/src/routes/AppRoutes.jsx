@@ -40,6 +40,7 @@ function AppRoutes() {
                 <Route path="/moderacao/denuncia/:id/historico" element={<PrivateRoute permission={PERMISSIONS.AUDIT_VIEW}><HistoricoDenuncia/></PrivateRoute>}/>
                 <Route path="/minhas-denuncias" element={<PrivateRoute><MinhasDenuncias/></PrivateRoute>}/>
                 <Route path="/meu-board" element={<PrivateRoute><ReportBoard /></PrivateRoute>}/>
+                <Route path="/boards/comunidade" element={<PrivateRoute permission={PERMISSIONS.DASHBOARD_PUBLIC_VIEW}><ReportBoard community /></PrivateRoute>}/>
                 <Route path="/boards/analitico" element={<PrivateRoute permission={PERMISSIONS.DASHBOARD_FULL_VIEW}><ReportBoard analytical /></PrivateRoute>}/>
                 <Route path="/editar-denuncia/:id" element={<PrivateRoute><EditarDenuncia/></PrivateRoute>}/>
                 <Route path="/nova-denuncia" element={<PrivateRoute><NovaDenuncia/></PrivateRoute>}/>

@@ -13,10 +13,10 @@ function setup(user) {
   render(<AuthContext.Provider value={{ user, isAuthenticated: !!user, logout: jest.fn() }}><Navbar /></AuthContext.Provider>);
 }
 
-test('usuário comum acessa seu board pela aba principal', () => {
-  setup({ id: 1, username: 'Maria', roles: ['CITIZEN'], permissions: [] });
+test('usuário comum acessa o board comunitário pela aba principal', () => {
+  setup({ id: 1, username: 'Maria', roles: ['CITIZEN'], permissions: [PERMISSIONS.DASHBOARD_PUBLIC_VIEW] });
   const link = screen.getByRole('link', { name: 'Boards' });
-  expect(link).toHaveAttribute('href', '/meu-board');
+  expect(link).toHaveAttribute('href', '/boards/comunidade');
   expect(link).toHaveClass('nav-link');
   expect(link.closest('.dropdown-menu')).toBeNull();
   expect(screen.queryByRole('link', { name: 'Meu board' })).not.toBeInTheDocument();

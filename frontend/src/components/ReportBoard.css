@@ -8,6 +8,7 @@
 .rc-board-summary dt { font-size: .8rem; color: var(--rc-secondary-text, #526159); font-weight: 600; }
 .rc-board-summary dd { margin: .25rem 0 0; font-size: 1.75rem; font-weight: 800; color: var(--rc-text); }
 .rc-board-columns { display: grid; grid-template-columns: repeat(5, minmax(240px, 1fr)); align-items: start; gap: 1rem; overflow-x: auto; padding: .25rem .25rem 1rem; }
+.rc-board-columns.is-community { grid-template-columns: repeat(3, minmax(240px, 1fr)); }
 .rc-board-column { min-width: 0; padding: .8rem; border: 1px solid var(--rc-border); border-top: 4px solid var(--rc-primary); border-radius: 12px; background: var(--rc-surface, #edf3ef); }
 .rc-board-column.is-pendente { border-top-color: #9a7300; }
 .rc-board-column.is-em_andamento { border-top-color: #2269b1; }

@@ -24,9 +24,11 @@ Os registros incluem título, descrição, localização, categoria, setor, esta
 ## Interface
 
 - `/meu-board`: board pessoal, também acessível em “Minhas denúncias” e na aba “Boards” do navbar.
+- `/boards/comunidade`: visão das denúncias aprovadas para cidadãos, com filtros e distribuições por categoria, setor e localização.
 - `/boards/analitico`: destino da aba “Boards” para analistas e demais contas com `dashboard.full.view`. A visão analítica também oferece acesso ao board pessoal.
 - Detalhes em janela navegável por teclado; no board analítico, registros privados são consultados nessa janela. O link público é oferecido somente para denúncias aprovadas.
-- Filtros analíticos por categoria e setor, contagens por situação e distribuições por categoria e setor. Cada coluna tem “Carregar mais” e informa quantos registros estão visíveis.
+- Filtros por categoria e setor, contagens por situação e distribuições por categoria, setor e localização. Cada coluna tem “Carregar mais” e informa quantos registros estão visíveis.
+- A aba “Boards” leva cidadãos ao board comunitário e contas com `dashboard.full.view` ao board analítico.
 - No celular e com texto ampliado, as colunas são empilhadas. Os boards usam os temas e recursos globais de acessibilidade.
 
-As três etapas acima estão implementadas. Exportação, filtros por período e métricas de tempo de atendimento ficam para incrementos futuros; não há arraste de cartões nem edição de status nesta primeira versão.
+As quatro etapas acima estão implementadas. Exportação, filtros por período e métricas de tempo de atendimento ficam para incrementos futuros; não há arraste de cartões nem edição de status nesta primeira versão.

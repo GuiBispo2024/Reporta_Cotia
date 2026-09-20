@@ -8,10 +8,24 @@ import Footer from './Footer';
 import './ReportBoard.css';
 
 const SUMMARY_LABELS = { total: 'Total de denúncias', pendente: 'Em moderação', aberta: 'Abertas', em_andamento: 'Em andamento', resolvida: 'Resolvidas', rejeitada: 'Rejeitadas' };
+const BREAKDOWN_LABELS = {
+  categories: { title: 'Denúncias por categoria', column: 'Categoria' },
+  sectors: { title: 'Denúncias por setor', column: 'Setor' },
+  locations: { title: 'Denúncias por localização', column: 'Localização' }
+};
 const dateLabel = value => value ? new Date(value).toLocaleDateString('pt-BR') : 'Não informada';
 
-export default function ReportBoard({ analytical = false }) {
+export default function ReportBoard({ analytical = false, community = false }) {
   const id = useId();
+  const aggregated = analytical || community;
+  const viewCopy = analytical
+    ? { eyebrow: 'Gestão e indicadores', title: 'Board analítico', description: 'Consulte o andamento, os setores responsáveis e a distribuição de todas as denúncias.' }
+    : community
+      ? { eyebrow: 'Indicadores da comunidade', title: 'Board da comunidade', description: 'Veja como as denúncias aprovadas estão distribuídas por situação, categoria e localização.' }
+      : { eyebrow: 'Acompanhamento', title: 'Meu board', description: 'Acompanhe suas denúncias, da moderação até a solução.' };
+  const visibleSummaryLabels = community
+    ? Object.entries(SUMMARY_LABELS).filter(([key]) => !['pendente', 'rejeitada'].includes(key))
+    : Object.entries(SUMMARY_LABELS);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -38,7 +52,7 @@ export default function ReportBoard({ analytical = false }) {
     setColumnErrors({});
     setLoadingColumns({});
     setSelected(null);
-    boardService.getBoard({ analytical, params: analytical ? appliedFilters : {}, signal: controller.signal })
+    boardService.getBoard({ analytical, community, params: aggregated ? appliedFilters : {}, signal: controller.signal })
       .then(result => {
         if (version !== revision.current) return;
         setData(result);
@@ -47,7 +61,7 @@ export default function ReportBoard({ analytical = false }) {
       .catch(err => { if (!controller.signal.aborted) setError(friendlyError(err, 'Não foi possível carregar seu board. Tente novamente.')); })
       .finally(() => { if (version === revision.current) setLoading(false); });
     return () => { revision.current += 1; controller.abort(); };
-  }, [analytical, reload, appliedFilters]);
+  }, [aggregated, analytical, community, reload, appliedFilters]);
 
   const loadMore = async column => {
     if (pendingColumns.current.has(column.key) || column.page >= column.totalPages) return;
@@ -56,7 +70,7 @@ export default function ReportBoard({ analytical = false }) {
     setLoadingColumns(current => ({ ...current, [column.key]: true }));
     setColumnErrors(current => ({ ...current, [column.key]: '' }));
     try {
-      const result = await boardService.getBoard({ analytical, params: { ...(analytical ? appliedFilters : {}), column: column.key, page: column.page + 1 }, signal: requestController.current.signal });
+      const result = await boardService.getBoard({ analytical, community, params: { ...(aggregated ? appliedFilters : {}), column: column.key, page: column.page + 1 }, signal: requestController.current.signal });
       if (version !== revision.current) return;
       const next = result.columns.find(item => item.key === column.key);
       setData(current => ({ ...current, columns: current.columns.map(item => {
@@ -78,11 +92,11 @@ export default function ReportBoard({ analytical = false }) {
     <Navbar />
     <main id="main-content" tabIndex={-1} className="container-fluid rc-board-page py-4 flex-grow-1">
       <header className="rc-board-header">
-        <div><span className="rc-board-eyebrow">{analytical ? 'Indicadores da comunidade' : 'Acompanhamento'}</span><h1>{analytical ? 'Board analítico' : 'Meu board'}</h1><p>{analytical ? 'Consulte o andamento, os setores responsáveis e a distribuição das denúncias.' : 'Acompanhe suas denúncias, da moderação até a solução.'}</p></div>
-        <div className="d-flex flex-wrap gap-2"><Link className="btn btn-outline-primary" to={analytical ? '/meu-board' : '/minhas-denuncias'}>{analytical ? 'Meu board pessoal' : 'Ver em lista'}</Link><button className="btn btn-outline-secondary" onClick={() => setReload(value => value + 1)} disabled={loading}>Atualizar</button></div>
+        <div><span className="rc-board-eyebrow">{viewCopy.eyebrow}</span><h1>{viewCopy.title}</h1><p>{viewCopy.description}</p></div>
+        <div className="d-flex flex-wrap gap-2"><Link className="btn btn-outline-primary" to={aggregated ? '/meu-board' : '/minhas-denuncias'}>{aggregated ? 'Meu board pessoal' : 'Ver em lista'}</Link><button className="btn btn-outline-secondary" onClick={() => setReload(value => value + 1)} disabled={loading}>Atualizar</button></div>
       </header>
 
-      {analytical && <form className="rc-board-filters" onSubmit={event => { event.preventDefault(); setAppliedFilters({ ...filters }); }}>
+      {aggregated && <form className="rc-board-filters" onSubmit={event => { event.preventDefault(); setAppliedFilters({ ...filters }); }}>
         <label htmlFor={`${id}-category`}>Categoria<select id={`${id}-category`} className="form-select" value={filters.categoria} onChange={event => setFilters(current => ({ ...current, categoria: event.target.value }))}><option value="">Todas as categorias</option>{filterOptions.categories.map(item => <option key={item.label}>{item.label}</option>)}</select></label>
         <label htmlFor={`${id}-sector`}>Setor responsável<select id={`${id}-sector`} className="form-select" value={filters.setorResponsavel} onChange={event => setFilters(current => ({ ...current, setorResponsavel: event.target.value }))}><option value="">Todos os setores</option>{filterOptions.sectors.filter(item => item.label !== 'Não informado').map(item => <option key={item.label}>{item.label}</option>)}</select></label>
         <button className="btn btn-primary" disabled={loading}>Aplicar filtros</button>
@@ -93,19 +107,19 @@ export default function ReportBoard({ analytical = false }) {
         : error ? <div role="alert" className="alert alert-danger">{error}<button className="btn btn-outline-danger ms-2" onClick={() => setReload(value => value + 1)}>Tentar novamente</button></div>
         : data && <>
           <dl className="rc-board-summary" aria-label="Resumo das denúncias">
-            {Object.entries(SUMMARY_LABELS).map(([key, label]) => <div key={key}><dt>{label}</dt><dd>{data.summary[key]}</dd></div>)}
-            {analytical && <div><dt>Resolução das aprovadas</dt><dd>{data.summary.resolutionRate}%</dd></div>}
+            {visibleSummaryLabels.map(([key, label]) => <div key={key}><dt>{label}</dt><dd>{data.summary[key]}</dd></div>)}
+            {aggregated && <div><dt>Resolução das aprovadas</dt><dd>{data.summary.resolutionRate}%</dd></div>}
           </dl>
-          {analytical && <p className="rc-board-guidance">Os indicadores consideram todas as denúncias dos filtros aplicados. A taxa de resolução considera somente as aprovadas.</p>}
-          {!data.summary.total && <div className="rc-board-state"><p>{analytical ? 'Nenhuma denúncia encontrada para os filtros aplicados.' : 'Você ainda não tem denúncias para acompanhar.'}</p>{!analytical && <Link className="btn btn-primary" to="/nova-denuncia">Registrar denúncia</Link>}</div>}
-          {analytical && data.breakdown && <div className="rc-board-breakdowns">
-            {[['categories', 'Denúncias por categoria'], ['sectors', 'Denúncias por setor']].map(([key, title]) => <section key={key}>
-              <table><caption>{title}</caption><thead><tr><th scope="col">{key === 'categories' ? 'Categoria' : 'Setor'}</th><th scope="col">Total</th></tr></thead><tbody>{data.breakdown[key].map(item => <tr key={item.label}><th scope="row">{item.label}</th><td>{item.total}</td></tr>)}</tbody></table>
-              {!data.breakdown[key].length && <p>Sem registros neste recorte.</p>}
+          {aggregated && <p className="rc-board-guidance">{community ? 'Os indicadores consideram somente denúncias aprovadas e não exibem conteúdos em moderação ou rejeitados.' : 'Os indicadores consideram todas as denúncias dos filtros aplicados. A taxa de resolução considera somente as aprovadas.'}</p>}
+          {!data.summary.total && <div className="rc-board-state"><p>{aggregated ? 'Nenhuma denúncia encontrada para os filtros aplicados.' : 'Você ainda não tem denúncias para acompanhar.'}</p>{!aggregated && <Link className="btn btn-primary" to="/nova-denuncia">Registrar denúncia</Link>}</div>}
+          {aggregated && data.breakdown && <div className="rc-board-breakdowns">
+            {Object.entries(BREAKDOWN_LABELS).map(([key, labels]) => <section key={key}>
+              <table><caption>{labels.title}</caption><thead><tr><th scope="col">{labels.column}</th><th scope="col">Total</th></tr></thead><tbody>{(data.breakdown[key] || []).map(item => <tr key={item.label}><th scope="row">{item.label}</th><td>{item.total}</td></tr>)}</tbody></table>
+              {!data.breakdown[key]?.length && <p>Sem registros neste recorte.</p>}
             </section>)}
           </div>}
           <p className="rc-board-guidance">As colunas mostram a situação atual. Abra um cartão para consultar os detalhes.</p>
-          <div className="rc-board-columns" role="region" tabIndex={0} aria-label="Denúncias por situação">
+          <div className={`rc-board-columns${community ? ' is-community' : ''}`} role="region" tabIndex={0} aria-label="Denúncias por situação">
             {data.columns.map(column => <section className={`rc-board-column is-${column.key}`} key={column.key} aria-labelledby={`${id}-${column.key}`}>
               <header><h2 id={`${id}-${column.key}`}>{column.label}</h2><span aria-label={`${column.total} denúncias`}>{column.total}</span></header>
               {!column.reports.length && <p className="rc-board-column-empty">Nenhuma denúncia nesta etapa.</p>}

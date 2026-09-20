@@ -61,6 +61,28 @@ test('board analítico aplica filtros aos indicadores e à paginação', async (
   await waitFor(() => expect(screen.getByRole('button', { name: 'Carregar mais: Abertas' })).not.toBeDisabled());
 });
 
+test('board comunitário apresenta somente indicadores públicos e localizações', async () => {
+  const community = {
+    ...initial,
+    summary: { ...initial.summary, pendente: 0, rejeitada: 0, resolutionRate: 25 },
+    breakdown: {
+      categories: [{ label: 'Iluminação pública', total: 2 }],
+      sectors: [{ label: 'Serviço de Iluminação Pública', total: 2 }],
+      locations: [{ label: 'Centro, Cotia', total: 2 }]
+    }
+  };
+  boardService.getBoard.mockResolvedValue(community);
+
+  render(<ReportBoard community />);
+
+  expect(await screen.findByRole('heading', { name: 'Board da comunidade' })).toBeInTheDocument();
+  expect(screen.getByText('Denúncias por localização')).toBeInTheDocument();
+  expect(screen.getByText('Centro, Cotia')).toBeInTheDocument();
+  expect(screen.queryByText('Em moderação')).not.toBeInTheDocument();
+  expect(screen.queryByText('Rejeitadas')).not.toBeInTheDocument();
+  expect(boardService.getBoard).toHaveBeenCalledWith(expect.objectContaining({ analytical: false, community: true }));
+});
+
 test('detalhes analíticos de denúncia privada não oferecem ações do autor', async () => {
   const privateReport = { ...report, status: 'rejeitada', motivoRejeicao: 'Falta informar o endereço' };
   boardService.getBoard.mockResolvedValue({ ...initial, columns: [{ ...initial.columns[0], reports: [privateReport] }] });

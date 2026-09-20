@@ -9,7 +9,9 @@ export default function Navbar() {
   const linkClass = ({ isActive }) => `nav-link rc-nav-link${isActive ? " active" : ""}`;
   const sair = () => logout();
   const canViewModeration = hasPermission(user, PERMISSIONS.MODERATION_VIEW);
-  const boardPath = hasPermission(user, PERMISSIONS.DASHBOARD_FULL_VIEW) ? '/boards/analitico' : '/meu-board';
+  const boardPath = hasPermission(user, PERMISSIONS.DASHBOARD_FULL_VIEW)
+    ? '/boards/analitico'
+    : hasPermission(user, PERMISSIONS.DASHBOARD_PUBLIC_VIEW) ? '/boards/comunidade' : '/meu-board';
 
   return <nav className="navbar navbar-expand-xl navbar-dark rc-navbar sticky-top">
     <div className="container">
