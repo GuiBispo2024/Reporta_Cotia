@@ -34,7 +34,7 @@ const users = [
   { id: 2, username: 'Cidadão', email: 'cidadao@example.com', roles: ['CITIZEN'], totalDenuncias: 1 }
 ]
 
-function renderPage(currentUser = { ...users[0], permissions: ['users.manage_roles'] }) {
+function renderPage(currentUser = { ...users[0], permissions: ['users.view', 'users.manage_roles'] }) {
   const setUser = jest.fn()
   render(
     <AuthContext.Provider value={{ user: currentUser, setUser }}>
@@ -57,6 +57,24 @@ test('carrega usuários, perfis e controles administrativos', async () => {
   await waitFor(() => expect(userService.getAvailableRoles).toHaveBeenCalledTimes(1))
   expect(screen.getAllByRole('button', { name: /gerenciar perfis/i })).toHaveLength(2)
   expect(screen.getByText('Administrador')).toBeInTheDocument()
+})
+
+test('exibe e-mails com users.view sem liberar o gerenciamento de perfis', async () => {
+  renderPage({ ...users[0], permissions: ['users.view'] })
+
+  expect(await screen.findByText('admin@example.com')).toBeInTheDocument()
+  expect(screen.getByText('cidadao@example.com')).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: /gerenciar perfis/i })).not.toBeInTheDocument()
+  expect(userService.getAvailableRoles).not.toHaveBeenCalled()
+})
+
+test('permite gerenciar perfis sem expor e-mails quando users.view estiver ausente', async () => {
+  renderPage({ ...users[0], permissions: ['users.manage_roles'] })
+
+  expect(await screen.findAllByRole('button', { name: /gerenciar perfis/i })).toHaveLength(2)
+  expect(screen.queryByRole('columnheader', { name: /e-mail/i })).not.toBeInTheDocument()
+  expect(screen.queryByText('admin@example.com')).not.toBeInTheDocument()
+  expect(screen.queryByText('cidadao@example.com')).not.toBeInTheDocument()
 })
 
 test('adiciona o perfil de moderador e confirma a atualização', async () => {
@@ -90,7 +108,7 @@ test('mantém bloqueados os perfis básicos e o ADMIN da própria conta', async 
 })
 
 test('oferece acesso ao histórico para quem possui audit.view', async () => {
-  renderPage({ ...users[0], permissions: ['users.manage_roles', 'audit.view'] })
+  renderPage({ ...users[0], permissions: ['users.view', 'users.manage_roles', 'audit.view'] })
 
   fireEvent.click(await screen.findByRole('button', { name: /histórico de perfis/i }))
   expect(mockNavigate).toHaveBeenCalledWith('/administracao/historico-perfis')

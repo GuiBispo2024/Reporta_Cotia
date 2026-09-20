@@ -5,6 +5,7 @@ export const PERMISSIONS = Object.freeze({
   RESOLUTION_UPDATE: 'resolution.update',
   DASHBOARD_PUBLIC_VIEW: 'dashboard.public.view',
   DASHBOARD_FULL_VIEW: 'dashboard.full.view',
+  USERS_VIEW: 'users.view',
   USERS_MANAGE_ROLES: 'users.manage_roles',
   AUDIT_VIEW: 'audit.view'
 })
