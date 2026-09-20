@@ -2,6 +2,7 @@ const { Denuncia, DenunciaHistorico, sequelize } = require('../models/rel');
 const { Op } = require('sequelize');
 
 const REPORT_FIELDS = ['id', 'titulo', 'descricao', 'localizacao', 'categoria', 'latitude', 'longitude', 'status', 'resolucaoStatus', 'setorResponsavel', 'motivoRejeicao', 'createdAt', 'updatedAt', 'resolucaoAtualizadaEm'];
+const EXPORT_FIELDS = ['id', 'titulo', 'localizacao', 'categoria', 'status', 'resolucaoStatus', 'setorResponsavel', 'createdAt', 'updatedAt'];
 const MAP_FIELDS = ['id', 'titulo', 'localizacao', 'categoria', 'latitude', 'longitude', 'status', 'resolucaoStatus'];
 
 class BoardRepository {
@@ -53,6 +54,15 @@ class BoardRepository {
         attributes: ['tipo', 'statusNovo', 'createdAt'],
         required: false
       }]
+    });
+  }
+
+  static exportReports(where) {
+    return Denuncia.findAll({
+      where,
+      attributes: EXPORT_FIELDS,
+      order: [['createdAt', 'DESC'], ['id', 'DESC']],
+      raw: true
     });
   }
 }

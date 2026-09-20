@@ -14,6 +14,7 @@ describe('Política CORS', () => {
 
     expect(response.status).toBe(204)
     expect(response.headers['access-control-allow-origin']).toBe(origin)
+    expect(response.headers['access-control-expose-headers']).toContain('Content-Disposition')
   })
 
   test('retorna 403 para uma origem não autorizada', async () => {

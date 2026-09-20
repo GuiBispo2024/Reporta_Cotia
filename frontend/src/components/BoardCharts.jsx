@@ -21,7 +21,7 @@ function BarChart({ title, items, emptyMessage }) {
     {!items.length ? <p>{emptyMessage}</p> : <ol>
       {items.map(item => <li key={item.key} className={item.className || ''}>
         <span className="rc-board-chart-label"><span>{item.label}</span><strong>{item.total}</strong></span>
-        <span className="rc-board-chart-track" aria-hidden="true"><span style={{ width: `${maximum ? Math.max(item.total / maximum * 100, 4) : 0}%` }} /></span>
+        <span className="rc-board-chart-track" aria-hidden="true"><span style={{ width: `${maximum && item.total ? Math.max(item.total / maximum * 100, 4) : 0}%` }} /></span>
       </li>)}
     </ol>}
   </article>;

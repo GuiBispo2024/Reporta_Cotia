@@ -41,6 +41,7 @@ app.use(bodyParser.json({ limit: '1mb' }));
 app.use(securityHeaders);
 app.use(rateLimit);
 app.use(cors({
+  exposedHeaders: ['Content-Disposition', 'X-Total-Count'],
   origin: (origin, callback) => {
     if (
       !origin

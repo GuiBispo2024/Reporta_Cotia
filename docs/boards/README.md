@@ -7,6 +7,7 @@ Implementação incremental na branch `feat/boards`. Nesta versão, o board acom
 - `GET /boards/mine`: requer sessão; consulta apenas denúncias do usuário autenticado.
 - `GET /boards/public`: requer `dashboard.public.view`; apresenta somente denúncias aprovadas e indicadores comunitários por categoria, setor e localização.
 - `GET /boards/analytics`: requer `dashboard.full.view`; consulta todas as denúncias e distribuições por categoria e setor.
+- `GET /boards/analytics/export`: requer `dashboard.full.view` e `dashboard.export`; exporta em CSV os registros do recorte analítico, respeitando categoria, setor e período.
 
 Parâmetros opcionais: `categoria`, `setorResponsavel`, `dataInicio`, `dataFim`, `column`, `page` (a partir de 1) e `limit` (1–50, padrão 8). As datas usam o formato `AAAA-MM-DD`, são inclusivas e filtram pela data de cadastro da denúncia. A paginação é independente por coluna. Sem `column`, todas as colunas são retornadas; com `column`, apenas a coluna solicitada é carregada. Os indicadores sempre consideram o conjunto filtrado completo.
 
@@ -36,7 +37,8 @@ O campo `trend` apresenta a quantidade mensal de denúncias nos últimos 12 mese
 - Detalhes em janela navegável por teclado; no board analítico, registros privados são consultados nessa janela. O link público é oferecido somente para denúncias aprovadas.
 - Filtros por categoria, setor e período, contagens por situação e distribuições por categoria, setor e localização. Cada coluna tem “Carregar mais” e informa quantos registros estão visíveis.
 - A aba “Boards” leva cidadãos ao board comunitário e contas com `dashboard.full.view` ao board analítico.
+- Contas com `dashboard.export` podem baixar um CSV do board analítico. O arquivo utiliza os filtros aplicados e não contém campos privados de revisão de censura.
 - As visões comunitária e analítica exibem os registros com coordenadas sobre um mapa do OpenStreetMap. Marcadores aprovados levam ao detalhe público; registros privados do board analítico não geram links públicos.
 - No celular e com texto ampliado, as colunas são empilhadas. Os boards usam os temas e recursos globais de acessibilidade.
 
-As cinco etapas acima estão implementadas. Exportação fica para um incremento futuro; não há arraste de cartões nem edição de status nesta primeira versão.
+As cinco etapas acima e a exportação analítica estão implementadas. Não há arraste de cartões nem edição de status nesta primeira versão.

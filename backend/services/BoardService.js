@@ -85,6 +85,65 @@ function monthlyTrend(records) {
     .map(([period, total]) => ({ period, total }));
 }
 
+function boardFilters(query = {}) {
+  const categoria = textFilter(query.categoria);
+  const setorResponsavel = textFilter(query.setorResponsavel);
+  const dataInicio = dateFilter(query.dataInicio);
+  const dataFim = dateFilter(query.dataFim);
+  if (dataInicio && dataFim && dataInicio > dataFim) {
+    throw new AppError('A data inicial não pode ser posterior à data final.', 400, 'VALIDATION_ERROR');
+  }
+  const createdAt = {};
+  if (dataInicio) createdAt[Op.gte] = dataInicio;
+  if (dataFim) {
+    const exclusiveEnd = new Date(dataFim);
+    exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() + 1);
+    createdAt[Op.lt] = exclusiveEnd;
+  }
+  return {
+    where: {
+      ...(categoria ? { categoria } : {}),
+      ...(setorResponsavel ? { setorResponsavel } : {}),
+      ...(dataInicio || dataFim ? { createdAt } : {})
+    },
+    filters: {
+      categoria,
+      setorResponsavel,
+      dataInicio: query.dataInicio || null,
+      dataFim: query.dataFim || null
+    }
+  };
+}
+
+function csvCell(value) {
+  let text = value === null || value === undefined ? '' : String(value);
+  if (/^[=+\-@]/.test(text.trimStart())) text = `'${text}`;
+  const quote = String.fromCharCode(34);
+  return quote + text.split(quote).join(quote + quote) + quote;
+}
+
+function reportStatus(report) {
+  if (report.status !== 'aprovada') return report.status === 'pendente' ? 'Em moderação' : 'Rejeitada';
+  return { aberta: 'Aberta', em_andamento: 'Em andamento', resolvida: 'Resolvida' }[report.resolucaoStatus] || report.resolucaoStatus;
+}
+
+function exportCsv(records) {
+  const rows = records.map(report => [
+    report.id,
+    report.titulo,
+    report.categoria,
+    reportStatus(report),
+    report.setorResponsavel || 'Não informado',
+    report.localizacao,
+    report.createdAt ? new Date(report.createdAt).toISOString() : '',
+    report.updatedAt ? new Date(report.updatedAt).toISOString() : ''
+  ]);
+  return '\uFEFF' + [
+    ['ID', 'Título', 'Categoria', 'Situação', 'Setor responsável', 'Localização', 'Data de cadastro', 'Última atualização'],
+    ...rows
+  ].map(row => row.map(csvCell).join(',')).join('\r\n');
+}
+
 class BoardService {
   static async getBoard(user, query = {}, scopeType = 'mine') {
     if (!user?.id) throw new AppError('Entre na sua conta para consultar o painel.', 401, 'AUTH_REQUIRED');
@@ -103,27 +162,12 @@ class BoardService {
       ? COLUMNS.filter(item => ['aberta', 'em_andamento', 'resolvida'].includes(item.key))
       : COLUMNS;
     if (column !== undefined && !availableColumns.some(item => item.key === column)) throw new AppError('Coluna inválida.', 400, 'VALIDATION_ERROR');
-    const categoria = textFilter(query.categoria);
-    const setorResponsavel = textFilter(query.setorResponsavel);
-    const dataInicio = dateFilter(query.dataInicio);
-    const dataFim = dateFilter(query.dataFim);
-    if (dataInicio && dataFim && dataInicio > dataFim) {
-      throw new AppError('A data inicial não pode ser posterior à data final.', 400, 'VALIDATION_ERROR');
-    }
-    const createdAt = {};
-    if (dataInicio) createdAt[Op.gte] = dataInicio;
-    if (dataFim) {
-      const exclusiveEnd = new Date(dataFim);
-      exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() + 1);
-      createdAt[Op.lt] = exclusiveEnd;
-    }
+    const parsedFilters = boardFilters(query);
     // The authenticated account defines the personal scope; query parameters cannot replace it.
     const scope = analytical ? {} : publicView ? { status: 'aprovada' } : { userId: user.id };
     const where = {
       ...scope,
-      ...(categoria ? { categoria } : {}),
-      ...(setorResponsavel ? { setorResponsavel } : {}),
-      ...(dataInicio || dataFim ? { createdAt } : {})
+      ...parsedFilters.where
     };
     const includeBreakdown = analytical || publicView;
     const [statuses, categories, sectors, locations, map, metricRecords] = await Promise.all([
@@ -159,13 +203,22 @@ class BoardService {
         sectors: breakdown(sectors, 'setorResponsavel'),
         locations: breakdown(locations, 'localizacao')
       }, map, metrics: serviceMetrics(metricRecords), trend: monthlyTrend(metricRecords) } : {}),
-      filters: {
-        categoria,
-        setorResponsavel,
-        dataInicio: query.dataInicio || null,
-        dataFim: query.dataFim || null
-      },
+      filters: parsedFilters.filters,
       limit
+    };
+  }
+
+  static async exportAnalytics(user, query = {}) {
+    if (!user?.id) throw new AppError('Entre na sua conta para exportar os indicadores.', 401, 'AUTH_REQUIRED');
+    if (!hasPermission(user, PERMISSIONS.DASHBOARD_FULL_VIEW) || !hasPermission(user, PERMISSIONS.DASHBOARD_EXPORT)) {
+      throw new AppError('Sua conta não possui permissão para exportar o painel analítico.', 403, 'FORBIDDEN');
+    }
+    const parsedFilters = boardFilters(query);
+    const reports = await BoardRepository.exportReports(parsedFilters.where);
+    return {
+      content: exportCsv(reports),
+      filename: `reporta-cotia-denuncias-${new Date().toISOString().slice(0, 10)}.csv`,
+      total: reports.length
     };
   }
 }

@@ -77,4 +77,11 @@ describe('Documentação OpenAPI', () => {
     expect(endpoint.requestBody.content['application/json'].schema.required).toContain('senhaAtual')
     expect(endpoint.responses[409].description).toContain('única conta administradora')
   })
+
+  test('documenta a exportação CSV do board analítico', () => {
+    const endpoint = swaggerSpec.paths['/boards/analytics/export'].get
+    expect(endpoint).toBeDefined()
+    expect(endpoint.description).toContain('dashboard.export')
+    expect(endpoint.responses[200].content['text/csv']).toBeDefined()
+  })
 })

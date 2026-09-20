@@ -15,12 +15,13 @@ describe('Boards pessoais e analíticos', () => {
     citizen = await account('board-citizen');
     other = await account('board-other');
     analyst = await account('board-analyst');
-    const [permission, publicPermission] = await Promise.all([
+    const [permission, publicPermission, exportPermission] = await Promise.all([
       Permission.create({ key: 'dashboard.full.view', description: 'Consultar painel completo' }),
-      Permission.create({ key: 'dashboard.public.view', description: 'Consultar indicadores públicos' })
+      Permission.create({ key: 'dashboard.public.view', description: 'Consultar indicadores públicos' }),
+      Permission.create({ key: 'dashboard.export', description: 'Exportar painel completo' })
     ]);
     const role = await Role.create({ name: 'ANALYST', description: 'Analista' });
-    await role.addPermission(permission);
+    await role.addPermissions([permission, exportPermission]);
     await (await User.findByPk(analyst.id)).addRole(role);
     const citizenRole = await Role.findOne({ where: { name: 'CITIZEN' } });
     await citizenRole.addPermission(publicPermission);
@@ -106,5 +107,17 @@ describe('Boards pessoais e analíticos', () => {
     for (const query of [{ page: 'abc' }, { limit: 0 }, { limit: 100 }, { column: 'qualquer' }, { categoria: ['a', 'b'] }, { dataInicio: '20/01/2026' }, { dataFim: '2026-02-30' }, { dataInicio: '2026-02-01', dataFim: '2026-01-01' }]) {
       expect((await get('/boards/mine', citizen, query)).status).toBe(400);
     }
+  });
+  test('exporta CSV analítico com os mesmos filtros e exige permissão específica', async () => {
+    expect((await get('/boards/analytics/export', citizen)).status).toBe(403);
+    const response = await get('/boards/analytics/export', analyst, { dataInicio: '2026-01-01', dataFim: '2026-01-31' });
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toContain('text/csv');
+    expect(response.headers['content-disposition']).toMatch(/reporta-cotia-denuncias-\d{4}-\d{2}-\d{2}\.csv/);
+    expect(response.headers['x-total-count']).toBe('1');
+    expect(response.text).toContain('"ID","Título","Categoria","Situação"');
+    expect(response.text).toContain('"Minha resolvida"');
+    expect(response.text).not.toContain('"Minha aberta 0"');
+    expect(response.text).not.toContain('Texto reservado para censura');
   });
 });

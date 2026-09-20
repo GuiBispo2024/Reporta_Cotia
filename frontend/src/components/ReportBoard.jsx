@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useContext, useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import boardService from '../services/boardService';
 import { friendlyError } from '../utils/errorMessage';
@@ -7,6 +7,8 @@ import Navbar from './Navbar';
 import Footer from './Footer';
 import BoardMap from './BoardMap';
 import BoardCharts from './BoardCharts';
+import { AuthContext } from '../context/authContext';
+import { hasPermission, PERMISSIONS } from '../utils/accessControl';
 import './ReportBoard.css';
 
 const SUMMARY_LABELS = { total: 'Total de denúncias', pendente: 'Em moderação', aberta: 'Abertas', em_andamento: 'Em andamento', resolvida: 'Resolvidas', rejeitada: 'Rejeitadas' };
@@ -27,6 +29,7 @@ const durationLabel = hours => {
 };
 
 export default function ReportBoard({ analytical = false, community = false }) {
+  const { user } = useContext(AuthContext) || {};
   const id = useId();
   const aggregated = analytical || community;
   const viewCopy = analytical
@@ -47,10 +50,14 @@ export default function ReportBoard({ analytical = false, community = false }) {
   const [filters, setFilters] = useState({ categoria: '', setorResponsavel: '', dataInicio: '', dataFim: '' });
   const [appliedFilters, setAppliedFilters] = useState({});
   const [filterOptions, setFilterOptions] = useState({ categories: [], sectors: [] });
+  const [exporting, setExporting] = useState(false);
+  const [exportMessage, setExportMessage] = useState('');
+  const [exportError, setExportError] = useState('');
   const revision = useRef(0);
   const requestController = useRef(null);
   const pendingColumns = useRef(new Set());
   const dialogRef = useDialogAccessibility(!!selected, () => setSelected(null));
+  const canExport = analytical && hasPermission(user, PERMISSIONS.DASHBOARD_EXPORT);
 
   useEffect(() => {
     const version = ++revision.current;
@@ -99,13 +106,37 @@ export default function ReportBoard({ analytical = false, community = false }) {
     }
   };
 
+  const exportBoard = async () => {
+    setExporting(true);
+    setExportMessage('');
+    setExportError('');
+    try {
+      const { blob, filename } = await boardService.exportAnalytics(appliedFilters);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      setExportMessage('Arquivo CSV gerado com os filtros aplicados.');
+    } catch (err) {
+      setExportError(friendlyError(err, 'Não foi possível exportar os indicadores. Tente novamente.'));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return <div className="rc-page">
     <Navbar />
     <main id="main-content" tabIndex={-1} className="container-fluid rc-board-page py-4 flex-grow-1">
       <header className="rc-board-header">
         <div><span className="rc-board-eyebrow">{viewCopy.eyebrow}</span><h1>{viewCopy.title}</h1><p>{viewCopy.description}</p></div>
-        <div className="d-flex flex-wrap gap-2"><Link className="btn btn-outline-primary" to={aggregated ? '/meu-board' : '/minhas-denuncias'}>{aggregated ? 'Meu board pessoal' : 'Ver em lista'}</Link><button className="btn btn-outline-secondary" onClick={() => setReload(value => value + 1)} disabled={loading}>Atualizar</button></div>
+        <div className="d-flex flex-wrap gap-2"><Link className="btn btn-outline-primary" to={aggregated ? '/meu-board' : '/minhas-denuncias'}>{aggregated ? 'Meu board pessoal' : 'Ver em lista'}</Link>{canExport && <button className="btn btn-primary" onClick={exportBoard} disabled={loading || exporting}>{exporting ? 'Gerando arquivo...' : 'Exportar CSV'}</button>}<button className="btn btn-outline-secondary" onClick={() => setReload(value => value + 1)} disabled={loading}>Atualizar</button></div>
       </header>
+      {exportMessage && <p className="alert alert-success" role="status">{exportMessage}</p>}
+      {exportError && <p className="alert alert-danger" role="alert">{exportError}</p>}
 
       {aggregated && <form className="rc-board-filters" onSubmit={event => { event.preventDefault(); setAppliedFilters({ ...filters }); }}>
         <label htmlFor={`${id}-category`}>Categoria<select id={`${id}-category`} className="form-select" value={filters.categoria} onChange={event => setFilters(current => ({ ...current, categoria: event.target.value }))}><option value="">Todas as categorias</option>{filterOptions.categories.map(item => <option key={item.label}>{item.label}</option>)}</select></label>

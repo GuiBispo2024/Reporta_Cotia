@@ -1,8 +1,13 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ReportBoard from '../../src/components/ReportBoard';
 import boardService from '../../src/services/boardService';
+import { AuthContext } from '../../src/context/authContext';
 
-jest.mock('../../src/services/boardService', () => ({ __esModule: true, default: { getBoard: jest.fn() } }));
+jest.mock('../../src/services/boardService', () => ({ __esModule: true, default: { getBoard: jest.fn(), exportAnalytics: jest.fn() } }));
+jest.mock('../../src/context/authContext', () => {
+  const React = require('react');
+  return { AuthContext: React.createContext(null) };
+});
 jest.mock('react-router-dom', () => ({ Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a> }), { virtual: true });
 jest.mock('../../src/components/Navbar', () => () => <nav />);
 jest.mock('../../src/components/Footer', () => () => <footer />);
@@ -101,4 +106,23 @@ test('detalhes analíticos de denúncia privada não oferecem ações do autor',
   expect(screen.getByText('Falta informar o endereço')).toBeInTheDocument();
   expect(screen.queryByRole('link', { name: 'Corrigir denúncia' })).not.toBeInTheDocument();
   expect(screen.queryByRole('link', { name: 'Abrir denúncia' })).not.toBeInTheDocument();
+});
+
+test('permite exportar somente quando o analista possui a permissão específica', async () => {
+  const createObjectURL = jest.fn(() => 'blob:board');
+  const revokeObjectURL = jest.fn();
+  const downloadClick = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  Object.defineProperty(window.URL, 'createObjectURL', { configurable: true, value: createObjectURL });
+  Object.defineProperty(window.URL, 'revokeObjectURL', { configurable: true, value: revokeObjectURL });
+  boardService.exportAnalytics.mockResolvedValue({ blob: new Blob(['csv']), filename: 'indicadores.csv' });
+  const user = { permissions: ['dashboard.full.view', 'dashboard.export'] };
+
+  render(<AuthContext.Provider value={{ user }}><ReportBoard analytical /></AuthContext.Provider>);
+  fireEvent.click(await screen.findByRole('button', { name: 'Exportar CSV' }));
+
+  await waitFor(() => expect(boardService.exportAnalytics).toHaveBeenCalledWith({}));
+  expect(createObjectURL).toHaveBeenCalled();
+  expect(revokeObjectURL).toHaveBeenCalledWith('blob:board');
+  expect(await screen.findByText('Arquivo CSV gerado com os filtros aplicados.')).toBeInTheDocument();
+  downloadClick.mockRestore();
 });
