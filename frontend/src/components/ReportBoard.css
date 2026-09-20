@@ -31,4 +31,14 @@
 .rc-board-description { white-space: pre-wrap; }
 .rc-board-dialog dt { font-size: .8rem; color: var(--rc-secondary-text, #526159); }
 .rc-large-text .rc-board-columns { grid-template-columns: minmax(0, 1fr); }
+.rc-board-filters { display: flex; align-items: flex-end; flex-wrap: wrap; gap: .75rem; padding: 1rem; margin-bottom: 1rem; background: var(--rc-surface, #fff); border: 1px solid var(--rc-border); border-radius: 12px; }
+.rc-board-filters label { flex: 1 1 220px; min-width: 0; font-size: .85rem; font-weight: 700; }
+.rc-board-filters select { margin-top: .35rem; }
+.rc-board-breakdowns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 1rem; margin-block: 1rem; }
+.rc-board-breakdowns section { padding: 1rem; border: 1px solid var(--rc-border); border-radius: 12px; background: var(--rc-surface, #fff); }
+.rc-board-breakdowns table { width: 100%; }
+.rc-board-breakdowns caption { caption-side: top; padding: 0 0 .75rem; color: var(--rc-text); font-size: 1rem; font-weight: 800; }
+.rc-board-breakdowns th, .rc-board-breakdowns td { padding: .5rem; border-bottom: 1px solid var(--rc-border); text-align: left; font-size: .8rem; overflow-wrap: anywhere; }
+.rc-board-breakdowns tbody th { font-weight: 500; }
+.rc-board-breakdowns td { text-align: right; font-weight: 800; }
 @media (max-width: 767px) { .rc-board-columns { grid-template-columns: minmax(0, 1fr); overflow: visible; } }

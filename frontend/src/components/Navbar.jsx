@@ -34,6 +34,7 @@ export default function Navbar() {
               <button className="btn rc-user-menu dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><UserAvatar user={user} className="rc-nav-avatar" /><span className="rc-nav-user-text"><strong>{user?.username}</strong><small>{getPrimaryRoleLabel(user)}</small></span></button>
               <ul className="dropdown-menu dropdown-menu-end rc-user-dropdown">
                 <li><NavLink className="dropdown-item" to="/meu-board"><i aria-hidden="true" className="bi bi-kanban" /> Meu board</NavLink></li>
+                {hasPermission(user, PERMISSIONS.DASHBOARD_FULL_VIEW) && <li><NavLink className="dropdown-item" to="/boards/analitico"><i aria-hidden="true" className="bi bi-bar-chart" /> Board analítico</NavLink></li>}
                 <li><NavLink className="dropdown-item" to="/perfil"><i aria-hidden="true" className="bi bi-person-circle" /> Meu perfil</NavLink></li>
                 <li><NavLink className="dropdown-item" to={`/usuarios/${user?.id}`}><i aria-hidden="true" className="bi bi-eye" /> Perfil público</NavLink></li>
                 <li><NavLink className="dropdown-item" to="/editar-perfil"><i aria-hidden="true" className="bi bi-gear" /> Configurações</NavLink></li>

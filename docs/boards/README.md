@@ -18,3 +18,13 @@ Os registros incluem título, descrição, localização, categoria, setor, esta
 1. API, validação, isolamento dos dados e testes de integração.
 2. Board pessoal com indicadores, colunas, paginação e detalhes.
 3. Board analítico com filtros e distribuições, respeitando a permissão existente.
+
+## Interface
+
+- `/meu-board`: board pessoal, também acessível em “Minhas denúncias” e no menu da conta.
+- `/boards/analitico`: disponível no menu da conta para quem possui `dashboard.full.view`.
+- Detalhes em janela navegável por teclado; no board analítico, registros privados são consultados nessa janela. O link público é oferecido somente para denúncias aprovadas.
+- Filtros analíticos por categoria e setor, contagens por situação e distribuições por categoria e setor. Cada coluna tem “Carregar mais” e informa quantos registros estão visíveis.
+- No celular e com texto ampliado, as colunas são empilhadas. Os boards usam os temas e recursos globais de acessibilidade.
+
+As três etapas acima estão implementadas. Exportação, filtros por período e métricas de tempo de atendimento ficam para incrementos futuros; não há arraste de cartões nem edição de status nesta primeira versão.

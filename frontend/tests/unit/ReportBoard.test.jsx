@@ -45,3 +45,28 @@ test('mostra falhas e permite tentar novamente', async () => {
   expect(await screen.findByText(report.titulo)).toBeInTheDocument();
   await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
 });
+
+test('board analítico aplica filtros aos indicadores e à paginação', async () => {
+  const analytical = { ...initial, summary: { ...initial.summary, resolutionRate: 50 }, breakdown: { categories: [{ label: 'Iluminação pública', total: 2 }], sectors: [{ label: 'Defesa Civil', total: 2 }] } };
+  boardService.getBoard.mockResolvedValue(analytical);
+  render(<ReportBoard analytical />);
+  expect(await screen.findByText('50%')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Board analítico' })).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText('Categoria'), { target: { value: 'Iluminação pública' } });
+  fireEvent.change(screen.getByLabelText('Setor responsável'), { target: { value: 'Defesa Civil' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Aplicar filtros' }));
+  await waitFor(() => expect(boardService.getBoard).toHaveBeenLastCalledWith(expect.objectContaining({ analytical: true, params: { categoria: 'Iluminação pública', setorResponsavel: 'Defesa Civil' } })));
+  fireEvent.click(await screen.findByRole('button', { name: 'Carregar mais: Abertas' }));
+  await waitFor(() => expect(boardService.getBoard).toHaveBeenLastCalledWith(expect.objectContaining({ params: { categoria: 'Iluminação pública', setorResponsavel: 'Defesa Civil', column: 'aberta', page: 2 } })));
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Carregar mais: Abertas' })).not.toBeDisabled());
+});
+
+test('detalhes analíticos de denúncia privada não oferecem ações do autor', async () => {
+  const privateReport = { ...report, status: 'rejeitada', motivoRejeicao: 'Falta informar o endereço' };
+  boardService.getBoard.mockResolvedValue({ ...initial, columns: [{ ...initial.columns[0], reports: [privateReport] }] });
+  render(<ReportBoard analytical />);
+  fireEvent.click(await screen.findByRole('button', { name: `Ver detalhes: ${report.titulo}` }));
+  expect(screen.getByText('Falta informar o endereço')).toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'Corrigir denúncia' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'Abrir denúncia' })).not.toBeInTheDocument();
+});

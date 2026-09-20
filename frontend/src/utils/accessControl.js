@@ -3,6 +3,7 @@ export const PERMISSIONS = Object.freeze({
   MODERATION_REVIEW: 'moderation.review',
   CENSORSHIP_REVIEW: 'censorship.review',
   RESOLUTION_UPDATE: 'resolution.update',
+  DASHBOARD_FULL_VIEW: 'dashboard.full.view',
   USERS_MANAGE_ROLES: 'users.manage_roles',
   AUDIT_VIEW: 'audit.view'
 })
