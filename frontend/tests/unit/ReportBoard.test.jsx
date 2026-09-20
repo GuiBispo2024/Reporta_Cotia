@@ -47,13 +47,14 @@ test('mostra falhas e permite tentar novamente', async () => {
 });
 
 test('board analítico aplica filtros aos indicadores e à paginação', async () => {
-  const analytical = { ...initial, summary: { ...initial.summary, resolutionRate: 50 }, metrics: { averageModerationHours: 24, averageResolutionHours: 48, moderationSampleSize: 1, resolutionSampleSize: 1 }, breakdown: { categories: [{ label: 'Iluminação pública', total: 2 }], sectors: [{ label: 'Defesa Civil', total: 2 }] } };
+  const analytical = { ...initial, summary: { ...initial.summary, resolutionRate: 50 }, metrics: { averageModerationHours: 24, averageResolutionHours: 48, moderationSampleSize: 1, resolutionSampleSize: 1 }, trend: [{ period: '2026-09', total: 2 }], breakdown: { categories: [{ label: 'Iluminação pública', total: 2 }], sectors: [{ label: 'Defesa Civil', total: 2 }] } };
   boardService.getBoard.mockResolvedValue(analytical);
   render(<ReportBoard analytical />);
   expect(await screen.findByText('50%')).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Tempos médios' })).toBeInTheDocument();
   expect(screen.getByText('1 dia')).toBeInTheDocument();
   expect(screen.getByText('2 dias')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Gráficos dos indicadores' })).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Board analítico' })).toBeInTheDocument();
   fireEvent.change(screen.getByLabelText('Categoria'), { target: { value: 'Iluminação pública' } });
   fireEvent.change(screen.getByLabelText('Setor responsável'), { target: { value: 'Defesa Civil' } });

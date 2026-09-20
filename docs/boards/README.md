@@ -18,6 +18,8 @@ As visões comunitária e analítica incluem `map.points` com até 500 denúncia
 
 As mesmas visões incluem `metrics`, com o tempo médio em horas até a primeira decisão de moderação e entre a aprovação e a resolução. Cada média informa também o tamanho da amostra e considera somente denúncias com o histórico necessário para o cálculo. Os filtros ativos são respeitados.
 
+O campo `trend` apresenta a quantidade mensal de denúncias nos últimos 12 meses que possuem registros no recorte consultado. A interface combina essa evolução com gráficos de situação e das categorias mais recorrentes.
+
 ## Etapas
 
 1. API, validação, isolamento dos dados e testes de integração.

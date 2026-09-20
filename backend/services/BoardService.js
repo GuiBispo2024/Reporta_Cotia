@@ -70,6 +70,21 @@ function serviceMetrics(records) {
   };
 }
 
+function monthlyTrend(records) {
+  const totals = new Map();
+  for (const record of records) {
+    const plain = record.get ? record.get({ plain: true }) : record;
+    const date = new Date(plain.createdAt);
+    if (Number.isNaN(date.getTime())) continue;
+    const period = date.toISOString().slice(0, 7);
+    totals.set(period, (totals.get(period) || 0) + 1);
+  }
+  return [...totals.entries()]
+    .sort(([first], [second]) => first.localeCompare(second))
+    .slice(-12)
+    .map(([period, total]) => ({ period, total }));
+}
+
 class BoardService {
   static async getBoard(user, query = {}, scopeType = 'mine') {
     if (!user?.id) throw new AppError('Entre na sua conta para consultar o painel.', 401, 'AUTH_REQUIRED');
@@ -143,7 +158,7 @@ class BoardService {
         categories: breakdown(categories, 'categoria'),
         sectors: breakdown(sectors, 'setorResponsavel'),
         locations: breakdown(locations, 'localizacao')
-      }, map, metrics: serviceMetrics(metricRecords) } : {}),
+      }, map, metrics: serviceMetrics(metricRecords), trend: monthlyTrend(metricRecords) } : {}),
       filters: {
         categoria,
         setorResponsavel,

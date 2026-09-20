@@ -86,6 +86,8 @@ describe('Boards pessoais e analíticos', () => {
       moderationSampleSize: 1,
       resolutionSampleSize: 1
     });
+    expect(response.body.trend.reduce((total, item) => total + item.total, 0)).toBe(6);
+    expect(response.body.trend).toContainEqual({ period: '2026-01', total: 1 });
     expect(response.body.columns.find(item => item.key === 'rejeitada').reports[0].titulo).toBe('Privada de outro autor');
     expect(JSON.stringify(response.body)).not.toContain('Texto reservado para censura');
   });
@@ -96,6 +98,7 @@ describe('Boards pessoais e analíticos', () => {
     expect(response.body.columns.find(item => item.key === 'resolvida').reports[0].titulo).toBe('Minha resolvida');
     expect(response.body.breakdown.categories).toEqual([{ label: 'Outros', total: 1 }]);
     expect(response.body.map).toMatchObject({ total: 1 });
+    expect(response.body.trend).toEqual([{ period: '2026-01', total: 1 }]);
     expect(response.body.filters).toMatchObject({ dataInicio: '2026-01-01', dataFim: '2026-01-31' });
   });
   test('filtros afetam os totais e entradas inválidas são rejeitadas', async () => {

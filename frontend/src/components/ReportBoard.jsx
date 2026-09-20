@@ -6,6 +6,7 @@ import useDialogAccessibility from '../hooks/useDialogAccessibility';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import BoardMap from './BoardMap';
+import BoardCharts from './BoardCharts';
 import './ReportBoard.css';
 
 const SUMMARY_LABELS = { total: 'Total de denúncias', pendente: 'Em moderação', aberta: 'Abertas', em_andamento: 'Em andamento', resolvida: 'Resolvidas', rejeitada: 'Rejeitadas' };
@@ -130,6 +131,7 @@ export default function ReportBoard({ analytical = false, community = false }) {
               <div><dt>Da aprovação até a resolução</dt><dd>{durationLabel(data.metrics.averageResolutionHours)}</dd><small>{data.metrics.resolutionSampleSize} {data.metrics.resolutionSampleSize === 1 ? 'denúncia resolvida' : 'denúncias resolvidas'}</small></div>
             </dl>
           </section>}
+          {aggregated && <BoardCharts summary={data.summary} categories={data.breakdown?.categories || []} trend={data.trend || []} community={community} />}
           {!data.summary.total && <div className="rc-board-state"><p>{aggregated ? 'Nenhuma denúncia encontrada para os filtros aplicados.' : 'Você ainda não tem denúncias para acompanhar.'}</p>{!aggregated && <Link className="btn btn-primary" to="/nova-denuncia">Registrar denúncia</Link>}</div>}
           {aggregated && <BoardMap map={data.map} />}
           {aggregated && data.breakdown && <div className="rc-board-breakdowns">
