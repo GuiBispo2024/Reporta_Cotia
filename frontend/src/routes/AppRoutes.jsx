@@ -20,6 +20,7 @@ import EsqueciSenha from '../pages/EsqueciSenha.jsx';
 import RedefinirSenha from '../pages/RedefinirSenha.jsx';
 import { PERMISSIONS } from '../utils/accessControl';
 import RouteAccessibility from '../components/RouteAccessibility';
+import ReportBoard from '../components/ReportBoard';
 
 function AppRoutes() {
     return(
@@ -38,6 +39,7 @@ function AppRoutes() {
                 <Route path="/moderacao" element={<PrivateRoute permission={PERMISSIONS.MODERATION_VIEW}><Moderacao/></PrivateRoute>}/>
                 <Route path="/moderacao/denuncia/:id/historico" element={<PrivateRoute permission={PERMISSIONS.AUDIT_VIEW}><HistoricoDenuncia/></PrivateRoute>}/>
                 <Route path="/minhas-denuncias" element={<PrivateRoute><MinhasDenuncias/></PrivateRoute>}/>
+                <Route path="/meu-board" element={<PrivateRoute><ReportBoard /></PrivateRoute>}/>
                 <Route path="/editar-denuncia/:id" element={<PrivateRoute><EditarDenuncia/></PrivateRoute>}/>
                 <Route path="/nova-denuncia" element={<PrivateRoute><NovaDenuncia/></PrivateRoute>}/>
                 <Route path="/lista-de-usuarios" element={<PrivateRoute><ListaDeUsuários/></PrivateRoute>}/>

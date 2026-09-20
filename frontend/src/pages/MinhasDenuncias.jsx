@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import denunciasService from "../services/denunciaService";
 import { AuthContext } from "../context/authContext";
 import Navbar from "../components/Navbar";
@@ -45,8 +45,9 @@ export default function MinhasDenuncias() {
       <main tabIndex={-1} id="main-content" className="container py-4 flex-grow-1">
         <div className="text-center mb-4">
           <span className="rc-eyebrow">ACOMPANHAMENTO</span>
-          <h2 className="fw-bold">Minhas denúncias</h2>
+          <h1 className="fw-bold">Minhas denúncias</h1>
           <p className="text-muted">Acompanhe a moderação e o progresso dos problemas que você registrou.</p>
+          <Link className="btn btn-outline-primary" to="/meu-board">Ver meu board</Link>
         </div>
 
         {loading ? <div className="text-center py-5"><div role="status" aria-label="Carregando" className="spinner-border text-primary" /></div>
