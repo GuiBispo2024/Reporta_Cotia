@@ -34,7 +34,7 @@
 .rc-large-text .rc-board-columns { grid-template-columns: minmax(0, 1fr); }
 .rc-board-filters { display: flex; align-items: flex-end; flex-wrap: wrap; gap: .75rem; padding: 1rem; margin-bottom: 1rem; background: var(--rc-surface, #fff); border: 1px solid var(--rc-border); border-radius: 12px; }
 .rc-board-filters label { flex: 1 1 220px; min-width: 0; font-size: .85rem; font-weight: 700; }
-.rc-board-filters select { margin-top: .35rem; }
+.rc-board-filters :is(select, input) { margin-top: .35rem; }
 .rc-board-breakdowns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 1rem; margin-block: 1rem; }
 .rc-board-breakdowns section { padding: 1rem; border: 1px solid var(--rc-border); border-radius: 12px; background: var(--rc-surface, #fff); }
 .rc-board-breakdowns table { width: 100%; }

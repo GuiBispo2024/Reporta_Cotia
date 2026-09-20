@@ -2,6 +2,7 @@ const BoardRepository = require('../repositories/BoardRepository');
 const AppError = require('../utils/AppError');
 const { PERMISSIONS } = require('../constants/accessControl');
 const { hasPermission } = require('../utils/authorization');
+const { Op } = require('sequelize');
 
 const COLUMNS = [
   { key: 'pendente', label: 'Em moderação', where: { status: 'pendente' } },
@@ -25,6 +26,18 @@ function textFilter(value) {
   return value.trim() || null;
 }
 
+function dateFilter(value) {
+  if (value === undefined || value === '') return null;
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new AppError('Informe as datas no formato AAAA-MM-DD.', 400, 'VALIDATION_ERROR');
+  }
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
+    throw new AppError('Informe um período com datas válidas.', 400, 'VALIDATION_ERROR');
+  }
+  return parsed;
+}
+
 class BoardService {
   static async getBoard(user, query = {}, scopeType = 'mine') {
     if (!user?.id) throw new AppError('Entre na sua conta para consultar o painel.', 401, 'AUTH_REQUIRED');
@@ -45,9 +58,26 @@ class BoardService {
     if (column !== undefined && !availableColumns.some(item => item.key === column)) throw new AppError('Coluna inválida.', 400, 'VALIDATION_ERROR');
     const categoria = textFilter(query.categoria);
     const setorResponsavel = textFilter(query.setorResponsavel);
+    const dataInicio = dateFilter(query.dataInicio);
+    const dataFim = dateFilter(query.dataFim);
+    if (dataInicio && dataFim && dataInicio > dataFim) {
+      throw new AppError('A data inicial não pode ser posterior à data final.', 400, 'VALIDATION_ERROR');
+    }
+    const createdAt = {};
+    if (dataInicio) createdAt[Op.gte] = dataInicio;
+    if (dataFim) {
+      const exclusiveEnd = new Date(dataFim);
+      exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() + 1);
+      createdAt[Op.lt] = exclusiveEnd;
+    }
     // The authenticated account defines the personal scope; query parameters cannot replace it.
     const scope = analytical ? {} : publicView ? { status: 'aprovada' } : { userId: user.id };
-    const where = { ...scope, ...(categoria ? { categoria } : {}), ...(setorResponsavel ? { setorResponsavel } : {}) };
+    const where = {
+      ...scope,
+      ...(categoria ? { categoria } : {}),
+      ...(setorResponsavel ? { setorResponsavel } : {}),
+      ...(dataInicio || dataFim ? { createdAt } : {})
+    };
     const includeBreakdown = analytical || publicView;
     const [statuses, categories, sectors, locations, map] = await Promise.all([
       BoardRepository.grouped(where, ['status', 'resolucaoStatus']),
@@ -81,7 +111,12 @@ class BoardService {
         sectors: breakdown(sectors, 'setorResponsavel'),
         locations: breakdown(locations, 'localizacao')
       }, map } : {}),
-      filters: { categoria, setorResponsavel },
+      filters: {
+        categoria,
+        setorResponsavel,
+        dataInicio: query.dataInicio || null,
+        dataFim: query.dataFim || null
+      },
       limit
     };
   }

@@ -26,7 +26,7 @@ describe('Boards pessoais e analíticos', () => {
     await citizenRole.addPermission(publicPermission);
     await Denuncia.bulkCreate([
       ...Array.from({ length: 3 }, (_, i) => ({ titulo: `Minha aberta ${i}`, status: 'aprovada', resolucaoStatus: 'aberta', latitude: -23.60 - i * 0.01, longitude: -46.92 - i * 0.01, userId: citizen.id })),
-      { titulo: 'Minha resolvida', status: 'aprovada', resolucaoStatus: 'resolvida', latitude: -23.63, longitude: -46.95, userId: citizen.id },
+      { titulo: 'Minha resolvida', status: 'aprovada', resolucaoStatus: 'resolvida', latitude: -23.63, longitude: -46.95, createdAt: new Date('2026-01-15T12:00:00.000Z'), userId: citizen.id },
       { titulo: 'Minha pendente', status: 'pendente', latitude: -23.64, longitude: -46.96, userId: citizen.id },
       { titulo: 'Privada de outro autor', status: 'rejeitada', latitude: -23.65, longitude: -46.97, userId: other.id }
     ].map(report => ({ descricao: 'Descrição pública', localizacao: 'Cotia', categoria: 'Outros', setorResponsavel: 'Defesa Civil', tituloOriginal: 'Texto reservado para censura', ...report })));
@@ -78,9 +78,18 @@ describe('Boards pessoais e analíticos', () => {
     expect(response.body.columns.find(item => item.key === 'rejeitada').reports[0].titulo).toBe('Privada de outro autor');
     expect(JSON.stringify(response.body)).not.toContain('Texto reservado para censura');
   });
+  test('filtra indicadores, colunas e mapa pelo período inclusivo informado', async () => {
+    const response = await get('/boards/analytics', analyst, { dataInicio: '2026-01-01', dataFim: '2026-01-31' });
+    expect(response.status).toBe(200);
+    expect(response.body.summary).toMatchObject({ total: 1, resolvida: 1 });
+    expect(response.body.columns.find(item => item.key === 'resolvida').reports[0].titulo).toBe('Minha resolvida');
+    expect(response.body.breakdown.categories).toEqual([{ label: 'Outros', total: 1 }]);
+    expect(response.body.map).toMatchObject({ total: 1 });
+    expect(response.body.filters).toMatchObject({ dataInicio: '2026-01-01', dataFim: '2026-01-31' });
+  });
   test('filtros afetam os totais e entradas inválidas são rejeitadas', async () => {
     expect((await get('/boards/analytics', analyst, { categoria: 'Inexistente' })).body.summary.total).toBe(0);
-    for (const query of [{ page: 'abc' }, { limit: 0 }, { limit: 100 }, { column: 'qualquer' }, { categoria: ['a', 'b'] }]) {
+    for (const query of [{ page: 'abc' }, { limit: 0 }, { limit: 100 }, { column: 'qualquer' }, { categoria: ['a', 'b'] }, { dataInicio: '20/01/2026' }, { dataFim: '2026-02-30' }, { dataInicio: '2026-02-01', dataFim: '2026-01-01' }]) {
       expect((await get('/boards/mine', citizen, query)).status).toBe(400);
     }
   });

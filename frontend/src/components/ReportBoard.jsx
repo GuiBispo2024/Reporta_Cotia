@@ -34,7 +34,7 @@ export default function ReportBoard({ analytical = false, community = false }) {
   const [loadingColumns, setLoadingColumns] = useState({});
   const [columnErrors, setColumnErrors] = useState({});
   const [selected, setSelected] = useState(null);
-  const [filters, setFilters] = useState({ categoria: '', setorResponsavel: '' });
+  const [filters, setFilters] = useState({ categoria: '', setorResponsavel: '', dataInicio: '', dataFim: '' });
   const [appliedFilters, setAppliedFilters] = useState({});
   const [filterOptions, setFilterOptions] = useState({ categories: [], sectors: [] });
   const revision = useRef(0);
@@ -100,8 +100,10 @@ export default function ReportBoard({ analytical = false, community = false }) {
       {aggregated && <form className="rc-board-filters" onSubmit={event => { event.preventDefault(); setAppliedFilters({ ...filters }); }}>
         <label htmlFor={`${id}-category`}>Categoria<select id={`${id}-category`} className="form-select" value={filters.categoria} onChange={event => setFilters(current => ({ ...current, categoria: event.target.value }))}><option value="">Todas as categorias</option>{filterOptions.categories.map(item => <option key={item.label}>{item.label}</option>)}</select></label>
         <label htmlFor={`${id}-sector`}>Setor responsável<select id={`${id}-sector`} className="form-select" value={filters.setorResponsavel} onChange={event => setFilters(current => ({ ...current, setorResponsavel: event.target.value }))}><option value="">Todos os setores</option>{filterOptions.sectors.filter(item => item.label !== 'Não informado').map(item => <option key={item.label}>{item.label}</option>)}</select></label>
+        <label htmlFor={`${id}-start-date`}>Data inicial<input id={`${id}-start-date`} className="form-control" type="date" value={filters.dataInicio} max={filters.dataFim || undefined} onChange={event => setFilters(current => ({ ...current, dataInicio: event.target.value }))} /></label>
+        <label htmlFor={`${id}-end-date`}>Data final<input id={`${id}-end-date`} className="form-control" type="date" value={filters.dataFim} min={filters.dataInicio || undefined} onChange={event => setFilters(current => ({ ...current, dataFim: event.target.value }))} /></label>
         <button className="btn btn-primary" disabled={loading}>Aplicar filtros</button>
-        <button type="button" className="btn btn-outline-secondary" disabled={loading || (!filters.categoria && !filters.setorResponsavel && !appliedFilters.categoria && !appliedFilters.setorResponsavel)} onClick={() => { setFilters({ categoria: '', setorResponsavel: '' }); setAppliedFilters({}); }}>Limpar filtros</button>
+        <button type="button" className="btn btn-outline-secondary" disabled={loading || (![filters.categoria, filters.setorResponsavel, filters.dataInicio, filters.dataFim, appliedFilters.categoria, appliedFilters.setorResponsavel, appliedFilters.dataInicio, appliedFilters.dataFim].some(Boolean))} onClick={() => { setFilters({ categoria: '', setorResponsavel: '', dataInicio: '', dataFim: '' }); setAppliedFilters({}); }}>Limpar filtros</button>
       </form>}
 
       {loading ? <p role="status" className="rc-board-state">Carregando denúncias...</p>

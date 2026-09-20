@@ -54,10 +54,14 @@ test('board analítico aplica filtros aos indicadores e à paginação', async (
   expect(screen.getByRole('heading', { name: 'Board analítico' })).toBeInTheDocument();
   fireEvent.change(screen.getByLabelText('Categoria'), { target: { value: 'Iluminação pública' } });
   fireEvent.change(screen.getByLabelText('Setor responsável'), { target: { value: 'Defesa Civil' } });
+  fireEvent.change(screen.getByLabelText('Data inicial'), { target: { value: '2026-01-01' } });
+  fireEvent.change(screen.getByLabelText('Data final'), { target: { value: '2026-01-31' } });
+  expect(screen.getByLabelText('Data inicial')).toHaveAttribute('max', '2026-01-31');
+  expect(screen.getByLabelText('Data final')).toHaveAttribute('min', '2026-01-01');
   fireEvent.click(screen.getByRole('button', { name: 'Aplicar filtros' }));
-  await waitFor(() => expect(boardService.getBoard).toHaveBeenLastCalledWith(expect.objectContaining({ analytical: true, params: { categoria: 'Iluminação pública', setorResponsavel: 'Defesa Civil' } })));
+  await waitFor(() => expect(boardService.getBoard).toHaveBeenLastCalledWith(expect.objectContaining({ analytical: true, params: { categoria: 'Iluminação pública', setorResponsavel: 'Defesa Civil', dataInicio: '2026-01-01', dataFim: '2026-01-31' } })));
   fireEvent.click(await screen.findByRole('button', { name: 'Carregar mais: Abertas' }));
-  await waitFor(() => expect(boardService.getBoard).toHaveBeenLastCalledWith(expect.objectContaining({ params: { categoria: 'Iluminação pública', setorResponsavel: 'Defesa Civil', column: 'aberta', page: 2 } })));
+  await waitFor(() => expect(boardService.getBoard).toHaveBeenLastCalledWith(expect.objectContaining({ params: { categoria: 'Iluminação pública', setorResponsavel: 'Defesa Civil', dataInicio: '2026-01-01', dataFim: '2026-01-31', column: 'aberta', page: 2 } })));
   await waitFor(() => expect(screen.getByRole('button', { name: 'Carregar mais: Abertas' })).not.toBeDisabled());
 });
 

@@ -8,7 +8,7 @@ Implementação incremental na branch `feat/boards`. Nesta versão, o board acom
 - `GET /boards/public`: requer `dashboard.public.view`; apresenta somente denúncias aprovadas e indicadores comunitários por categoria, setor e localização.
 - `GET /boards/analytics`: requer `dashboard.full.view`; consulta todas as denúncias e distribuições por categoria e setor.
 
-Parâmetros opcionais: `categoria`, `setorResponsavel`, `column`, `page` (a partir de 1) e `limit` (1–50, padrão 8). A paginação é independente por coluna. Sem `column`, todas as colunas são retornadas; com `column`, apenas a coluna solicitada é carregada. Os indicadores sempre consideram o conjunto filtrado completo.
+Parâmetros opcionais: `categoria`, `setorResponsavel`, `dataInicio`, `dataFim`, `column`, `page` (a partir de 1) e `limit` (1–50, padrão 8). As datas usam o formato `AAAA-MM-DD`, são inclusivas e filtram pela data de cadastro da denúncia. A paginação é independente por coluna. Sem `column`, todas as colunas são retornadas; com `column`, apenas a coluna solicitada é carregada. Os indicadores sempre consideram o conjunto filtrado completo.
 
 Colunas: `pendente` (em moderação), `aberta`, `em_andamento`, `resolvida` e `rejeitada`. As três colunas de andamento incluem somente denúncias aprovadas. A taxa de resolução divide as resolvidas pelas aprovadas, sem incluir pendentes e rejeitadas.
 
@@ -20,7 +20,7 @@ As visões comunitária e analítica incluem `map.points` com até 500 denúncia
 
 1. API, validação, isolamento dos dados e testes de integração.
 2. Board pessoal com indicadores, colunas, paginação e detalhes.
-3. Board analítico com filtros e distribuições, respeitando a permissão existente.
+3. Board analítico com filtros por categoria, setor e período, além de distribuições que respeitam a permissão existente.
 4. API do board comunitário, limitada a dados aprovados e preparada para visualização geográfica.
 5. Mapa das denúncias com coordenadas nas visões comunitária e analítica.
 
@@ -30,9 +30,9 @@ As visões comunitária e analítica incluem `map.points` com até 500 denúncia
 - `/boards/comunidade`: visão das denúncias aprovadas para cidadãos, com filtros e distribuições por categoria, setor e localização.
 - `/boards/analitico`: destino da aba “Boards” para analistas e demais contas com `dashboard.full.view`. A visão analítica também oferece acesso ao board pessoal.
 - Detalhes em janela navegável por teclado; no board analítico, registros privados são consultados nessa janela. O link público é oferecido somente para denúncias aprovadas.
-- Filtros por categoria e setor, contagens por situação e distribuições por categoria, setor e localização. Cada coluna tem “Carregar mais” e informa quantos registros estão visíveis.
+- Filtros por categoria, setor e período, contagens por situação e distribuições por categoria, setor e localização. Cada coluna tem “Carregar mais” e informa quantos registros estão visíveis.
 - A aba “Boards” leva cidadãos ao board comunitário e contas com `dashboard.full.view` ao board analítico.
 - As visões comunitária e analítica exibem os registros com coordenadas sobre um mapa do OpenStreetMap. Marcadores aprovados levam ao detalhe público; registros privados do board analítico não geram links públicos.
 - No celular e com texto ampliado, as colunas são empilhadas. Os boards usam os temas e recursos globais de acessibilidade.
 
-As cinco etapas acima estão implementadas. Exportação, filtros por período e métricas de tempo de atendimento ficam para incrementos futuros; não há arraste de cartões nem edição de status nesta primeira versão.
+As cinco etapas acima estão implementadas. Exportação e métricas de tempo de atendimento ficam para incrementos futuros; não há arraste de cartões nem edição de status nesta primeira versão.
