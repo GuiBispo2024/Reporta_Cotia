@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import denunciaService from "../services/denunciaService";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -14,11 +14,18 @@ import ImageCarousel from '../components/ImageCarousel';
 export default function DetalheDenuncia() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { hash } = useLocation();
   const [denuncia, setDenuncia] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [resolvedAddress, setResolvedAddress] = useState("");
   const [history, setHistory] = useState([]);
+
+  useEffect(() => {
+    if (!loading && hash === '#comentarios') {
+      document.getElementById('comentarios')?.scrollIntoView({ block: 'start' });
+    }
+  }, [loading, hash]);
 
   const mapUrl = denuncia?.latitude && denuncia?.longitude
     ? (() => {
@@ -121,7 +128,7 @@ export default function DetalheDenuncia() {
           )}
 
           {denuncia.status === 'aprovada' && (
-            <section className="rc-detail-comments mt-4">
+            <section className="rc-detail-comments mt-4" id="comentarios">
               <h2>Comentários</h2>
               <p>Acompanhe e participe da conversa sobre esta denúncia.</p>
               <Comentarios denunciaId={denuncia.id} initialCount={denuncia.commentsCount} initiallyOpen />

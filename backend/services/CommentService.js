@@ -18,7 +18,6 @@ class CommentService {
     if (parentCommentId) {
       parent = await CommentRepository.findById(parentCommentId)
       if (!parent || Number(parent.denunciaId) !== Number(denunciaId)) throw new AppError('Comentário original não encontrado.', 404, 'NOT_FOUND')
-      if (parent.parentCommentId) throw new AppError('Respostas podem ter somente um nível.', 400, 'NESTING_LIMIT')
     }
     const Comentario = await CommentRepository.create({
       comentario: filteredText,

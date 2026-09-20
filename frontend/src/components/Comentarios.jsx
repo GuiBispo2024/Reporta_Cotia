@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useContext } from "react";
+import { useCallback, useEffect, useState, useContext, useRef } from "react";
 import { Link } from 'react-router-dom';
 import commentService from "../services/commentService";
 import { AuthContext } from "../context/authContext";
@@ -20,13 +20,15 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [sort, setSort] = useState('newest');
+  const [expandedReplies, setExpandedReplies] = useState({});
+  const carouselRef = useRef(null);
   const canReviewCensorship = hasPermission(user, PERMISSIONS.CENSORSHIP_REVIEW);
 
   const loadComments = useCallback(async (requestedSort = sort) => {
     try {
       const res = await commentService.listarPorDenuncia(
         denunciaId,
-        preview ? { page: 1, limit: 3, sort: 'newest' } : { sort: requestedSort }
+        { sort: preview ? 'newest' : requestedSort }
       );
       setComments(res.comments);
       setTotal(res.totalComments);
@@ -81,6 +83,7 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
       await commentService.create(denunciaId, { comentario: replyText.trim(), parentCommentId });
       setReplyText('');
       setReplyingTo(null);
+      setExpandedReplies(current => ({ ...current, [parentCommentId]: true }));
       await loadComments();
     } catch (err) {
       setMessage(friendlyError(err, 'Não foi possível publicar sua resposta.'));
@@ -118,36 +121,14 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
     }
   };
 
-  const visibleComments = preview
-    ? comments.reduce((result, comment) => {
-        const usedSlots = result.reduce((totalItems, item) => totalItems + 1 + item.Replies.length, 0);
-        const remainingSlots = 3 - usedSlots;
-        if (remainingSlots <= 0) return result;
-        result.push({ ...comment, Replies: (comment.Replies || []).slice(0, remainingSlots - 1) });
-        return result;
-      }, [])
-    : comments;
+  const moveCarousel = direction => {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+    carousel.scrollBy({ left: direction * carousel.clientWidth, behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  };
 
-  return (
-    <div className="rc-comments mt-3">
-      <button className="rc-comments-toggle" onClick={toggleComments} aria-expanded={open}>
-        <span><i className="bi bi-chat-left-text me-2" />Comentários</span>
-        <span className="rc-comments-count">{total}</span>
-        <i className={`bi bi-chevron-${open ? "up" : "down"} ms-2`} />
-      </button>
-
-      {open && (
-        <div className="rc-comments-panel">
-          <div className="rc-comments-heading">
-            <div><strong>Conversa</strong><small>{total ? `${total} ${total === 1 ? 'comentário' : 'comentários'}` : 'Nenhum comentário ainda'}</small></div>
-            {!preview && total > 1 && <label className="rc-comment-order"><span>Ordenar</span><select value={sort} onChange={changeSort} aria-label="Ordenar comentários"><option value="newest">Mais recentes</option><option value="oldest">Mais antigos</option></select></label>}
-          </div>
-
-          <div className="rc-comment-list">
-            {!comments.length ? (
-              <div className="rc-comment-empty"><i className="bi bi-chat-square-dots" /><span>Seja o primeiro a comentar.</span></div>
-            ) : visibleComments.map(c => (
-              <article className="rc-comment" key={c.id}>
+  const renderComment = (c, isReply = false) => (
+              <article className={`rc-comment${isReply ? " rc-comment-reply" : ""}`} key={c.id}>
                 <UserAvatar user={c.User} className="rc-comment-avatar" />
                 <div className="rc-comment-content">
                   <div className="rc-comment-meta">
@@ -163,39 +144,75 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
                       </div>
                     </div>
                   ) : <p>{c.comentario}</p>}
-                  {canReviewCensorship && c.comentarioOriginal && !c.censuraRevisada && <div className="rc-comment-review">
+                  {!preview && canReviewCensorship && c.comentarioOriginal && !c.censuraRevisada && <div className="rc-comment-review">
                     <small>Texto original para revisão</small>
                     <p>{c.comentarioOriginal}</p>
                     <div><button onClick={() => revisarCensura(c, true)}>Manter censura</button><button onClick={() => revisarCensura(c, false)}>Retirar censura</button></div>
                   </div>}
-                  {editingId !== c.id && (Number(user?.id) === Number(c.userId) || canReviewCensorship) && (
+                  {!preview && editingId !== c.id && (Number(user?.id) === Number(c.userId) || canReviewCensorship) && (
                     <div className="rc-comment-actions">
                       {user?.id === c.userId && <button onClick={() => iniciarEdicao(c)}><i className="bi bi-pencil" /> Editar</button>}
                       <button className="text-danger" onClick={() => excluirComentario(c)}><i className="bi bi-trash" /> Excluir</button>
                     </div>
                   )}
-                  {user && !preview && editingId !== c.id && <button className="rc-comment-reply-button" onClick={() => { setReplyingTo(c.id); setReplyText(''); }}><i className="bi bi-reply" /> Responder</button>}
+                  {user && !preview && editingId !== c.id && <button className="rc-comment-reply-button" onClick={() => { setReplyingTo(c.id); setReplyText(isReply ? `@${c.User?.username || 'Usuário'} ` : ''); }}><i className="bi bi-reply" /> Responder</button>}
 
-                  {(c.Replies || []).length > 0 && <div className="rc-comment-replies">
-                    {c.Replies.map(reply => <article className="rc-comment rc-comment-reply" key={reply.id}>
-                      <UserAvatar user={reply.User} className="rc-comment-avatar" />
-                      <div className="rc-comment-content">
-                        <div className="rc-comment-meta"><strong>{reply.User?.username || 'Usuário'}</strong><time>{new Date(reply.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</time></div>
-                        {editingId === reply.id ? <div><textarea className="form-control form-control-sm" rows="2" maxLength="255" value={editingText} onChange={event => setEditingText(event.target.value)} /><div className="d-flex gap-2 mt-2"><button className="btn btn-primary btn-sm" disabled={!editingText.trim()} onClick={salvarEdicao}>Salvar</button><button className="btn btn-link btn-sm text-secondary" onClick={() => setEditingId(null)}>Cancelar</button></div></div> : <p>{reply.comentario}</p>}
-                        {canReviewCensorship && reply.comentarioOriginal && !reply.censuraRevisada && <div className="rc-comment-review"><small>Texto original para revisão</small><p>{reply.comentarioOriginal}</p><div><button onClick={() => revisarCensura(reply, true)}>Manter censura</button><button onClick={() => revisarCensura(reply, false)}>Retirar censura</button></div></div>}
-                        {editingId !== reply.id && (Number(user?.id) === Number(reply.userId) || canReviewCensorship) && <div className="rc-comment-actions">{Number(user?.id) === Number(reply.userId) && <button onClick={() => iniciarEdicao(reply)}><i className="bi bi-pencil" /> Editar</button>}<button className="text-danger" onClick={() => excluirComentario(reply)}><i className="bi bi-trash" /> Excluir</button></div>}
-                      </div>
-                    </article>)}
+                  {!preview && (c.Replies || []).length > 0 && <button type="button" className="rc-comment-replies-toggle" aria-expanded={!!expandedReplies[c.id]} aria-controls={`replies-${denunciaId}-${c.id}`} onClick={() => setExpandedReplies(current => ({ ...current, [c.id]: !current[c.id] }))}>
+                    <i className={`bi bi-chevron-${expandedReplies[c.id] ? 'up' : 'down'}`} />
+                    {expandedReplies[c.id] ? 'Ocultar respostas' : `${c.Replies.length} ${c.Replies.length === 1 ? 'resposta' : 'respostas'}`}
+                  </button>}
+                  {!preview && expandedReplies[c.id] && (c.Replies || []).length > 0 && <div className="rc-comment-replies" id={`replies-${denunciaId}-${c.id}`}>
+                    {c.Replies.map(reply => renderComment(reply, true))}
                   </div>}
 
-                  {replyingTo === c.id && <div className="rc-comment-reply-compose"><textarea className="form-control form-control-sm" rows="2" maxLength="255" autoFocus placeholder={`Responder a ${c.User?.username || 'este comentário'}...`} value={replyText} onChange={event => setReplyText(event.target.value)} /><div><button className="btn btn-primary btn-sm" disabled={!replyText.trim() || sending} onClick={() => enviarResposta(c.id)}>Publicar resposta</button><button className="btn btn-link btn-sm text-secondary" onClick={() => setReplyingTo(null)}>Cancelar</button></div></div>}
+                  {replyingTo === c.id && <div className="rc-comment-compose">
+                    <UserAvatar user={user} className="rc-comment-avatar" />
+                    <div className="flex-grow-1">
+                      <div className="rc-comment-input-wrap">
+                        <textarea className="form-control" rows="2" maxLength="255" autoFocus placeholder={`Responder a ${c.User?.username || 'este comentário'}...`} value={replyText} onChange={event => setReplyText(event.target.value)} />
+                        <button aria-label="Publicar resposta" title="Publicar resposta" disabled={!replyText.trim() || sending} onClick={() => enviarResposta(c.id)}><i className={`bi ${sending ? 'bi-hourglass-split' : 'bi-send-fill'}`} /></button>
+                      </div>
+                      <div className="d-flex flex-wrap gap-2 justify-content-between align-items-center mt-2">
+                        <small className="text-muted">Comente com respeito • {replyText.length}/255</small>
+                        {sending && <small className="text-primary">Publicando...</small>}
+                        <button className="btn btn-link btn-sm text-secondary p-0" disabled={sending} onClick={() => setReplyingTo(null)}>Cancelar</button>
+                      </div>
+                    </div>
+                  </div>}
                 </div>
               </article>
+  );
+
+  return (
+    <div className={`rc-comments mt-3${preview ? " rc-comments-preview" : ""}`}>
+      <button className="rc-comments-toggle" onClick={toggleComments} aria-expanded={open}>
+        <span><i className="bi bi-chat-left-text me-2" />Comentários</span>
+        <span className="rc-comments-count">{total}</span>
+        <i className={`bi bi-chevron-${open ? "up" : "down"} ms-2`} />
+      </button>
+
+      {open && (
+        <div className="rc-comments-panel">
+          {!preview && <div className="rc-comments-heading">
+            <div><strong>Conversa</strong><small>{total ? `${total} ${total === 1 ? 'comentário' : 'comentários'}` : 'Nenhum comentário ainda'}</small></div>
+            {!preview && total > 1 && <label className="rc-comment-order"><span>Ordenar</span><select value={sort} onChange={changeSort} aria-label="Ordenar comentários"><option value="newest">Mais recentes</option><option value="oldest">Mais antigos</option></select></label>}
+          </div>}
+
+          {preview && comments.length > 1 && <div className="rc-comment-carousel-controls">
+            <span>Comentários principais</span>
+            <button type="button" aria-label="Comentários anteriores" onClick={() => moveCarousel(-1)}><i className="bi bi-chevron-left" /></button>
+            <button type="button" aria-label="Próximos comentários" onClick={() => moveCarousel(1)}><i className="bi bi-chevron-right" /></button>
+          </div>}
+          <div className={`rc-comment-list${preview ? ' rc-comment-carousel' : ''}`} ref={carouselRef} role={preview ? 'region' : undefined} aria-label={preview ? 'Carrossel de comentários principais' : undefined} tabIndex={preview ? 0 : undefined}>
+            {!comments.length ? (
+              <div className="rc-comment-empty"><i className="bi bi-chat-square-dots" /><span>Seja o primeiro a comentar.</span></div>
+            ) : comments.map(c => (
+              renderComment(c)
             ))}
           </div>
 
           {preview && total > 0 && (
-            <Link className="rc-comments-view-all" to={`/denuncia/${denunciaId}`}>
+            <Link className="rc-comments-view-all" to={`/denuncia/${denunciaId}#comentarios`}>
               Ver todos os comentários <i className="bi bi-arrow-right" />
             </Link>
           )}
@@ -205,7 +222,7 @@ export default function Comentarios({ denunciaId, initialCount = 0, preview = fa
               <UserAvatar user={user} className="rc-comment-avatar" />
               <div className="flex-grow-1">
                 <div className="rc-comment-input-wrap">
-                  <textarea className="form-control" rows="2" maxLength="255" placeholder="Escreva um comentário..." value={text} onChange={e => setText(e.target.value)} />
+                  <textarea className="form-control" rows={preview ? 1 : 2} maxLength="255" placeholder="Escreva um comentário..." value={text} onChange={e => setText(e.target.value)} />
                   <button aria-label="Publicar comentário" title="Publicar comentário" disabled={!text.trim() || sending} onClick={enviarComentario}><i className={`bi ${sending ? 'bi-hourglass-split' : 'bi-send-fill'}`} /></button>
                 </div>
                 <div className="d-flex justify-content-between align-items-center mt-2">

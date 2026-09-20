@@ -33,15 +33,23 @@ describe('Interações sociais e sessões', () => {
     expect((await request(app).delete(`/denuncia/comentario/${id}`).set('Authorization', `Bearer ${token}`)).status).toBe(200)
   })
 
-  test('responde um comentário com somente um nível', async () => {
+  test('responde comentários em vários níveis e preserva a conversa ao paginar', async () => {
     const parent = await request(app).post(`/denuncia/${denunciaId}/comentario`).set('Authorization', `Bearer ${token}`).send({ comentario: 'Comentário principal.' })
     const reply = await request(app).post(`/denuncia/${denunciaId}/comentario`).set('Authorization', `Bearer ${token}`).send({ comentario: 'Esta é uma resposta.', parentCommentId: parent.body.comentario.id })
     expect(reply.status).toBe(201)
     const nested = await request(app).post(`/denuncia/${denunciaId}/comentario`).set('Authorization', `Bearer ${token}`).send({ comentario: 'Nível extra.', parentCommentId: reply.body.comentario.id })
-    expect(nested.status).toBe(400)
+    expect(nested.status).toBe(201)
+    const deep = await request(app).post(`/denuncia/${denunciaId}/comentario`).set('Authorization', `Bearer ${token}`).send({ comentario: 'Continuando a conversa.', parentCommentId: nested.body.comentario.id })
+    expect(deep.status).toBe(201)
     const list = await request(app).get(`/denuncia/${denunciaId}/comentarios`)
     expect(list.body.comments[0].Replies).toHaveLength(1)
+    expect(list.body.comments[0].Replies[0].Replies[0].Replies[0].id).toBe(deep.body.comentario.id)
+    const paginated = await request(app).get(`/denuncia/${denunciaId}/comentarios`).query({ page: 1, limit: 1 })
+    expect(paginated.body.totalThreads).toBe(1)
+    expect(paginated.body.totalComments).toBe(4)
+    expect(paginated.body.comments[0].Replies[0].Replies[0].Replies[0].id).toBe(deep.body.comentario.id)
     await request(app).delete(`/denuncia/comentario/${parent.body.comentario.id}`).set('Authorization', `Bearer ${token}`)
+    expect((await request(app).get(`/denuncia/${denunciaId}/comentarios`)).body.totalComments).toBe(0)
   })
 
   test('ordena comentários dos mais antigos ou mais recentes', async () => {
