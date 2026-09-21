@@ -24,7 +24,7 @@ function protectCensorshipSources(result, requester) {
 class DenunciaService {
   static async create(data, user) {
     validateDenuncia(data);
-    const { titulo, descricao, localizacao, categoria = 'Outros', latitude, longitude, imageUrl, imageUrls = [] } = data;
+    const { titulo, descricao, localizacao, bairro, categoria = 'Outros', latitude, longitude, imageUrl, imageUrls = [] } = data;
     if (!Array.isArray(imageUrls) || imageUrls.length > 4) throw new AppError('Envie no máximo 4 imagens.', 400, 'IMAGE_LIMIT');
     const { id: userId } = user;
 
@@ -39,6 +39,7 @@ class DenunciaService {
       tituloCensurado: hasBadWordTitulo,
       descricaoCensurada: hasBadWordDescricao,
       localizacao: localizacao.trim(),
+      bairro: bairro?.trim() || null,
       categoria,
       latitude: latitude === '' ? null : latitude,
       longitude: longitude === '' ? null : longitude,
@@ -228,7 +229,7 @@ class DenunciaService {
     }
     validateDenuncia(data, { partial: true });
 
-    const allowed = ['titulo', 'descricao', 'localizacao', 'categoria', 'latitude', 'longitude', 'imageUrl', 'imageUrls'];
+    const allowed = ['titulo', 'descricao', 'localizacao', 'bairro', 'categoria', 'latitude', 'longitude', 'imageUrl', 'imageUrls'];
     const dadosAtualizados = Object.fromEntries(
       Object.entries(data).filter(([key]) => allowed.includes(key))
     );
@@ -240,6 +241,7 @@ class DenunciaService {
         dadosAtualizados[coordinate] = null;
       }
     }
+    if ('bairro' in dadosAtualizados) dadosAtualizados.bairro = dadosAtualizados.bairro?.trim() || null;
     if (dadosAtualizados.imageUrls && (!Array.isArray(dadosAtualizados.imageUrls) || dadosAtualizados.imageUrls.length > 4)) throw new AppError('Envie no máximo 4 imagens.', 400, 'IMAGE_LIMIT');
     if (data.titulo !== undefined) {
       const result = filterBadWords(data.titulo);

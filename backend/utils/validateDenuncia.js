@@ -27,6 +27,7 @@ function validateDenuncia(data, { partial = false } = {}) {
   validateText(data.titulo, 'Título', 120, !partial);
   validateText(data.descricao, 'Descrição', 2000, !partial);
   validateText(data.localizacao, 'Localização', 255, !partial);
+  validateText(data.bairro, 'Bairro', 120, false);
 
   if (data.categoria != null && data.categoria !== '' && !CATEGORIAS.includes(data.categoria)) {
     throw new AppError('Categoria inválida.', 400, 'VALIDATION_ERROR');

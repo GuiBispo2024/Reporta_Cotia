@@ -89,6 +89,7 @@ function monthlyTrend(records) {
 function boardFilters(query = {}) {
   const categoria = textFilter(query.categoria);
   const setorResponsavel = textFilter(query.setorResponsavel);
+  const bairro = textFilter(query.bairro);
   const dataInicio = dateFilter(query.dataInicio);
   const dataFim = dateFilter(query.dataFim);
   if (dataInicio && dataFim && dataInicio > dataFim) {
@@ -105,11 +106,13 @@ function boardFilters(query = {}) {
     where: {
       ...(categoria ? { categoria } : {}),
       ...(setorResponsavel ? { setorResponsavel } : {}),
+      ...(bairro ? { bairro } : {}),
       ...(dataInicio || dataFim ? { createdAt } : {})
     },
     filters: {
       categoria,
       setorResponsavel,
+      bairro,
       dataInicio: query.dataInicio || null,
       dataFim: query.dataFim || null
     }
@@ -157,10 +160,11 @@ async function exportWorkbook(records) {
     { header: 'Situação', key: 'situacao', width: 20 },
     { header: 'Setor responsável', key: 'setor', width: 34 },
     { header: 'Localização', key: 'localizacao', width: 44 },
+    { header: 'Bairro', key: 'bairro', width: 28 },
     { header: 'Data de cadastro', key: 'createdAt', width: 22 },
     { header: 'Última atualização', key: 'updatedAt', width: 22 }
   ];
-  worksheet.autoFilter = 'A1:H1';
+  worksheet.autoFilter = 'A1:I1';
   worksheet.properties.defaultRowHeight = 22;
 
   const header = worksheet.getRow(1);
@@ -177,13 +181,14 @@ async function exportWorkbook(records) {
       situacao: reportStatus(report),
       setor: report.setorResponsavel || 'Não informado',
       localizacao: report.localizacao,
+      bairro: report.bairro || 'Não informado',
       createdAt: excelDate(report.createdAt),
       updatedAt: excelDate(report.updatedAt)
     });
     row.height = 32;
     row.alignment = { vertical: 'middle', wrapText: true };
   }
-  for (const columnNumber of [7, 8]) {
+  for (const columnNumber of [8, 9]) {
     worksheet.getColumn(columnNumber).numFmt = 'dd/mm/yyyy hh:mm';
     worksheet.getColumn(columnNumber).alignment = { vertical: 'middle', horizontal: 'center' };
   }
@@ -224,10 +229,11 @@ class BoardService {
       ...parsedFilters.where
     };
     const includeBreakdown = analytical || publicView;
-    const [statuses, categories, sectors, locations, map, metricRecords] = await Promise.all([
+    const [statuses, categories, sectors, neighborhoods, locations, map, metricRecords] = await Promise.all([
       BoardRepository.grouped(where, ['status', 'resolucaoStatus']),
       includeBreakdown ? BoardRepository.grouped(where, ['categoria']) : [],
       includeBreakdown ? BoardRepository.grouped(where, ['setorResponsavel']) : [],
+      includeBreakdown ? BoardRepository.grouped(where, ['bairro']) : [],
       includeBreakdown ? BoardRepository.grouped(where, ['localizacao']) : [],
       includeBreakdown ? BoardRepository.mapPoints(where) : null,
       includeBreakdown ? BoardRepository.serviceMetricRecords(where) : []
@@ -256,6 +262,7 @@ class BoardService {
       ...(includeBreakdown ? { breakdown: {
         categories: breakdown(categories, 'categoria'),
         sectors: breakdown(sectors, 'setorResponsavel'),
+        neighborhoods: breakdown(neighborhoods, 'bairro'),
         locations: breakdown(locations, 'localizacao')
       }, map, metrics: serviceMetrics(metricRecords), trend: monthlyTrend(metricRecords) } : {}),
       filters: parsedFilters.filters,

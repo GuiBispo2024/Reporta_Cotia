@@ -32,6 +32,27 @@ function pagination(req) {
  *     tags: [Denúncias]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [titulo, descricao, localizacao]
+ *             properties:
+ *               titulo: { type: string, maxLength: 120 }
+ *               descricao: { type: string, maxLength: 2000 }
+ *               localizacao: { type: string, maxLength: 255 }
+ *               bairro: { type: string, maxLength: 120 }
+ *               categoria: { type: string }
+ *               latitude: { type: number }
+ *               longitude: { type: number }
+ *               imagens: { type: array, maxItems: 4, items: { type: string, format: binary } }
+ *     responses:
+ *       201: { description: Denúncia criada e enviada à moderação }
+ *       400: { description: Dados ou imagens inválidos }
+ *       401: { description: Sessão ausente, expirada ou revogada }
+ *       403: { description: Usuário sem `denuncia.create` }
  */
 router.post('/', auth, requirePermission(PERMISSIONS.DENUNCIA_CREATE), upload.array('imagens', 4), async (req, res, next) => {
   try {
@@ -336,6 +357,7 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
  *               titulo: { type: string }
  *               descricao: { type: string }
  *               localizacao: { type: string }
+ *               bairro: { type: string, maxLength: 120 }
  *               categoria: { type: string }
  *               imagens: { type: array, maxItems: 4, items: { type: string, format: binary } }
  *               removeImages: { type: boolean }

@@ -1,9 +1,9 @@
 const { Denuncia, DenunciaHistorico, sequelize } = require('../models/rel');
 const { Op } = require('sequelize');
 
-const REPORT_FIELDS = ['id', 'titulo', 'descricao', 'localizacao', 'categoria', 'latitude', 'longitude', 'status', 'resolucaoStatus', 'setorResponsavel', 'motivoRejeicao', 'createdAt', 'updatedAt', 'resolucaoAtualizadaEm'];
-const EXPORT_FIELDS = ['id', 'titulo', 'localizacao', 'categoria', 'status', 'resolucaoStatus', 'setorResponsavel', 'createdAt', 'updatedAt'];
-const MAP_FIELDS = ['id', 'titulo', 'localizacao', 'categoria', 'latitude', 'longitude', 'status', 'resolucaoStatus'];
+const REPORT_FIELDS = ['id', 'titulo', 'descricao', 'localizacao', 'bairro', 'categoria', 'latitude', 'longitude', 'status', 'resolucaoStatus', 'setorResponsavel', 'motivoRejeicao', 'createdAt', 'updatedAt', 'resolucaoAtualizadaEm'];
+const EXPORT_FIELDS = ['id', 'titulo', 'localizacao', 'bairro', 'categoria', 'status', 'resolucaoStatus', 'setorResponsavel', 'createdAt', 'updatedAt'];
+const MAP_FIELDS = ['id', 'titulo', 'localizacao', 'bairro', 'categoria', 'latitude', 'longitude', 'status', 'resolucaoStatus'];
 
 class BoardRepository {
   static grouped(where, fields) {

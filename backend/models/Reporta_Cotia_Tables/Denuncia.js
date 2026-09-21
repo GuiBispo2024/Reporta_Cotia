@@ -10,6 +10,10 @@ const Denuncia = sequelize.define('Denuncia', {
     type: DataTypes.STRING(255),
     allowNull: false
   },
+  bairro: {
+    type: DataTypes.STRING(120),
+    allowNull: true
+  },
   descricao: {
     type: DataTypes.STRING(2000),
     allowNull: false

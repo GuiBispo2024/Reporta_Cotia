@@ -15,7 +15,7 @@ export default function EditarDenuncia() {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const [denuncia, setDenuncia] = useState(null);
-  const [form, setForm] = useState({ titulo:"", descricao:"", localizacao:"", categoria:"Outros", latitude:"", longitude:"" });
+  const [form, setForm] = useState({ titulo:"", descricao:"", localizacao:"", bairro:"", categoria:"Outros", latitude:"", longitude:"" });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imagens, setImagens] = useState([]);
@@ -31,6 +31,7 @@ export default function EditarDenuncia() {
           titulo: data.titulo || "",
           descricao: data.descricao || "",
           localizacao: data.localizacao || "",
+          bairro: data.bairro || "",
           categoria: data.categoria || "Outros",
           latitude: data.latitude || "",
           longitude: data.longitude || ""
@@ -95,8 +96,9 @@ export default function EditarDenuncia() {
           : <form onSubmit={submit}>
             <div className="mb-3"><label htmlFor={`${accessibilityId}-field-1`} className="form-label fw-semibold">Título</label><input id={`${accessibilityId}-field-1`} className="form-control" name="titulo" value={form.titulo} onChange={change} required /></div>
             <div className="row g-3">
-              <div className="col-md-6"><label htmlFor={`${accessibilityId}-field-2`} className="form-label fw-semibold">Categoria</label><select id={`${accessibilityId}-field-2`} className="form-select" name="categoria" value={form.categoria} onChange={change}>{CATEGORIAS.map(c => <option key={c}>{c}</option>)}</select></div>
-              <div className="col-md-6"><label htmlFor={`${accessibilityId}-field-3`} className="form-label fw-semibold">Localização</label><input id={`${accessibilityId}-field-3`} className="form-control" name="localizacao" value={form.localizacao} onChange={change} required /></div>
+              <div className="col-md-4"><label htmlFor={`${accessibilityId}-field-2`} className="form-label fw-semibold">Categoria</label><select id={`${accessibilityId}-field-2`} className="form-select" name="categoria" value={form.categoria} onChange={change}>{CATEGORIAS.map(c => <option key={c}>{c}</option>)}</select></div>
+              <div className="col-md-4"><label htmlFor={`${accessibilityId}-field-3`} className="form-label fw-semibold">Localização</label><input id={`${accessibilityId}-field-3`} className="form-control" name="localizacao" value={form.localizacao} onChange={change} required /></div>
+              <div className="col-md-4"><label htmlFor={`${accessibilityId}-field-neighborhood`} className="form-label fw-semibold">Bairro</label><input id={`${accessibilityId}-field-neighborhood`} className="form-control" name="bairro" maxLength="120" value={form.bairro} onChange={change} required /></div>
             </div>
             <div className="mb-3 mt-3"><label htmlFor={`${accessibilityId}-field-4`} className="form-label fw-semibold">Descrição</label><textarea id={`${accessibilityId}-field-4`} className="form-control" rows="5" name="descricao" value={form.descricao} onChange={change} required /></div>
             <div className="row g-3 mb-4">

@@ -33,10 +33,10 @@ describe('Boards pessoais e analíticos', () => {
     await citizenRole.addPermission(publicPermission);
     await Denuncia.bulkCreate([
       ...Array.from({ length: 3 }, (_, i) => ({ titulo: `Minha aberta ${i}`, status: 'aprovada', resolucaoStatus: 'aberta', latitude: -23.60 - i * 0.01, longitude: -46.92 - i * 0.01, userId: citizen.id })),
-      { titulo: 'Minha resolvida', status: 'aprovada', resolucaoStatus: 'resolvida', latitude: -23.63, longitude: -46.95, createdAt: new Date('2026-01-15T12:00:00.000Z'), userId: citizen.id },
+      { titulo: 'Minha resolvida', bairro: 'Granja Viana', status: 'aprovada', resolucaoStatus: 'resolvida', latitude: -23.63, longitude: -46.95, createdAt: new Date('2026-01-15T12:00:00.000Z'), userId: citizen.id },
       { titulo: 'Minha pendente', status: 'pendente', latitude: -23.64, longitude: -46.96, userId: citizen.id },
       { titulo: 'Privada de outro autor', status: 'rejeitada', latitude: -23.65, longitude: -46.97, userId: other.id }
-    ].map(report => ({ descricao: 'Descrição pública', localizacao: 'Cotia', categoria: 'Outros', setorResponsavel: 'Defesa Civil', tituloOriginal: 'Texto reservado para censura', ...report })));
+    ].map(report => ({ descricao: 'Descrição pública', localizacao: 'Cotia', bairro: 'Centro', categoria: 'Outros', setorResponsavel: 'Defesa Civil', tituloOriginal: 'Texto reservado para censura', ...report })));
     const resolvedReport = await Denuncia.findOne({ where: { titulo: 'Minha resolvida' } });
     await DenunciaHistorico.bulkCreate([
       { tipo: 'moderacao', statusAnterior: 'pendente', statusNovo: 'aprovada', denunciaId: resolvedReport.id, createdAt: new Date('2026-01-16T12:00:00.000Z') },
@@ -65,6 +65,7 @@ describe('Boards pessoais e analíticos', () => {
     expect(response.body.summary).toMatchObject({ total: 4, aberta: 3, resolvida: 1, pendente: 0, rejeitada: 0 });
     expect(response.body.columns.map(column => column.key)).toEqual(['aberta', 'em_andamento', 'resolvida']);
     expect(response.body.breakdown.locations).toEqual([{ label: 'Cotia', total: 4 }]);
+    expect(response.body.breakdown.neighborhoods).toEqual([{ label: 'Centro', total: 3 }, { label: 'Granja Viana', total: 1 }]);
     expect(response.body.map).toMatchObject({ total: 4, limit: 500, truncated: false });
     expect(response.body.map.points).toHaveLength(4);
     expect(response.body.map.points.every(point => point.status === 'aprovada')).toBe(true);
@@ -87,6 +88,7 @@ describe('Boards pessoais e analíticos', () => {
     expect(response.status).toBe(200);
     expect(response.body.summary.total).toBe(6);
     expect(response.body.breakdown.categories).toEqual([{ label: 'Outros', total: 6 }]);
+    expect(response.body.breakdown.neighborhoods).toEqual([{ label: 'Centro', total: 5 }, { label: 'Granja Viana', total: 1 }]);
     expect(response.body.map).toMatchObject({ total: 6, truncated: false });
     expect(response.body.metrics).toEqual({
       averageModerationHours: 24,
@@ -105,13 +107,17 @@ describe('Boards pessoais e analíticos', () => {
     expect(response.body.summary).toMatchObject({ total: 1, resolvida: 1 });
     expect(response.body.columns.find(item => item.key === 'resolvida').reports[0].titulo).toBe('Minha resolvida');
     expect(response.body.breakdown.categories).toEqual([{ label: 'Outros', total: 1 }]);
+    expect(response.body.breakdown.neighborhoods).toEqual([{ label: 'Granja Viana', total: 1 }]);
     expect(response.body.map).toMatchObject({ total: 1 });
     expect(response.body.trend).toEqual([{ period: '2026-01', total: 1 }]);
     expect(response.body.filters).toMatchObject({ dataInicio: '2026-01-01', dataFim: '2026-01-31' });
   });
   test('filtros afetam os totais e entradas inválidas são rejeitadas', async () => {
     expect((await get('/boards/analytics', analyst, { categoria: 'Inexistente' })).body.summary.total).toBe(0);
-    for (const query of [{ page: 'abc' }, { limit: 0 }, { limit: 100 }, { column: 'qualquer' }, { categoria: ['a', 'b'] }, { dataInicio: '20/01/2026' }, { dataFim: '2026-02-30' }, { dataInicio: '2026-02-01', dataFim: '2026-01-01' }]) {
+    const neighborhood = await get('/boards/analytics', analyst, { bairro: 'Granja Viana' });
+    expect(neighborhood.body.summary.total).toBe(1);
+    expect(neighborhood.body.filters.bairro).toBe('Granja Viana');
+    for (const query of [{ page: 'abc' }, { limit: 0 }, { limit: 100 }, { column: 'qualquer' }, { categoria: ['a', 'b'] }, { bairro: ['a', 'b'] }, { dataInicio: '20/01/2026' }, { dataFim: '2026-02-30' }, { dataInicio: '2026-02-01', dataFim: '2026-01-01' }]) {
       expect((await get('/boards/mine', citizen, query)).status).toBe(400);
     }
   });
@@ -133,8 +139,10 @@ describe('Boards pessoais e analíticos', () => {
     expect(worksheet.rowCount).toBe(2);
     expect(worksheet.getRow(1).values.slice(1, 5)).toEqual(['ID', 'Título', 'Categoria', 'Situação']);
     expect(worksheet.getCell('B2').value).toBe('Minha resolvida');
-    expect(worksheet.getCell('G2').value).toEqual(new Date('2026-01-15T09:00:00.000Z'));
-    expect(worksheet.getCell('G2').numFmt).toBe('dd/mm/yyyy hh:mm');
+    expect(worksheet.getCell('G1').value).toBe('Bairro');
+    expect(worksheet.getCell('G2').value).toBe('Granja Viana');
+    expect(worksheet.getCell('H2').value).toEqual(new Date('2026-01-15T09:00:00.000Z'));
+    expect(worksheet.getCell('H2').numFmt).toBe('dd/mm/yyyy hh:mm');
     expect(worksheet.getColumn(2).width).toBe(38);
     expect(worksheet.views[0]).toMatchObject({ state: 'frozen', ySplit: 1 });
     expect(JSON.stringify(worksheet.getSheetValues())).not.toContain('Minha aberta 0');

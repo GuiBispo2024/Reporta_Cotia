@@ -15,6 +15,7 @@ const SUMMARY_LABELS = { total: 'Total de denúncias', pendente: 'Em moderação
 const BREAKDOWN_LABELS = {
   categories: { title: 'Denúncias por categoria', column: 'Categoria' },
   sectors: { title: 'Denúncias por setor', column: 'Setor' },
+  neighborhoods: { title: 'Denúncias por bairro', column: 'Bairro' },
   locations: { title: 'Denúncias por localização', column: 'Localização' }
 };
 const dateLabel = value => value ? new Date(value).toLocaleDateString('pt-BR') : 'Não informada';
@@ -50,7 +51,7 @@ export default function ReportBoard({ analytical = false, community = false }) {
   const [loadingColumns, setLoadingColumns] = useState({});
   const [columnErrors, setColumnErrors] = useState({});
   const [selected, setSelected] = useState(null);
-  const [filters, setFilters] = useState({ categoria: '', setorResponsavel: '', dataInicio: '', dataFim: '' });
+  const [filters, setFilters] = useState({ categoria: '', setorResponsavel: '', bairro: '', dataInicio: '', dataFim: '' });
   const [appliedFilters, setAppliedFilters] = useState({});
   const [filterOptions, setFilterOptions] = useState({ categories: [], sectors: [] });
   const [exporting, setExporting] = useState(false);
@@ -77,7 +78,7 @@ export default function ReportBoard({ analytical = false, community = false }) {
       .then(result => {
         if (version !== revision.current) return;
         setData(result);
-        if (result.breakdown && !appliedFilters.categoria && !appliedFilters.setorResponsavel) setFilterOptions(result.breakdown);
+        if (result.breakdown && !appliedFilters.categoria && !appliedFilters.setorResponsavel && !appliedFilters.bairro) setFilterOptions(result.breakdown);
       })
       .catch(err => { if (!controller.signal.aborted) setError(friendlyError(err, 'Não foi possível carregar seu board. Tente novamente.')); })
       .finally(() => { if (version === revision.current) setLoading(false); });
@@ -145,10 +146,11 @@ export default function ReportBoard({ analytical = false, community = false }) {
       {aggregated && <form className="rc-board-filters" onSubmit={event => { event.preventDefault(); setAppliedFilters({ ...filters }); }}>
         <label htmlFor={`${id}-category`}>Categoria<select id={`${id}-category`} className="form-select" value={filters.categoria} onChange={event => setFilters(current => ({ ...current, categoria: event.target.value }))}><option value="">Todas as categorias</option>{filterOptions.categories.map(item => <option key={item.label}>{item.label}</option>)}</select></label>
         <label htmlFor={`${id}-sector`}>Setor responsável<select id={`${id}-sector`} className="form-select" value={filters.setorResponsavel} onChange={event => setFilters(current => ({ ...current, setorResponsavel: event.target.value }))}><option value="">Todos os setores</option>{filterOptions.sectors.filter(item => item.label !== 'Não informado').map(item => <option key={item.label}>{item.label}</option>)}</select></label>
+        <label htmlFor={`${id}-neighborhood`}>Bairro<select id={`${id}-neighborhood`} className="form-select" value={filters.bairro} onChange={event => setFilters(current => ({ ...current, bairro: event.target.value }))}><option value="">Todos os bairros</option>{(filterOptions.neighborhoods || []).filter(item => item.label !== 'Não informado').map(item => <option key={item.label}>{item.label}</option>)}</select></label>
         <label htmlFor={`${id}-start-date`}>Data inicial<input id={`${id}-start-date`} className="form-control" type="date" value={filters.dataInicio} max={filters.dataFim || undefined} onChange={event => setFilters(current => ({ ...current, dataInicio: event.target.value }))} /></label>
         <label htmlFor={`${id}-end-date`}>Data final<input id={`${id}-end-date`} className="form-control" type="date" value={filters.dataFim} min={filters.dataInicio || undefined} onChange={event => setFilters(current => ({ ...current, dataFim: event.target.value }))} /></label>
         <button className="btn btn-primary" disabled={loading}>Aplicar filtros</button>
-        <button type="button" className="btn btn-outline-secondary" disabled={loading || (![filters.categoria, filters.setorResponsavel, filters.dataInicio, filters.dataFim, appliedFilters.categoria, appliedFilters.setorResponsavel, appliedFilters.dataInicio, appliedFilters.dataFim].some(Boolean))} onClick={() => { setFilters({ categoria: '', setorResponsavel: '', dataInicio: '', dataFim: '' }); setAppliedFilters({}); }}>Limpar filtros</button>
+        <button type="button" className="btn btn-outline-secondary" disabled={loading || (![filters.categoria, filters.setorResponsavel, filters.bairro, filters.dataInicio, filters.dataFim, appliedFilters.categoria, appliedFilters.setorResponsavel, appliedFilters.bairro, appliedFilters.dataInicio, appliedFilters.dataFim].some(Boolean))} onClick={() => { setFilters({ categoria: '', setorResponsavel: '', bairro: '', dataInicio: '', dataFim: '' }); setAppliedFilters({}); }}>Limpar filtros</button>
       </form>}
 
       {loading ? <p role="status" className="rc-board-state">Carregando denúncias...</p>
@@ -166,7 +168,7 @@ export default function ReportBoard({ analytical = false, community = false }) {
               <div><dt>Da aprovação até a resolução</dt><dd>{durationLabel(data.metrics.averageResolutionHours)}</dd><small>{data.metrics.resolutionSampleSize} {data.metrics.resolutionSampleSize === 1 ? 'denúncia resolvida' : 'denúncias resolvidas'}</small></div>
             </dl>
           </section>}
-          {aggregated && <BoardCharts summary={data.summary} categories={data.breakdown?.categories || []} trend={data.trend || []} community={community} />}
+          {aggregated && <BoardCharts summary={data.summary} categories={data.breakdown?.categories || []} neighborhoods={data.breakdown?.neighborhoods || []} trend={data.trend || []} community={community} />}
           {!data.summary.total && <div className="rc-board-state"><p>{aggregated ? 'Nenhuma denúncia encontrada para os filtros aplicados.' : 'Você ainda não tem denúncias para acompanhar.'}</p>{!aggregated && <Link className="btn btn-primary" to="/nova-denuncia">Registrar denúncia</Link>}</div>}
           {aggregated && <BoardMap map={data.map} />}
           {aggregated && data.breakdown && <div className="rc-board-breakdowns">
@@ -185,6 +187,7 @@ export default function ReportBoard({ analytical = false, community = false }) {
                   <div className="rc-board-card-meta"><span>#{report.id}</span><time dateTime={report.createdAt}>{dateLabel(report.createdAt)}</time></div>
                   <h3>{report.titulo}</h3><span className="rc-board-category">{report.categoria}</span>
                   <p><i className="bi bi-geo-alt" aria-hidden="true" /> {report.localizacao}</p>
+                  <small className="d-block">Bairro: {report.bairro || 'Não informado'}</small>
                   <small>{report.setorResponsavel || 'Setor ainda não definido'}</small>
                   <button className="btn btn-outline-primary btn-sm mt-3" onClick={() => setSelected({ ...report, columnLabel: column.label })} aria-label={`Ver detalhes: ${report.titulo}`}>Ver detalhes</button>
                 </article></li>)}
@@ -201,7 +204,7 @@ export default function ReportBoard({ analytical = false, community = false }) {
       <section ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={`${id}-detail-title`} className="rc-board-dialog">
         <header><div><small>Denúncia #{selected.id} · {selected.columnLabel}</small><h2 id={`${id}-detail-title`}>{selected.titulo}</h2></div><button className="btn btn-outline-secondary" aria-label="Fechar detalhes" onClick={() => setSelected(null)}>×</button></header>
         <p className="rc-board-description">{selected.descricao}</p>
-        <dl><dt>Localização</dt><dd>{selected.localizacao}</dd><dt>Categoria</dt><dd>{selected.categoria}</dd><dt>Setor responsável</dt><dd>{selected.setorResponsavel || 'Ainda não definido'}</dd><dt>Registrada em</dt><dd>{dateLabel(selected.createdAt)}</dd><dt>Última atualização do andamento</dt><dd>{dateLabel(selected.resolucaoAtualizadaEm)}</dd>{analytical && <><dt>Última alteração do registro</dt><dd>{dateLabel(selected.updatedAt)}</dd></>}</dl>
+        <dl><dt>Localização</dt><dd>{selected.localizacao}</dd><dt>Bairro</dt><dd>{selected.bairro || 'Não informado'}</dd><dt>Categoria</dt><dd>{selected.categoria}</dd><dt>Setor responsável</dt><dd>{selected.setorResponsavel || 'Ainda não definido'}</dd><dt>Registrada em</dt><dd>{dateLabel(selected.createdAt)}</dd><dt>Última atualização do andamento</dt><dd>{dateLabel(selected.resolucaoAtualizadaEm)}</dd>{analytical && <><dt>Última alteração do registro</dt><dd>{dateLabel(selected.updatedAt)}</dd></>}</dl>
         {selected.motivoRejeicao && <div className="alert alert-warning"><strong>Motivo da rejeição</strong><p className="mb-0">{selected.motivoRejeicao}</p></div>}
         {(!analytical || selected.status === 'aprovada') && <Link className="btn btn-primary" to={`/denuncia/${selected.id}`}>Abrir denúncia</Link>}
         {!analytical && selected.status === 'rejeitada' && <Link className="btn btn-outline-primary ms-2" to={`/editar-denuncia/${selected.id}`}>Corrigir denúncia</Link>}

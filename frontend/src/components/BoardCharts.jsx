@@ -27,7 +27,7 @@ function BarChart({ title, items, emptyMessage }) {
   </article>;
 }
 
-export default function BoardCharts({ summary = {}, categories = [], trend = [], community = false }) {
+export default function BoardCharts({ summary = {}, categories = [], neighborhoods = [], trend = [], community = false }) {
   const statusKeys = community
     ? ['aberta', 'em_andamento', 'resolvida']
     : ['pendente', 'aberta', 'em_andamento', 'resolvida', 'rejeitada'];
@@ -38,6 +38,11 @@ export default function BoardCharts({ summary = {}, categories = [], trend = [],
     className: `is-${key}`
   }));
   const categoryItems = categories.slice(0, 6).map(item => ({
+    key: item.label,
+    label: item.label,
+    total: Number(item.total || 0)
+  }));
+  const neighborhoodItems = neighborhoods.slice(0, 6).map(item => ({
     key: item.label,
     label: item.label,
     total: Number(item.total || 0)
@@ -53,6 +58,7 @@ export default function BoardCharts({ summary = {}, categories = [], trend = [],
     <div className="rc-board-charts">
       <BarChart title="Denúncias por situação" items={statusItems} emptyMessage="Sem situações neste recorte." />
       <BarChart title="Categorias mais recorrentes" items={categoryItems} emptyMessage="Sem categorias neste recorte." />
+      <BarChart title="Bairros com mais denúncias" items={neighborhoodItems} emptyMessage="Sem bairros informados neste recorte." />
       <BarChart title="Evolução mensal" items={trendItems} emptyMessage="Sem evolução mensal neste recorte." />
     </div>
   </section>;
