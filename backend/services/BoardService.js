@@ -368,8 +368,15 @@ class BoardService {
     }
     const parsedFilters = boardFilters(query);
     const reports = await BoardRepository.exportReports(parsedFilters.where);
+    const content = await exportWorkbook(reports);
+    await BoardRepository.recordExportAudit({
+      userId: user.id,
+      format: 'xlsx',
+      filters: parsedFilters.filters,
+      recordCount: reports.length
+    });
     return {
-      content: await exportWorkbook(reports),
+      content,
       filename: `reporta-cotia-denuncias-${new Date().toISOString().slice(0, 10)}.xlsx`,
       total: reports.length
     };

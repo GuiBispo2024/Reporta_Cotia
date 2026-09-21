@@ -26,7 +26,7 @@ router.get('/analytics', requirePermission(PERMISSIONS.DASHBOARD_FULL_VIEW), asy
  * /boards/analytics/export:
  *   get:
  *     summary: Exporta as denúncias do board analítico em XLSX
- *     description: Requer as permissões dashboard.full.view e dashboard.export. Os filtros de categoria, setor, bairro e período são os mesmos do board analítico.
+ *     description: Requer as permissões dashboard.full.view e dashboard.export. Os filtros de categoria, setor, bairro e período são os mesmos do board analítico. Cada exportação concluída é registrada na auditoria.
  *     tags: [Boards]
  *     security:
  *       - bearerAuth: []

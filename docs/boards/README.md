@@ -47,6 +47,7 @@ Cada resposta do board inclui `generatedAt`, e a interface apresenta essa data c
 - Filtros por categoria, setor, bairro e período, contagens por situação e distribuições por categoria, setor, bairro e localização. Cada coluna tem “Carregar mais” e informa quantos registros estão visíveis.
 - A aba “Boards” leva cidadãos ao board comunitário e contas com `dashboard.full.view` ao board analítico.
 - Contas com `dashboard.export` podem baixar uma planilha XLSX do board analítico. O arquivo utiliza os filtros aplicados, inclui o bairro, preserva acentos, dimensiona as colunas, fixa o cabeçalho, oferece autofiltro e apresenta datas no horário de Cotia. Campos privados de revisão de censura não são incluídos.
+- Cada planilha gerada com sucesso registra na auditoria o usuário responsável, o formato XLSX, os filtros utilizados, a quantidade de registros e a data. O arquivo e seu conteúdo não são armazenados no histórico.
 - As visões comunitária e analítica exibem os registros com coordenadas sobre um mapa do OpenStreetMap. Marcadores aprovados levam ao detalhe público; registros privados do board analítico não geram links públicos.
 - No celular e com texto ampliado, as colunas são empilhadas. Os boards usam os temas e recursos globais de acessibilidade.
 

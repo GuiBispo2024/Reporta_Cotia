@@ -1,4 +1,4 @@
-const { Denuncia, DenunciaHistorico, Comment, sequelize } = require('../models/rel');
+const { Denuncia, DenunciaHistorico, Comment, BoardExportHistory, sequelize } = require('../models/rel');
 const { Op } = require('sequelize');
 
 const REPORT_FIELDS = ['id', 'titulo', 'descricao', 'localizacao', 'bairro', 'categoria', 'latitude', 'longitude', 'status', 'resolucaoStatus', 'setorResponsavel', 'motivoRejeicao', 'createdAt', 'updatedAt', 'resolucaoAtualizadaEm'];
@@ -105,6 +105,10 @@ class BoardRepository {
       order: [['createdAt', 'DESC'], ['id', 'DESC']],
       raw: true
     });
+  }
+
+  static recordExportAudit(data) {
+    return BoardExportHistory.create(data);
   }
 }
 

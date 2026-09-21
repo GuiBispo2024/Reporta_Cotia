@@ -1,7 +1,7 @@
 const request = require('supertest');
 const ExcelJS = require('exceljs');
 const app = require('../../app');
-const { sequelize, User, Role, Permission, Denuncia, DenunciaHistorico, Comment } = require('../../models/rel');
+const { sequelize, User, Role, Permission, Denuncia, DenunciaHistorico, Comment, BoardExportHistory } = require('../../models/rel');
 
 describe('Boards pessoais e analíticos', () => {
   let citizen, analyst, other;
@@ -181,6 +181,7 @@ describe('Boards pessoais e analíticos', () => {
   });
   test('exporta XLSX formatado com os mesmos filtros e exige permissão específica', async () => {
     expect((await get('/boards/analytics/export', citizen)).status).toBe(403);
+    expect(await BoardExportHistory.count()).toBe(0);
     const response = await request(app)
       .get('/boards/analytics/export')
       .set('Authorization', `Bearer ${analyst.token}`)
@@ -205,5 +206,18 @@ describe('Boards pessoais e analíticos', () => {
     expect(worksheet.views[0]).toMatchObject({ state: 'frozen', ySplit: 1 });
     expect(JSON.stringify(worksheet.getSheetValues())).not.toContain('Minha aberta 0');
     expect(JSON.stringify(worksheet.getSheetValues())).not.toContain('Texto reservado para censura');
+    const audit = await BoardExportHistory.findOne();
+    expect(audit).toMatchObject({
+      userId: analyst.id,
+      format: 'xlsx',
+      recordCount: 1
+    });
+    expect(audit.filters).toEqual({
+      categoria: null,
+      setorResponsavel: null,
+      bairro: null,
+      dataInicio: '2026-01-01',
+      dataFim: '2026-01-31'
+    });
   });
 });
