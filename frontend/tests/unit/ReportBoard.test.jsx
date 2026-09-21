@@ -147,3 +147,15 @@ test('permite exportar somente quando o analista possui a permissão específica
   expect(await screen.findByText('Planilha Excel gerada com os filtros aplicados.')).toBeInTheDocument();
   downloadClick.mockRestore();
 });
+
+test('exibe o acesso ao histórico de exportações somente com a permissão de auditoria', async () => {
+  const user = { permissions: ['dashboard.full.view', 'dashboard.audit.view'] };
+
+  const { rerender } = render(<AuthContext.Provider value={{ user }}><ReportBoard analytical /></AuthContext.Provider>);
+
+  expect(await screen.findByRole('link', { name: 'Histórico de exportações' })).toHaveAttribute('href', '/administracao/historico-exportacoes');
+
+  rerender(<AuthContext.Provider value={{ user: { permissions: ['dashboard.full.view'] } }}><ReportBoard analytical /></AuthContext.Provider>);
+
+  expect(screen.queryByRole('link', { name: 'Histórico de exportações' })).not.toBeInTheDocument();
+});

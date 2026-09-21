@@ -73,6 +73,7 @@ export default function ReportBoard({ analytical = false, community = false }) {
   const pendingColumns = useRef(new Set());
   const dialogRef = useDialogAccessibility(!!selected, () => setSelected(null));
   const canExport = analytical && hasPermission(user, PERMISSIONS.DASHBOARD_EXPORT);
+  const canViewExportHistory = analytical && hasPermission(user, PERMISSIONS.DASHBOARD_AUDIT_VIEW);
 
   useEffect(() => {
     const version = ++revision.current;
@@ -148,7 +149,7 @@ export default function ReportBoard({ analytical = false, community = false }) {
     <main id="main-content" tabIndex={-1} className="container-fluid rc-board-page py-4 flex-grow-1">
       <header className="rc-board-header">
         <div><span className="rc-board-eyebrow">{viewCopy.eyebrow}</span><h1>{viewCopy.title}</h1><p>{viewCopy.description}</p></div>
-        <div className="d-flex flex-wrap gap-2"><Link className="btn btn-outline-primary" to={aggregated ? '/meu-board' : '/minhas-denuncias'}>{aggregated ? 'Meu board pessoal' : 'Ver em lista'}</Link>{canExport && <button className="btn btn-primary" onClick={exportBoard} disabled={loading || exporting}>{exporting ? 'Gerando planilha...' : 'Exportar Excel'}</button>}<button className="btn btn-outline-secondary" onClick={() => setReload(value => value + 1)} disabled={loading}>Atualizar</button></div>
+        <div className="d-flex flex-wrap gap-2"><Link className="btn btn-outline-primary" to={aggregated ? '/meu-board' : '/minhas-denuncias'}>{aggregated ? 'Meu board pessoal' : 'Ver em lista'}</Link>{canViewExportHistory && <Link className="btn btn-outline-secondary" to="/administracao/historico-exportacoes"><i aria-hidden="true" className="bi bi-clock-history me-1" />Histórico de exportações</Link>}{canExport && <button className="btn btn-primary" onClick={exportBoard} disabled={loading || exporting}>{exporting ? 'Gerando planilha...' : 'Exportar Excel'}</button>}<button className="btn btn-outline-secondary" onClick={() => setReload(value => value + 1)} disabled={loading}>Atualizar</button></div>
       </header>
       {data?.generatedAt && <p className="rc-board-updated" aria-live="polite"><i className="bi bi-clock-history" aria-hidden="true" /> Dados atualizados em <time dateTime={data.generatedAt}>{dateTimeLabel(data.generatedAt)}</time></p>}
       {exportMessage && <p className="alert alert-success" role="status">{exportMessage}</p>}

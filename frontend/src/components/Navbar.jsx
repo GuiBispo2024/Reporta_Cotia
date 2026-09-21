@@ -9,7 +9,6 @@ export default function Navbar() {
   const linkClass = ({ isActive }) => `nav-link rc-nav-link${isActive ? " active" : ""}`;
   const sair = () => logout();
   const canViewModeration = hasPermission(user, PERMISSIONS.MODERATION_VIEW);
-  const canViewBoardAudit = hasPermission(user, PERMISSIONS.DASHBOARD_AUDIT_VIEW);
   const boardPath = hasPermission(user, PERMISSIONS.DASHBOARD_FULL_VIEW)
     ? '/boards/analitico'
     : hasPermission(user, PERMISSIONS.DASHBOARD_PUBLIC_VIEW) ? '/boards/comunidade' : '/meu-board';
@@ -41,7 +40,6 @@ export default function Navbar() {
                 <li><NavLink className="dropdown-item" to="/perfil"><i aria-hidden="true" className="bi bi-person-circle" /> Meu perfil</NavLink></li>
                 <li><NavLink className="dropdown-item" to={`/usuarios/${user?.id}`}><i aria-hidden="true" className="bi bi-eye" /> Perfil público</NavLink></li>
                 <li><NavLink className="dropdown-item" to="/editar-perfil"><i aria-hidden="true" className="bi bi-gear" /> Configurações</NavLink></li>
-                {canViewBoardAudit && <li><NavLink className="dropdown-item" to="/administracao/historico-exportacoes"><i aria-hidden="true" className="bi bi-file-earmark-spreadsheet" /> Auditoria de exportações</NavLink></li>}
                 <li><hr className="dropdown-divider" /></li>
                 <li><button className="dropdown-item text-danger" onClick={sair}><i aria-hidden="true" className="bi bi-box-arrow-right" /> Sair da conta</button></li>
               </ul>
