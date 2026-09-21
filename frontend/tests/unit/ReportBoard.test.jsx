@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import ReportBoard from '../../src/components/ReportBoard';
 import boardService from '../../src/services/boardService';
 import { AuthContext } from '../../src/context/authContext';
@@ -53,10 +53,10 @@ test('mostra falhas e permite tentar novamente', async () => {
 });
 
 test('board analítico aplica filtros aos indicadores e à paginação', async () => {
-  const analytical = { ...initial, summary: { ...initial.summary, resolutionRate: 50 }, metrics: { averageModerationHours: 24, averageResolutionHours: 48, moderationSampleSize: 1, resolutionSampleSize: 1 }, moderation: { pending: 2, approved: 8, rejected: 1, censoredReports: 2, censoredComments: 3, censoredTotal: 5, rejectionReasons: [{ label: 'Endereço insuficiente', total: 1 }] }, trend: [{ period: '2026-09', total: 2 }], breakdown: { categories: [{ label: 'Iluminação pública', total: 2 }], sectors: [{ label: 'Defesa Civil', total: 2 }], neighborhoods: [{ label: 'Centro', total: 2 }] } };
+  const analytical = { ...initial, summary: { ...initial.summary, resolutionRate: 50 }, metrics: { averageModerationHours: 24, averageResolutionHours: 48, moderationSampleSize: 1, resolutionSampleSize: 1 }, comparison: { current: { dataInicio: '2026-01-01', dataFim: '2026-01-31', total: 2, approved: 2, resolvida: 1, rejeitada: 0, resolutionRate: 50 }, previous: { dataInicio: '2025-12-01', dataFim: '2025-12-31', total: 4, approved: 4, resolvida: 1, rejeitada: 0, resolutionRate: 25 }, changes: { totalPercent: -50, approvedPercent: -50, resolvedPercent: 0, rejectedPercent: 0, resolutionRatePoints: 25 } }, moderation: { pending: 2, approved: 8, rejected: 1, censoredReports: 2, censoredComments: 3, censoredTotal: 5, rejectionReasons: [{ label: 'Endereço insuficiente', total: 1 }] }, trend: [{ period: '2026-09', total: 2 }], breakdown: { categories: [{ label: 'Iluminação pública', total: 2 }], sectors: [{ label: 'Defesa Civil', total: 2 }], neighborhoods: [{ label: 'Centro', total: 2 }] } };
   boardService.getBoard.mockResolvedValue(analytical);
   render(<ReportBoard analytical />);
-  expect(await screen.findByText('50%')).toBeInTheDocument();
+  expect((await screen.findAllByText('50%')).length).toBeGreaterThan(0);
   expect(screen.getByRole('heading', { name: 'Tempos médios' })).toBeInTheDocument();
   expect(screen.getByText('1 dia')).toBeInTheDocument();
   expect(screen.getByText('2 dias')).toBeInTheDocument();
@@ -69,6 +69,13 @@ test('board analítico aplica filtros aos indicadores e à paginação', async (
   expect(moderation).toHaveTextContent('Conteúdos censurados5');
   expect(moderation).toHaveTextContent('2 em denúncias · 3 em comentários');
   expect(moderation).toHaveTextContent('Endereço insuficiente1');
+  const comparison = screen.getByRole('heading', { name: 'Comparação com o período anterior' }).closest('section');
+  expect(comparison).toHaveTextContent('01/01/2026 a 31/01/2026');
+  expect(comparison).toHaveTextContent('01/12/2025 a 31/12/2025');
+  const totalComparison = within(comparison).getByRole('heading', { name: 'Total de denúncias' }).closest('article');
+  expect(totalComparison).toHaveTextContent('2');
+  expect(totalComparison).toHaveTextContent('Anterior: 4');
+  expect(totalComparison).toHaveTextContent('-50%');
   fireEvent.change(screen.getByLabelText('Categoria'), { target: { value: 'Iluminação pública' } });
   fireEvent.change(screen.getByLabelText('Setor responsável'), { target: { value: 'Defesa Civil' } });
   fireEvent.change(screen.getByLabelText('Bairro'), { target: { value: 'Centro' } });

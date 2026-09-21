@@ -18,7 +18,18 @@ const BREAKDOWN_LABELS = {
   neighborhoods: { title: 'Denúncias por bairro', column: 'Bairro' },
   locations: { title: 'Denúncias por localização', column: 'Localização' }
 };
+const COMPARISON_METRICS = [
+  { label: 'Total de denúncias', value: 'total', change: 'totalPercent' },
+  { label: 'Aprovadas', value: 'approved', change: 'approvedPercent' },
+  { label: 'Resolvidas', value: 'resolvida', change: 'resolvedPercent' },
+  { label: 'Rejeitadas', value: 'rejeitada', change: 'rejectedPercent' }
+];
 const dateLabel = value => value ? new Date(value).toLocaleDateString('pt-BR') : 'Não informada';
+const filterDateLabel = value => value ? value.split('-').reverse().join('/') : '';
+const periodLabel = period => `${filterDateLabel(period.dataInicio)} a ${filterDateLabel(period.dataFim)}`;
+const changeLabel = (value, suffix = '%') => value === null || value === undefined
+  ? 'Sem base anterior'
+  : `${value > 0 ? '+' : ''}${value}${suffix}`;
 const dateTimeLabel = value => value
   ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' }).format(new Date(value)).replace(',', '')
   : '';
@@ -168,6 +179,19 @@ export default function ReportBoard({ analytical = false, community = false }) {
               <div><dt>Da aprovação até a resolução</dt><dd>{durationLabel(data.metrics.averageResolutionHours)}</dd><small>{data.metrics.resolutionSampleSize} {data.metrics.resolutionSampleSize === 1 ? 'denúncia resolvida' : 'denúncias resolvidas'}</small></div>
             </dl>
           </section>}
+          {analytical && data.comparison && <section className="rc-board-comparison" aria-labelledby={`${id}-comparison-title`}>
+            <header><span className="rc-board-eyebrow">Análise temporal</span><h2 id={`${id}-comparison-title`}>Comparação com o período anterior</h2><p>Período atual: <strong>{periodLabel(data.comparison.current)}</strong> · anterior: <strong>{periodLabel(data.comparison.previous)}</strong></p></header>
+            <div className="rc-board-comparison-grid">
+              {COMPARISON_METRICS.map(metric => <article key={metric.value}>
+                <h3>{metric.label}</h3>
+                <strong>{data.comparison.current[metric.value]}</strong>
+                <small>Anterior: {data.comparison.previous[metric.value]}</small>
+                <span>{changeLabel(data.comparison.changes[metric.change])}</span>
+              </article>)}
+              <article><h3>Taxa de resolução</h3><strong>{data.comparison.current.resolutionRate}%</strong><small>Anterior: {data.comparison.previous.resolutionRate}%</small><span>{changeLabel(data.comparison.changes.resolutionRatePoints, ' p.p.')}</span></article>
+            </div>
+          </section>}
+          {analytical && !data.comparison && <p className="rc-board-guidance">Informe a data inicial e a data final para comparar o recorte com o período anterior de mesma duração.</p>}
           {analytical && data.moderation && <section className="rc-board-moderation" aria-labelledby={`${id}-moderation-title`}>
             <header><span className="rc-board-eyebrow">Operação da equipe</span><h2 id={`${id}-moderation-title`}>Indicadores da moderação</h2><p>Os valores consideram o mesmo período e os mesmos filtros aplicados ao board.</p></header>
             <dl>

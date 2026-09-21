@@ -45,6 +45,15 @@
 .rc-board-metrics dl > div { padding: .85rem; border-radius: 10px; background: color-mix(in srgb, var(--rc-primary) 8%, var(--rc-surface, #fff)); }
 .rc-board-metrics dt { color: var(--rc-secondary-text, #526159); font-size: .75rem; font-weight: 700; }
 .rc-board-metrics dd { margin: .2rem 0; font-size: 1.35rem; font-weight: 850; }
+.rc-board-comparison { margin-block: 1rem; padding: 1rem; border: 1px solid var(--rc-border); border-radius: 14px; background: var(--rc-surface, #fff); }
+.rc-board-comparison h2 { margin: .2rem 0; font-size: 1.15rem; font-weight: 800; }
+.rc-board-comparison header p { margin: 0 0 .85rem; color: var(--rc-secondary-text, #526159); font-size: .78rem; }
+.rc-board-comparison-grid { display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)); gap: .75rem; }
+.rc-board-comparison article { display: grid; gap: .18rem; padding: .85rem; border-radius: 10px; background: color-mix(in srgb, #4263b8 8%, var(--rc-surface, #fff)); }
+.rc-board-comparison article h3 { margin: 0; color: var(--rc-secondary-text, #526159); font-size: .75rem; font-weight: 700; }
+.rc-board-comparison article > strong { font-size: 1.35rem; font-weight: 850; }
+.rc-board-comparison article small { color: var(--rc-secondary-text, #526159); font-size: .7rem; }
+.rc-board-comparison article span { margin-top: .2rem; color: #3652a1; font-size: .75rem; font-weight: 800; }
 .rc-board-moderation { display: grid; grid-template-columns: minmax(220px, .65fr) minmax(360px, 1.35fr) minmax(260px, 1fr); gap: 1rem; align-items: start; margin-block: 1rem; padding: 1rem; border: 1px solid var(--rc-border); border-radius: 14px; background: var(--rc-surface, #fff); }
 .rc-board-moderation h2 { margin: .2rem 0; font-size: 1.15rem; font-weight: 800; }
 .rc-board-moderation header p, .rc-board-moderation small, .rc-board-rejection-reasons p { margin: 0; color: var(--rc-secondary-text, #526159); font-size: .75rem; }
@@ -112,6 +121,6 @@
 .rc-board-map-empty > div > i { color: var(--rc-primary); font-size: 1.3rem; }
 .rc-board-map-empty p { margin: .5rem 0 0; color: var(--rc-secondary-text, #526159); }
 @media (prefers-reduced-motion: reduce) { .rc-board-map-marker { transition: none; } }
-@media (max-width: 1199px) { .rc-board-moderation { grid-template-columns: 1fr 1fr; } .rc-board-rejection-reasons { grid-column: 1 / -1; } }
+@media (max-width: 1199px) { .rc-board-moderation { grid-template-columns: 1fr 1fr; } .rc-board-rejection-reasons { grid-column: 1 / -1; } .rc-board-comparison-grid { grid-template-columns: repeat(3, minmax(130px, 1fr)); } }
 @media (max-width: 991px) { .rc-board-charts { grid-template-columns: 1fr; } }
-@media (max-width: 767px) { .rc-board-columns { grid-template-columns: minmax(0, 1fr); overflow: visible; } .rc-board-metrics, .rc-board-moderation { grid-template-columns: 1fr; } .rc-board-metrics dl, .rc-board-moderation dl { grid-template-columns: 1fr; } .rc-board-rejection-reasons { grid-column: auto; } }
+@media (max-width: 767px) { .rc-board-columns { grid-template-columns: minmax(0, 1fr); overflow: visible; } .rc-board-metrics, .rc-board-moderation { grid-template-columns: 1fr; } .rc-board-metrics dl, .rc-board-moderation dl, .rc-board-comparison-grid { grid-template-columns: 1fr; } .rc-board-rejection-reasons { grid-column: auto; } }

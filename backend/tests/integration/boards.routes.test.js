@@ -58,6 +58,7 @@ describe('Boards pessoais e analíticos', () => {
     expect(JSON.stringify(response.body)).not.toContain('tituloOriginal');
     expect(response.body).not.toHaveProperty('map');
     expect(response.body).not.toHaveProperty('moderation');
+    expect(response.body).not.toHaveProperty('comparison');
   });
   test('board comunitário mostra somente denúncias aprovadas e indicadores agregados', async () => {
     const response = await get('/boards/public', citizen);
@@ -72,6 +73,7 @@ describe('Boards pessoais e analíticos', () => {
     expect(response.body.map.points).toHaveLength(4);
     expect(response.body.map.points.every(point => point.status === 'aprovada')).toBe(true);
     expect(response.body).not.toHaveProperty('moderation');
+    expect(response.body).not.toHaveProperty('comparison');
     expect(response.body.map.points[0]).toEqual(expect.objectContaining({ latitude: expect.anything(), longitude: expect.anything() }));
     expect(JSON.stringify(response.body)).not.toContain('Minha pendente');
     expect(JSON.stringify(response.body)).not.toContain('Privada de outro autor');
@@ -108,13 +110,27 @@ describe('Boards pessoais e analíticos', () => {
       censoredTotal: 2,
       rejectionReasons: [{ label: 'Endereço insuficiente', total: 1 }]
     });
+    expect(response.body).not.toHaveProperty('comparison');
     expect(response.body.trend.reduce((total, item) => total + item.total, 0)).toBe(6);
     expect(response.body.trend).toContainEqual({ period: '2026-01', total: 1 });
     expect(response.body.columns.find(item => item.key === 'rejeitada').reports[0].titulo).toBe('Privada de outro autor');
     expect(JSON.stringify(response.body)).not.toContain('Texto reservado para censura');
   });
   test('filtra indicadores, colunas e mapa pelo período inclusivo informado', async () => {
+    const previousReport = await Denuncia.create({
+      titulo: 'Denúncia do período anterior',
+      descricao: 'Registro usado na comparação',
+      localizacao: 'Cotia',
+      bairro: 'Centro',
+      categoria: 'Outros',
+      setorResponsavel: 'Defesa Civil',
+      status: 'aprovada',
+      resolucaoStatus: 'aberta',
+      createdAt: new Date('2025-12-15T12:00:00.000Z'),
+      userId: citizen.id
+    });
     const response = await get('/boards/analytics', analyst, { dataInicio: '2026-01-01', dataFim: '2026-01-31' });
+    await previousReport.destroy();
     expect(response.status).toBe(200);
     expect(response.body.summary).toMatchObject({ total: 1, resolvida: 1 });
     expect(response.body.columns.find(item => item.key === 'resolvida').reports[0].titulo).toBe('Minha resolvida');
@@ -131,6 +147,17 @@ describe('Boards pessoais e analíticos', () => {
       censoredComments: 1,
       censoredTotal: 1,
       rejectionReasons: []
+    });
+    expect(response.body.comparison).toEqual({
+      current: expect.objectContaining({ dataInicio: '2026-01-01', dataFim: '2026-01-31', total: 1, approved: 1, resolvida: 1, resolutionRate: 100 }),
+      previous: expect.objectContaining({ dataInicio: '2025-12-01', dataFim: '2025-12-31', total: 1, approved: 1, aberta: 1, resolutionRate: 0 }),
+      changes: {
+        totalPercent: 0,
+        approvedPercent: 0,
+        resolvedPercent: null,
+        rejectedPercent: 0,
+        resolutionRatePoints: 100
+      }
     });
   });
   test('filtros afetam os totais e entradas inválidas são rejeitadas', async () => {
