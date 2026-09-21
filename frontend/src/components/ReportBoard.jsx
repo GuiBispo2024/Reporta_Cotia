@@ -168,6 +168,21 @@ export default function ReportBoard({ analytical = false, community = false }) {
               <div><dt>Da aprovação até a resolução</dt><dd>{durationLabel(data.metrics.averageResolutionHours)}</dd><small>{data.metrics.resolutionSampleSize} {data.metrics.resolutionSampleSize === 1 ? 'denúncia resolvida' : 'denúncias resolvidas'}</small></div>
             </dl>
           </section>}
+          {analytical && data.moderation && <section className="rc-board-moderation" aria-labelledby={`${id}-moderation-title`}>
+            <header><span className="rc-board-eyebrow">Operação da equipe</span><h2 id={`${id}-moderation-title`}>Indicadores da moderação</h2><p>Os valores consideram o mesmo período e os mesmos filtros aplicados ao board.</p></header>
+            <dl>
+              <div><dt>Pendentes</dt><dd>{data.moderation.pending}</dd></div>
+              <div><dt>Aprovadas</dt><dd>{data.moderation.approved}</dd></div>
+              <div><dt>Rejeitadas</dt><dd>{data.moderation.rejected}</dd></div>
+              <div><dt>Conteúdos censurados</dt><dd>{data.moderation.censoredTotal}</dd><small>{data.moderation.censoredReports} em denúncias · {data.moderation.censoredComments} em comentários</small></div>
+            </dl>
+            <div className="rc-board-rejection-reasons">
+              <h3>Principais motivos de rejeição</h3>
+              {data.moderation.rejectionReasons?.length
+                ? <ol>{data.moderation.rejectionReasons.map(item => <li key={item.label}><span>{item.label}</span><strong>{item.total}</strong></li>)}</ol>
+                : <p>Não há motivos de rejeição neste recorte.</p>}
+            </div>
+          </section>}
           {aggregated && <BoardCharts summary={data.summary} categories={data.breakdown?.categories || []} neighborhoods={data.breakdown?.neighborhoods || []} trend={data.trend || []} community={community} />}
           {!data.summary.total && <div className="rc-board-state"><p>{aggregated ? 'Nenhuma denúncia encontrada para os filtros aplicados.' : 'Você ainda não tem denúncias para acompanhar.'}</p>{!aggregated && <Link className="btn btn-primary" to="/nova-denuncia">Registrar denúncia</Link>}</div>}
           {aggregated && <BoardMap map={data.map} />}

@@ -1,7 +1,7 @@
 const request = require('supertest');
 const ExcelJS = require('exceljs');
 const app = require('../../app');
-const { sequelize, User, Role, Permission, Denuncia, DenunciaHistorico } = require('../../models/rel');
+const { sequelize, User, Role, Permission, Denuncia, DenunciaHistorico, Comment } = require('../../models/rel');
 
 describe('Boards pessoais e analíticos', () => {
   let citizen, analyst, other;
@@ -35,9 +35,10 @@ describe('Boards pessoais e analíticos', () => {
       ...Array.from({ length: 3 }, (_, i) => ({ titulo: `Minha aberta ${i}`, status: 'aprovada', resolucaoStatus: 'aberta', latitude: -23.60 - i * 0.01, longitude: -46.92 - i * 0.01, userId: citizen.id })),
       { titulo: 'Minha resolvida', bairro: 'Granja Viana', status: 'aprovada', resolucaoStatus: 'resolvida', latitude: -23.63, longitude: -46.95, createdAt: new Date('2026-01-15T12:00:00.000Z'), userId: citizen.id },
       { titulo: 'Minha pendente', status: 'pendente', latitude: -23.64, longitude: -46.96, userId: citizen.id },
-      { titulo: 'Privada de outro autor', status: 'rejeitada', latitude: -23.65, longitude: -46.97, userId: other.id }
+      { titulo: 'Privada de outro autor', status: 'rejeitada', tituloCensurado: true, motivoRejeicao: 'Endereço insuficiente', latitude: -23.65, longitude: -46.97, userId: other.id }
     ].map(report => ({ descricao: 'Descrição pública', localizacao: 'Cotia', bairro: 'Centro', categoria: 'Outros', setorResponsavel: 'Defesa Civil', tituloOriginal: 'Texto reservado para censura', ...report })));
     const resolvedReport = await Denuncia.findOne({ where: { titulo: 'Minha resolvida' } });
+    await Comment.create({ comentario: 'Conteúdo ocultado', censurado: true, denunciaId: resolvedReport.id, userId: citizen.id });
     await DenunciaHistorico.bulkCreate([
       { tipo: 'moderacao', statusAnterior: 'pendente', statusNovo: 'aprovada', denunciaId: resolvedReport.id, createdAt: new Date('2026-01-16T12:00:00.000Z') },
       { tipo: 'resolucao', statusAnterior: 'aberta', statusNovo: 'resolvida', denunciaId: resolvedReport.id, createdAt: new Date('2026-01-18T12:00:00.000Z') }
@@ -56,6 +57,7 @@ describe('Boards pessoais e analíticos', () => {
     expect(JSON.stringify(response.body)).not.toContain('Privada de outro autor');
     expect(JSON.stringify(response.body)).not.toContain('tituloOriginal');
     expect(response.body).not.toHaveProperty('map');
+    expect(response.body).not.toHaveProperty('moderation');
   });
   test('board comunitário mostra somente denúncias aprovadas e indicadores agregados', async () => {
     const response = await get('/boards/public', citizen);
@@ -69,6 +71,7 @@ describe('Boards pessoais e analíticos', () => {
     expect(response.body.map).toMatchObject({ total: 4, limit: 500, truncated: false });
     expect(response.body.map.points).toHaveLength(4);
     expect(response.body.map.points.every(point => point.status === 'aprovada')).toBe(true);
+    expect(response.body).not.toHaveProperty('moderation');
     expect(response.body.map.points[0]).toEqual(expect.objectContaining({ latitude: expect.anything(), longitude: expect.anything() }));
     expect(JSON.stringify(response.body)).not.toContain('Minha pendente');
     expect(JSON.stringify(response.body)).not.toContain('Privada de outro autor');
@@ -96,6 +99,15 @@ describe('Boards pessoais e analíticos', () => {
       moderationSampleSize: 1,
       resolutionSampleSize: 1
     });
+    expect(response.body.moderation).toEqual({
+      pending: 1,
+      approved: 4,
+      rejected: 1,
+      censoredReports: 1,
+      censoredComments: 1,
+      censoredTotal: 2,
+      rejectionReasons: [{ label: 'Endereço insuficiente', total: 1 }]
+    });
     expect(response.body.trend.reduce((total, item) => total + item.total, 0)).toBe(6);
     expect(response.body.trend).toContainEqual({ period: '2026-01', total: 1 });
     expect(response.body.columns.find(item => item.key === 'rejeitada').reports[0].titulo).toBe('Privada de outro autor');
@@ -111,6 +123,15 @@ describe('Boards pessoais e analíticos', () => {
     expect(response.body.map).toMatchObject({ total: 1 });
     expect(response.body.trend).toEqual([{ period: '2026-01', total: 1 }]);
     expect(response.body.filters).toMatchObject({ dataInicio: '2026-01-01', dataFim: '2026-01-31' });
+    expect(response.body.moderation).toMatchObject({
+      pending: 0,
+      approved: 1,
+      rejected: 0,
+      censoredReports: 0,
+      censoredComments: 1,
+      censoredTotal: 1,
+      rejectionReasons: []
+    });
   });
   test('filtros afetam os totais e entradas inválidas são rejeitadas', async () => {
     expect((await get('/boards/analytics', analyst, { categoria: 'Inexistente' })).body.summary.total).toBe(0);

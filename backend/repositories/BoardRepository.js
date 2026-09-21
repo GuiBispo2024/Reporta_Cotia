@@ -1,4 +1,4 @@
-const { Denuncia, DenunciaHistorico, sequelize } = require('../models/rel');
+const { Denuncia, DenunciaHistorico, Comment, sequelize } = require('../models/rel');
 const { Op } = require('sequelize');
 
 const REPORT_FIELDS = ['id', 'titulo', 'descricao', 'localizacao', 'bairro', 'categoria', 'latitude', 'longitude', 'status', 'resolucaoStatus', 'setorResponsavel', 'motivoRejeicao', 'createdAt', 'updatedAt', 'resolucaoAtualizadaEm'];
@@ -55,6 +55,47 @@ class BoardRepository {
         required: false
       }]
     });
+  }
+
+  static async moderationIndicators(where) {
+    const [censoredReports, censoredComments, rejectionReasons] = await Promise.all([
+      Denuncia.count({
+        where: {
+          ...where,
+          [Op.or]: [{ tituloCensurado: true }, { descricaoCensurada: true }]
+        }
+      }),
+      Comment.count({
+        where: { censurado: true },
+        include: [{
+          model: Denuncia,
+          attributes: [],
+          where,
+          required: true
+        }]
+      }),
+      Denuncia.findAll({
+        where: {
+          ...where,
+          status: 'rejeitada',
+          motivoRejeicao: { [Op.ne]: null }
+        },
+        attributes: ['motivoRejeicao', [sequelize.fn('COUNT', sequelize.col('Denuncia.id')), 'total']],
+        group: ['motivoRejeicao'],
+        order: [[sequelize.literal('total'), 'DESC'], ['motivoRejeicao', 'ASC']],
+        limit: 5,
+        raw: true
+      })
+    ]);
+
+    return {
+      censoredReports,
+      censoredComments,
+      rejectionReasons: rejectionReasons.map(item => ({
+        label: item.motivoRejeicao,
+        total: Number(item.total)
+      }))
+    };
   }
 
   static exportReports(where) {

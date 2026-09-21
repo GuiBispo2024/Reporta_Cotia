@@ -19,6 +19,8 @@ As visões comunitária e analítica incluem `map.points` com até 500 denúncia
 
 As mesmas visões incluem `metrics`, com o tempo médio em horas até a primeira decisão de moderação e entre a aprovação e a resolução. Cada média informa também o tamanho da amostra e considera somente denúncias com o histórico necessário para o cálculo. Os filtros ativos são respeitados.
 
+Somente o board analítico inclui `moderation`, com denúncias pendentes, aprovadas e rejeitadas, total de denúncias e comentários atualmente censurados e os cinco principais motivos de rejeição. Esses indicadores respeitam todos os filtros ativos e não expõem o conteúdo original censurado.
+
 O campo `trend` apresenta a quantidade mensal de denúncias nos últimos 12 meses que possuem registros no recorte consultado. A interface combina essa evolução com gráficos de situação, categorias mais recorrentes e bairros com mais denúncias.
 
 Cada resposta do board inclui `generatedAt`, e a interface apresenta essa data como a última atualização dos indicadores. O horário é renovado quando a página abre, quando os filtros são aplicados ou quando o usuário solicita uma atualização.
@@ -36,6 +38,7 @@ Cada resposta do board inclui `generatedAt`, e a interface apresenta essa data c
 - `/meu-board`: board pessoal, também acessível em “Minhas denúncias” e na aba “Boards” do navbar.
 - `/boards/comunidade`: visão das denúncias aprovadas para cidadãos, com filtros e distribuições por categoria, setor, bairro e localização.
 - `/boards/analitico`: destino da aba “Boards” para analistas e demais contas com `dashboard.full.view`. A visão analítica também oferece acesso ao board pessoal.
+- O board analítico apresenta uma seção operacional da moderação com volumes de decisões, conteúdos censurados e principais motivos de rejeição. Essa seção não é enviada pelo endpoint público.
 - Detalhes em janela navegável por teclado; no board analítico, registros privados são consultados nessa janela. O link público é oferecido somente para denúncias aprovadas.
 - Filtros por categoria, setor, bairro e período, contagens por situação e distribuições por categoria, setor, bairro e localização. Cada coluna tem “Carregar mais” e informa quantos registros estão visíveis.
 - A aba “Boards” leva cidadãos ao board comunitário e contas com `dashboard.full.view` ao board analítico.

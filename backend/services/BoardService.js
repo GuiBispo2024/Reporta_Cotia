@@ -229,14 +229,15 @@ class BoardService {
       ...parsedFilters.where
     };
     const includeBreakdown = analytical || publicView;
-    const [statuses, categories, sectors, neighborhoods, locations, map, metricRecords] = await Promise.all([
+    const [statuses, categories, sectors, neighborhoods, locations, map, metricRecords, moderationDetails] = await Promise.all([
       BoardRepository.grouped(where, ['status', 'resolucaoStatus']),
       includeBreakdown ? BoardRepository.grouped(where, ['categoria']) : [],
       includeBreakdown ? BoardRepository.grouped(where, ['setorResponsavel']) : [],
       includeBreakdown ? BoardRepository.grouped(where, ['bairro']) : [],
       includeBreakdown ? BoardRepository.grouped(where, ['localizacao']) : [],
       includeBreakdown ? BoardRepository.mapPoints(where) : null,
-      includeBreakdown ? BoardRepository.serviceMetricRecords(where) : []
+      includeBreakdown ? BoardRepository.serviceMetricRecords(where) : [],
+      analytical ? BoardRepository.moderationIndicators(where) : null
     ]);
     const counts = Object.fromEntries(COLUMNS.map(item => [item.key, 0]));
     for (const row of statuses) {
@@ -265,6 +266,15 @@ class BoardService {
         neighborhoods: breakdown(neighborhoods, 'bairro'),
         locations: breakdown(locations, 'localizacao')
       }, map, metrics: serviceMetrics(metricRecords), trend: monthlyTrend(metricRecords) } : {}),
+      ...(analytical ? { moderation: {
+        pending: counts.pendente,
+        approved,
+        rejected: counts.rejeitada,
+        censoredReports: moderationDetails.censoredReports,
+        censoredComments: moderationDetails.censoredComments,
+        censoredTotal: moderationDetails.censoredReports + moderationDetails.censoredComments,
+        rejectionReasons: moderationDetails.rejectionReasons
+      } } : {}),
       filters: parsedFilters.filters,
       limit
     };

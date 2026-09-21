@@ -53,7 +53,7 @@ test('mostra falhas e permite tentar novamente', async () => {
 });
 
 test('board analítico aplica filtros aos indicadores e à paginação', async () => {
-  const analytical = { ...initial, summary: { ...initial.summary, resolutionRate: 50 }, metrics: { averageModerationHours: 24, averageResolutionHours: 48, moderationSampleSize: 1, resolutionSampleSize: 1 }, trend: [{ period: '2026-09', total: 2 }], breakdown: { categories: [{ label: 'Iluminação pública', total: 2 }], sectors: [{ label: 'Defesa Civil', total: 2 }], neighborhoods: [{ label: 'Centro', total: 2 }] } };
+  const analytical = { ...initial, summary: { ...initial.summary, resolutionRate: 50 }, metrics: { averageModerationHours: 24, averageResolutionHours: 48, moderationSampleSize: 1, resolutionSampleSize: 1 }, moderation: { pending: 2, approved: 8, rejected: 1, censoredReports: 2, censoredComments: 3, censoredTotal: 5, rejectionReasons: [{ label: 'Endereço insuficiente', total: 1 }] }, trend: [{ period: '2026-09', total: 2 }], breakdown: { categories: [{ label: 'Iluminação pública', total: 2 }], sectors: [{ label: 'Defesa Civil', total: 2 }], neighborhoods: [{ label: 'Centro', total: 2 }] } };
   boardService.getBoard.mockResolvedValue(analytical);
   render(<ReportBoard analytical />);
   expect(await screen.findByText('50%')).toBeInTheDocument();
@@ -62,6 +62,13 @@ test('board analítico aplica filtros aos indicadores e à paginação', async (
   expect(screen.getByText('2 dias')).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Gráficos dos indicadores' })).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Board analítico' })).toBeInTheDocument();
+  const moderation = screen.getByRole('heading', { name: 'Indicadores da moderação' }).closest('section');
+  expect(moderation).toHaveTextContent('Pendentes2');
+  expect(moderation).toHaveTextContent('Aprovadas8');
+  expect(moderation).toHaveTextContent('Rejeitadas1');
+  expect(moderation).toHaveTextContent('Conteúdos censurados5');
+  expect(moderation).toHaveTextContent('2 em denúncias · 3 em comentários');
+  expect(moderation).toHaveTextContent('Endereço insuficiente1');
   fireEvent.change(screen.getByLabelText('Categoria'), { target: { value: 'Iluminação pública' } });
   fireEvent.change(screen.getByLabelText('Setor responsável'), { target: { value: 'Defesa Civil' } });
   fireEvent.change(screen.getByLabelText('Bairro'), { target: { value: 'Centro' } });
@@ -100,6 +107,7 @@ test('board comunitário apresenta somente indicadores públicos e localizaçõe
   expect(screen.getByRole('heading', { name: 'Distribuição geográfica' })).toBeInTheDocument();
   expect(screen.queryByText('Em moderação')).not.toBeInTheDocument();
   expect(screen.queryByText('Rejeitadas')).not.toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: 'Indicadores da moderação' })).not.toBeInTheDocument();
   expect(boardService.getBoard).toHaveBeenCalledWith(expect.objectContaining({ analytical: false, community: true }));
 });
 
