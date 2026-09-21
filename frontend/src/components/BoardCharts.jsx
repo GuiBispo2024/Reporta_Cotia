@@ -27,7 +27,20 @@ function BarChart({ title, items, emptyMessage }) {
   </article>;
 }
 
-export default function BoardCharts({ summary = {}, categories = [], neighborhoods = [], trend = [], community = false }) {
+function CategoryTrend({ data }) {
+  if (!data?.series?.length || !data?.periods?.length) return null;
+  return <article className="rc-board-chart rc-board-category-trend">
+    <h3>Evolução mensal por categoria</h3>
+    <div>
+      <table>
+        <thead><tr><th scope="col">Categoria</th>{data.periods.map(period => <th scope="col" key={period}><time dateTime={period}>{periodLabel(period)}</time></th>)}<th scope="col">Total</th></tr></thead>
+        <tbody>{data.series.map(item => <tr key={item.label}><th scope="row">{item.label}</th>{item.values.map((value, index) => <td key={data.periods[index]} aria-label={`${item.label}, ${periodLabel(data.periods[index])}: ${value}`}>{value}</td>)}<td><strong>{item.total}</strong></td></tr>)}</tbody>
+      </table>
+    </div>
+  </article>;
+}
+
+export default function BoardCharts({ summary = {}, categories = [], neighborhoods = [], trend = [], categoryTrend = null, community = false }) {
   const statusKeys = community
     ? ['aberta', 'em_andamento', 'resolvida']
     : ['pendente', 'aberta', 'em_andamento', 'resolvida', 'rejeitada'];
@@ -54,12 +67,13 @@ export default function BoardCharts({ summary = {}, categories = [], neighborhoo
   }));
 
   return <section className="rc-board-charts-section" aria-labelledby="board-charts-title">
-    <header><span className="rc-board-eyebrow">Leitura visual</span><h2 id="board-charts-title">Gráficos dos indicadores</h2><p>Compare situações, categorias recorrentes e a evolução mensal do recorte selecionado.</p></header>
+    <header><span className="rc-board-eyebrow">Leitura visual</span><h2 id="board-charts-title">Gráficos dos indicadores</h2><p>Compare situações, categorias, bairros e a evolução mensal do recorte selecionado.</p></header>
     <div className="rc-board-charts">
       <BarChart title="Denúncias por situação" items={statusItems} emptyMessage="Sem situações neste recorte." />
       <BarChart title="Categorias mais recorrentes" items={categoryItems} emptyMessage="Sem categorias neste recorte." />
       <BarChart title="Bairros com mais denúncias" items={neighborhoodItems} emptyMessage="Sem bairros informados neste recorte." />
       <BarChart title="Evolução mensal" items={trendItems} emptyMessage="Sem evolução mensal neste recorte." />
+      <CategoryTrend data={categoryTrend} />
     </div>
   </section>;
 }

@@ -86,6 +86,31 @@ function monthlyTrend(records) {
     .map(([period, total]) => ({ period, total }));
 }
 
+function categoryTrend(records) {
+  const periodSet = new Set();
+  const categories = new Map();
+  for (const record of records) {
+    const plain = record.get ? record.get({ plain: true }) : record;
+    const date = new Date(plain.createdAt);
+    if (Number.isNaN(date.getTime())) continue;
+    const period = date.toISOString().slice(0, 7);
+    const category = plain.categoria || 'Não informado';
+    periodSet.add(period);
+    if (!categories.has(category)) categories.set(category, new Map());
+    const values = categories.get(category);
+    values.set(period, (values.get(period) || 0) + 1);
+  }
+  const periods = [...periodSet].sort().slice(-12);
+  const series = [...categories.entries()]
+    .map(([label, values]) => {
+      const monthlyValues = periods.map(period => values.get(period) || 0);
+      return { label, total: monthlyValues.reduce((sum, value) => sum + value, 0), values: monthlyValues };
+    })
+    .filter(item => item.total)
+    .sort((first, second) => second.total - first.total || first.label.localeCompare(second.label, 'pt-BR'));
+  return { periods, series };
+}
+
 function statusCounts(rows) {
   const counts = Object.fromEntries(COLUMNS.map(item => [item.key, 0]));
   for (const row of rows) {
@@ -311,7 +336,7 @@ class BoardService {
         neighborhoods: breakdown(neighborhoods, 'bairro'),
         locations: breakdown(locations, 'localizacao')
       }, map, metrics: serviceMetrics(metricRecords), trend: monthlyTrend(metricRecords) } : {}),
-      ...(analytical ? { moderation: {
+      ...(analytical ? { categoryTrend: categoryTrend(metricRecords), moderation: {
         pending: counts.pendente,
         approved,
         rejected: counts.rejeitada,

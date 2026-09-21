@@ -14,9 +14,16 @@ const trend = [
   { period: '2026-01', total: 2 },
   { period: '2026-02', total: 5 }
 ];
+const categoryTrend = {
+  periods: ['2026-01', '2026-02'],
+  series: [
+    { label: 'Iluminação pública', total: 5, values: [2, 3] },
+    { label: 'Outros', total: 2, values: [0, 2] }
+  ]
+};
 
 test('apresenta gráficos acessíveis de situação, categoria e evolução', () => {
-  render(<BoardCharts summary={summary} categories={categories} neighborhoods={neighborhoods} trend={trend} />);
+  render(<BoardCharts summary={summary} categories={categories} neighborhoods={neighborhoods} trend={trend} categoryTrend={categoryTrend} />);
 
   expect(screen.getByRole('heading', { name: 'Gráficos dos indicadores' })).toBeInTheDocument();
   const categoryChart = screen.getByRole('heading', { name: 'Categorias mais recorrentes' }).closest('article');
@@ -28,6 +35,10 @@ test('apresenta gráficos acessíveis de situação, categoria e evolução', ()
   const trendChart = screen.getByRole('heading', { name: 'Evolução mensal' }).closest('article');
   expect(within(trendChart).getByText(/jan.*2026/i)).toBeInTheDocument();
   expect(within(trendChart).getByText(/fev.*2026/i)).toBeInTheDocument();
+  const categoryTrendTable = screen.getByRole('heading', { name: 'Evolução mensal por categoria' }).closest('article');
+  expect(within(categoryTrendTable).getByRole('cell', { name: /Iluminação pública, jan.*2026: 2/i })).toHaveTextContent('2');
+  expect(within(categoryTrendTable).getByRole('cell', { name: /Iluminação pública, fev.*2026: 3/i })).toHaveTextContent('3');
+  expect(within(categoryTrendTable).getByRole('rowheader', { name: 'Outros' })).toBeInTheDocument();
 })
 
 test('board comunitário não inclui estados privados no gráfico', () => {
@@ -37,4 +48,5 @@ test('board comunitário não inclui estados privados no gráfico', () => {
   expect(within(statusChart).queryByText('Em moderação')).not.toBeInTheDocument();
   expect(within(statusChart).queryByText('Rejeitadas')).not.toBeInTheDocument();
   expect(within(statusChart).getByText('Abertas')).toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: 'Evolução mensal por categoria' })).not.toBeInTheDocument();
 })

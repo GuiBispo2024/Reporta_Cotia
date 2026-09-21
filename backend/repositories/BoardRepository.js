@@ -48,7 +48,7 @@ class BoardRepository {
   static serviceMetricRecords(where) {
     return Denuncia.findAll({
       where,
-      attributes: ['id', 'createdAt'],
+      attributes: ['id', 'categoria', 'createdAt'],
       include: [{
         model: DenunciaHistorico,
         attributes: ['tipo', 'statusNovo', 'createdAt'],

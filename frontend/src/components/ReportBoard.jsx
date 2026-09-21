@@ -207,7 +207,7 @@ export default function ReportBoard({ analytical = false, community = false }) {
                 : <p>Não há motivos de rejeição neste recorte.</p>}
             </div>
           </section>}
-          {aggregated && <BoardCharts summary={data.summary} categories={data.breakdown?.categories || []} neighborhoods={data.breakdown?.neighborhoods || []} trend={data.trend || []} community={community} />}
+          {aggregated && <BoardCharts summary={data.summary} categories={data.breakdown?.categories || []} neighborhoods={data.breakdown?.neighborhoods || []} trend={data.trend || []} categoryTrend={analytical ? data.categoryTrend : null} community={community} />}
           {!data.summary.total && <div className="rc-board-state"><p>{aggregated ? 'Nenhuma denúncia encontrada para os filtros aplicados.' : 'Você ainda não tem denúncias para acompanhar.'}</p>{!aggregated && <Link className="btn btn-primary" to="/nova-denuncia">Registrar denúncia</Link>}</div>}
           {aggregated && <BoardMap map={data.map} />}
           {aggregated && data.breakdown && <div className="rc-board-breakdowns">

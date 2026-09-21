@@ -59,6 +59,7 @@ describe('Boards pessoais e analíticos', () => {
     expect(response.body).not.toHaveProperty('map');
     expect(response.body).not.toHaveProperty('moderation');
     expect(response.body).not.toHaveProperty('comparison');
+    expect(response.body).not.toHaveProperty('categoryTrend');
   });
   test('board comunitário mostra somente denúncias aprovadas e indicadores agregados', async () => {
     const response = await get('/boards/public', citizen);
@@ -74,6 +75,7 @@ describe('Boards pessoais e analíticos', () => {
     expect(response.body.map.points.every(point => point.status === 'aprovada')).toBe(true);
     expect(response.body).not.toHaveProperty('moderation');
     expect(response.body).not.toHaveProperty('comparison');
+    expect(response.body).not.toHaveProperty('categoryTrend');
     expect(response.body.map.points[0]).toEqual(expect.objectContaining({ latitude: expect.anything(), longitude: expect.anything() }));
     expect(JSON.stringify(response.body)).not.toContain('Minha pendente');
     expect(JSON.stringify(response.body)).not.toContain('Privada de outro autor');
@@ -113,6 +115,10 @@ describe('Boards pessoais e analíticos', () => {
     expect(response.body).not.toHaveProperty('comparison');
     expect(response.body.trend.reduce((total, item) => total + item.total, 0)).toBe(6);
     expect(response.body.trend).toContainEqual({ period: '2026-01', total: 1 });
+    const otherCategoryTrend = response.body.categoryTrend.series.find(item => item.label === 'Outros');
+    const januaryIndex = response.body.categoryTrend.periods.indexOf('2026-01');
+    expect(otherCategoryTrend.total).toBe(6);
+    expect(otherCategoryTrend.values[januaryIndex]).toBe(1);
     expect(response.body.columns.find(item => item.key === 'rejeitada').reports[0].titulo).toBe('Privada de outro autor');
     expect(JSON.stringify(response.body)).not.toContain('Texto reservado para censura');
   });
@@ -138,6 +144,10 @@ describe('Boards pessoais e analíticos', () => {
     expect(response.body.breakdown.neighborhoods).toEqual([{ label: 'Granja Viana', total: 1 }]);
     expect(response.body.map).toMatchObject({ total: 1 });
     expect(response.body.trend).toEqual([{ period: '2026-01', total: 1 }]);
+    expect(response.body.categoryTrend).toEqual({
+      periods: ['2026-01'],
+      series: [{ label: 'Outros', total: 1, values: [1] }]
+    });
     expect(response.body.filters).toMatchObject({ dataInicio: '2026-01-01', dataFim: '2026-01-31' });
     expect(response.body.moderation).toMatchObject({
       pending: 0,

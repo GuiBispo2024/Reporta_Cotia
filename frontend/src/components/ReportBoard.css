@@ -83,6 +83,13 @@
 .rc-board-chart li.is-em_andamento .rc-board-chart-track > span { background: #2269b1; }
 .rc-board-chart li.is-resolvida .rc-board-chart-track > span { background: #2f7d4f; }
 .rc-board-chart li.is-rejeitada .rc-board-chart-track > span { background: #bc4555; }
+.rc-board-category-trend { grid-column: 1 / -1; }
+.rc-board-category-trend > div { overflow-x: auto; }
+.rc-board-category-trend table { width: 100%; min-width: 620px; border-collapse: collapse; }
+.rc-board-category-trend th, .rc-board-category-trend td { padding: .55rem; border-bottom: 1px solid var(--rc-border); text-align: center; font-size: .75rem; }
+.rc-board-category-trend thead th { color: var(--rc-secondary-text, #526159); font-weight: 700; white-space: nowrap; }
+.rc-board-category-trend tbody th { max-width: 240px; text-align: left; font-weight: 600; overflow-wrap: anywhere; }
+.rc-board-category-trend tbody td { font-variant-numeric: tabular-nums; }
 .rc-board-breakdowns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 1rem; margin-block: 1rem; }
 .rc-board-breakdowns section { padding: 1rem; border: 1px solid var(--rc-border); border-radius: 12px; background: var(--rc-surface, #fff); }
 .rc-board-breakdowns table { width: 100%; }
