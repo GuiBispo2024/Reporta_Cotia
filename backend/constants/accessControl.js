@@ -23,6 +23,7 @@ const PERMISSIONS = Object.freeze({
   DASHBOARD_PUBLIC_VIEW: 'dashboard.public.view',
   DASHBOARD_FULL_VIEW: 'dashboard.full.view',
   DASHBOARD_EXPORT: 'dashboard.export',
+  DASHBOARD_AUDIT_VIEW: 'dashboard.audit.view',
   USERS_VIEW: 'users.view',
   USERS_MANAGE_ROLES: 'users.manage_roles',
   DENUNCIA_AUDIT_VIEW: 'denuncia.audit.view',

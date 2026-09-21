@@ -83,5 +83,9 @@ describe('Documentação OpenAPI', () => {
     expect(endpoint).toBeDefined()
     expect(endpoint.description).toContain('dashboard.export')
     expect(endpoint.responses[200].content['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']).toBeDefined()
+    const history = swaggerSpec.paths['/boards/analytics/export-history'].get
+    expect(history.description).toContain('dashboard.audit.view')
+    expect(history.parameters.map(parameter => parameter.name)).toEqual(['page', 'limit', 'sort'])
+    expect(history.responses[403]).toBeDefined()
   })
 })

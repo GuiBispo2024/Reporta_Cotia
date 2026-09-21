@@ -1,4 +1,4 @@
-const { Denuncia, DenunciaHistorico, Comment, BoardExportHistory, sequelize } = require('../models/rel');
+const { Denuncia, DenunciaHistorico, Comment, BoardExportHistory, User, sequelize } = require('../models/rel');
 const { Op } = require('sequelize');
 
 const REPORT_FIELDS = ['id', 'titulo', 'descricao', 'localizacao', 'bairro', 'categoria', 'latitude', 'longitude', 'status', 'resolucaoStatus', 'setorResponsavel', 'motivoRejeicao', 'createdAt', 'updatedAt', 'resolucaoAtualizadaEm'];
@@ -109,6 +109,33 @@ class BoardRepository {
 
   static recordExportAudit(data) {
     return BoardExportHistory.create(data);
+  }
+
+  static async exportAuditHistory({ page, limit, sort }) {
+    const { rows, count } = await BoardExportHistory.findAndCountAll({
+      order: [['createdAt', sort === 'oldest' ? 'ASC' : 'DESC'], ['id', sort === 'oldest' ? 'ASC' : 'DESC']],
+      limit,
+      offset: (page - 1) * limit
+    });
+    const userIds = [...new Set(rows.map(item => item.userId))];
+    const users = userIds.length
+      ? await User.findAll({ where: { id: { [Op.in]: userIds } }, attributes: ['id', 'username'], raw: true })
+      : [];
+    const usernames = new Map(users.map(user => [Number(user.id), user.username]));
+    return {
+      data: rows.map(item => ({
+        id: item.id,
+        user: { id: item.userId, username: usernames.get(Number(item.userId)) || 'Usuário removido' },
+        format: item.format,
+        filters: item.filters,
+        recordCount: item.recordCount,
+        createdAt: item.createdAt
+      })),
+      total: count,
+      page,
+      limit,
+      totalPages: Math.ceil(count / limit)
+    };
   }
 }
 

@@ -4,7 +4,7 @@ const app = require('../../app');
 const { sequelize, User, Role, Permission, Denuncia, DenunciaHistorico, Comment, BoardExportHistory } = require('../../models/rel');
 
 describe('Boards pessoais e analíticos', () => {
-  let citizen, analyst, other;
+  let citizen, analyst, auditor, other;
   const binaryParser = (response, callback) => {
     const chunks = [];
     response.on('data', chunk => chunks.push(chunk));
@@ -21,14 +21,19 @@ describe('Boards pessoais e analíticos', () => {
     citizen = await account('board-citizen');
     other = await account('board-other');
     analyst = await account('board-analyst');
-    const [permission, publicPermission, exportPermission] = await Promise.all([
+    auditor = await account('board-auditor');
+    const [permission, publicPermission, exportPermission, auditPermission] = await Promise.all([
       Permission.create({ key: 'dashboard.full.view', description: 'Consultar painel completo' }),
       Permission.create({ key: 'dashboard.public.view', description: 'Consultar indicadores públicos' }),
-      Permission.create({ key: 'dashboard.export', description: 'Exportar painel completo' })
+      Permission.create({ key: 'dashboard.export', description: 'Exportar painel completo' }),
+      Permission.create({ key: 'dashboard.audit.view', description: 'Consultar auditoria de exportações' })
     ]);
     const role = await Role.create({ name: 'ANALYST', description: 'Analista' });
     await role.addPermissions([permission, exportPermission]);
     await (await User.findByPk(analyst.id)).addRole(role);
+    const auditRole = await Role.create({ name: 'BOARD_AUDITOR', description: 'Auditoria dos boards' });
+    await auditRole.addPermission(auditPermission);
+    await (await User.findByPk(auditor.id)).addRole(auditRole);
     const citizenRole = await Role.findOne({ where: { name: 'CITIZEN' } });
     await citizenRole.addPermission(publicPermission);
     await Denuncia.bulkCreate([
@@ -219,5 +224,20 @@ describe('Boards pessoais e analíticos', () => {
       dataInicio: '2026-01-01',
       dataFim: '2026-01-31'
     });
+  });
+  test('consulta a auditoria somente com permissão administrativa e pagina os resultados', async () => {
+    expect((await request(app).get('/boards/analytics/export-history')).status).toBe(401);
+    expect((await get('/boards/analytics/export-history', analyst)).status).toBe(403);
+    const response = await get('/boards/analytics/export-history', auditor, { page: 1, limit: 10, sort: 'oldest' });
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ total: 1, page: 1, limit: 10, totalPages: 1 });
+    expect(response.body.data[0]).toMatchObject({
+      user: { id: analyst.id, username: 'board-analyst' },
+      format: 'xlsx',
+      recordCount: 1,
+      filters: { dataInicio: '2026-01-01', dataFim: '2026-01-31' }
+    });
+    expect(response.body.data[0]).not.toHaveProperty('content');
+    expect((await get('/boards/analytics/export-history', auditor, { sort: 'invalid' })).status).toBe(400);
   });
 });

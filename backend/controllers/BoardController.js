@@ -23,6 +23,39 @@ router.get('/analytics', requirePermission(PERMISSIONS.DASHBOARD_FULL_VIEW), asy
 
 /**
  * @swagger
+ * /boards/analytics/export-history:
+ *   get:
+ *     summary: Consulta a auditoria de exportações do board
+ *     description: Lista metadados das exportações XLSX. Requer a permissão dashboard.audit.view, atribuída por padrão somente ao perfil ADMIN.
+ *     tags: [Boards]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+ *       - in: query
+ *         name: sort
+ *         schema: { type: string, enum: [newest, oldest], default: newest }
+ *     responses:
+ *       200:
+ *         description: Histórico paginado sem conteúdo das planilhas
+ *       400: { description: Paginação ou ordenação inválida }
+ *       401: { description: Sessão não autenticada }
+ *       403: { description: Permissão dashboard.audit.view ausente }
+ */
+router.get('/analytics/export-history',
+  requirePermission(PERMISSIONS.DASHBOARD_AUDIT_VIEW),
+  async (req, res, next) => {
+    try { res.json(await BoardService.getExportHistory(req.user, req.query)); }
+    catch (error) { next(error); }
+  });
+
+/**
+ * @swagger
  * /boards/analytics/export:
  *   get:
  *     summary: Exporta as denúncias do board analítico em XLSX

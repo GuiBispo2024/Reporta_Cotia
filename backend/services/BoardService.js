@@ -381,6 +381,20 @@ class BoardService {
       total: reports.length
     };
   }
+
+  static async getExportHistory(user, query = {}) {
+    if (!user?.id) throw new AppError('Entre na sua conta para consultar a auditoria.', 401, 'AUTH_REQUIRED');
+    if (!hasPermission(user, PERMISSIONS.DASHBOARD_AUDIT_VIEW)) {
+      throw new AppError('Sua conta não possui permissão para consultar a auditoria de exportações.', 403, 'FORBIDDEN');
+    }
+    const page = positiveInteger(query.page, 1, 1000000);
+    const limit = positiveInteger(query.limit, 20, 50);
+    const sort = query.sort || 'newest';
+    if (!['newest', 'oldest'].includes(sort)) {
+      throw new AppError('Informe uma ordenação válida para o histórico.', 400, 'VALIDATION_ERROR');
+    }
+    return BoardRepository.exportAuditHistory({ page, limit, sort });
+  }
 }
 
 module.exports = BoardService;

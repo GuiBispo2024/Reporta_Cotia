@@ -8,6 +8,7 @@ Implementação incremental na branch `feat/boards`. Nesta versão, o board acom
 - `GET /boards/public`: requer `dashboard.public.view`; apresenta somente denúncias aprovadas e indicadores comunitários por categoria, setor, bairro e localização.
 - `GET /boards/analytics`: requer `dashboard.full.view`; consulta todas as denúncias e distribuições por categoria, setor e bairro.
 - `GET /boards/analytics/export`: requer `dashboard.full.view` e `dashboard.export`; exporta em XLSX os registros do recorte analítico, respeitando categoria, setor, bairro e período.
+- `GET /boards/analytics/export-history`: requer `dashboard.audit.view`; consulta a auditoria paginada das exportações, ordenada por data mais recente ou mais antiga.
 
 Parâmetros opcionais: `categoria`, `setorResponsavel`, `bairro`, `dataInicio`, `dataFim`, `column`, `page` (a partir de 1) e `limit` (1–50, padrão 8). As datas usam o formato `AAAA-MM-DD`, são inclusivas e filtram pela data de cadastro da denúncia. A paginação é independente por coluna. Sem `column`, todas as colunas são retornadas; com `column`, apenas a coluna solicitada é carregada. Os indicadores sempre consideram o conjunto filtrado completo.
 
@@ -48,6 +49,7 @@ Cada resposta do board inclui `generatedAt`, e a interface apresenta essa data c
 - A aba “Boards” leva cidadãos ao board comunitário e contas com `dashboard.full.view` ao board analítico.
 - Contas com `dashboard.export` podem baixar uma planilha XLSX do board analítico. O arquivo utiliza os filtros aplicados, inclui o bairro, preserva acentos, dimensiona as colunas, fixa o cabeçalho, oferece autofiltro e apresenta datas no horário de Cotia. Campos privados de revisão de censura não são incluídos.
 - Cada planilha gerada com sucesso registra na auditoria o usuário responsável, o formato XLSX, os filtros utilizados, a quantidade de registros e a data. O arquivo e seu conteúdo não são armazenados no histórico.
+- A permissão `dashboard.audit.view` é atribuída por padrão somente ao perfil `ADMIN`. Analistas mantêm as permissões de visualizar e exportar o board, mas não consultam a auditoria global.
 - As visões comunitária e analítica exibem os registros com coordenadas sobre um mapa do OpenStreetMap. Marcadores aprovados levam ao detalhe público; registros privados do board analítico não geram links públicos.
 - No celular e com texto ampliado, as colunas são empilhadas. Os boards usam os temas e recursos globais de acessibilidade.
 
