@@ -36,3 +36,8 @@ test('visitante vê somente os acessos públicos', () => {
   setup(null);
   expect(screen.queryByRole('link', { name: 'Boards' })).not.toBeInTheDocument();
 });
+
+test('somente usuário com permissão de auditoria vê o histórico de exportações', () => {
+  setup({ id: 4, username: 'Admin', roles: ['ADMIN'], permissions: [PERMISSIONS.DASHBOARD_FULL_VIEW, PERMISSIONS.DASHBOARD_AUDIT_VIEW] });
+  expect(screen.getByRole('link', { name: 'Auditoria de exportações' })).toHaveAttribute('href', '/administracao/historico-exportacoes');
+});

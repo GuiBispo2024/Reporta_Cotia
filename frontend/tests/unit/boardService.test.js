@@ -40,3 +40,12 @@ test('solicita a exportação analítica em XLSX e preserva o nome do arquivo', 
     responseType: 'blob'
   });
 });
+
+test('consulta o histórico paginado de exportações', async () => {
+  const result = { data: [], total: 0, page: 1, totalPages: 0 };
+  api.get.mockResolvedValueOnce({ data: result });
+  const params = { page: 1, limit: 20, sort: 'newest' };
+
+  await expect(boardService.getExportHistory(params)).resolves.toEqual(result);
+  expect(api.get).toHaveBeenCalledWith('/boards/analytics/export-history', { params });
+});

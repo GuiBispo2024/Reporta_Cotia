@@ -12,6 +12,11 @@ const boardService = {
     const disposition = response.headers?.['content-disposition'] || '';
     const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || 'reporta-cotia-denuncias.xlsx';
     return { blob: response.data, filename };
+  },
+
+  async getExportHistory(params = {}) {
+    const response = await api.get('/boards/analytics/export-history', { params });
+    return response.data;
   }
 };
 
