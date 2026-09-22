@@ -307,13 +307,12 @@ class BoardService {
     };
     const comparedPeriod = analytical ? comparisonPeriod(query, where) : null;
     const includeBreakdown = analytical || publicView;
-    const [statuses, categories, sectors, neighborhoods, locations, map, metricRecords, moderationDetails, previousStatuses] = await Promise.all([
+    const [statuses, categories, sectors, neighborhoods, locations, metricRecords, moderationDetails, previousStatuses] = await Promise.all([
       BoardRepository.grouped(where, ['status', 'resolucaoStatus']),
       includeBreakdown ? BoardRepository.grouped(where, ['categoria']) : [],
       includeBreakdown ? BoardRepository.grouped(where, ['setorResponsavel']) : [],
       includeBreakdown ? BoardRepository.grouped(where, ['bairro']) : [],
       includeBreakdown ? BoardRepository.grouped(where, ['localizacao']) : [],
-      includeBreakdown ? BoardRepository.mapPoints(where) : null,
       includeBreakdown ? BoardRepository.serviceMetricRecords(where) : [],
       analytical ? BoardRepository.moderationIndicators(where) : null,
       comparedPeriod ? BoardRepository.grouped(comparedPeriod.where, ['status', 'resolucaoStatus']) : []
@@ -341,7 +340,7 @@ class BoardService {
         sectors: breakdown(sectors, 'setorResponsavel'),
         neighborhoods: breakdown(neighborhoods, 'bairro'),
         locations: breakdown(locations, 'localizacao')
-      }, map, metrics: serviceMetrics(metricRecords), trend: monthlyTrend(metricRecords) } : {}),
+      }, metrics: serviceMetrics(metricRecords), trend: monthlyTrend(metricRecords) } : {}),
       ...(analytical ? { categoryTrend: categoryTrend(metricRecords), moderation: {
         pending: counts.pendente,
         approved,

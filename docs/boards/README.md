@@ -18,7 +18,7 @@ Colunas: `pendente` (em moderação), `aberta`, `em_andamento`, `resolvida` e `r
 
 Os registros incluem título, descrição, localização, bairro, categoria, setor, estados, datas e motivo da rejeição. Denúncias antigas sem bairro permanecem disponíveis e são agrupadas como “Não informado”. Textos originais de censura, credenciais e dados pessoais do autor não são retornados. O ID de usuário informado na URL não altera o escopo pessoal.
 
-As visões comunitária e analítica incluem `map.points` com até 500 denúncias que possuem coordenadas, além de `total`, `limit` e `truncated`. Os pontos respeitam os filtros ativos; no board comunitário, o conjunto geográfico contém exclusivamente denúncias aprovadas. O board pessoal não recebe esse conjunto adicional.
+As respostas principais dos boards não incluem coordenadas. Os dados geográficos são fornecidos exclusivamente pelos endpoints de mapa de calor, já agrupados em células com no mínimo três denúncias e sem identificadores, títulos ou endereços.
 
 As mesmas visões incluem `metrics`, com o tempo médio em horas até a primeira decisão de moderação e entre a aprovação e a resolução. Cada média informa também o tamanho da amostra e considera somente denúncias com o histórico necessário para o cálculo. Os filtros ativos são respeitados.
 
@@ -53,7 +53,7 @@ Cada resposta do board inclui `generatedAt`, e a interface apresenta essa data c
 - Cada planilha gerada com sucesso registra na auditoria o usuário responsável, o formato XLSX, os filtros utilizados, a quantidade de registros e a data. O arquivo e seu conteúdo não são armazenados no histórico.
 - A permissão `dashboard.audit.view` é atribuída por padrão somente ao perfil `ADMIN`. Analistas mantêm as permissões de visualizar e exportar o board, mas não consultam a auditoria global.
 - `/administracao/historico-exportacoes`: tela administrativa responsiva para consultar responsável, filtros, quantidade, formato e data de cada exportação. O acesso aparece no cabeçalho do board analítico somente com `dashboard.audit.view`.
-- As visões comunitária e analítica exibem os registros com coordenadas em um mapa Leaflet interativo com base cartográfica do OpenStreetMap. Marcadores aprovados mantêm uma alternativa acessível para o detalhe público; registros privados do board analítico não geram links públicos.
+- As visões comunitária e analítica consultam os endpoints agregados e exibem uma camada de calor Leaflet sobre a base cartográfica do OpenStreetMap. O navegador recebe somente células aproximadas e contagens; IDs, títulos e endereços não fazem parte do mapa.
 - No celular e com texto ampliado, as colunas são empilhadas. Os boards usam os temas e recursos globais de acessibilidade.
 
 As cinco etapas acima e a exportação analítica estão implementadas. Não há arraste de cartões nem edição de status nesta primeira versão.

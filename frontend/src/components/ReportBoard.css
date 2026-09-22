@@ -111,12 +111,8 @@
 .rc-board-map-leaflet .leaflet-interactive:focus { outline: 3px solid var(--rc-primary); outline-offset: 2px; }
 .rc-board-map > footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .75rem; padding: .8rem 1rem; }
 .rc-board-map > footer small { color: var(--rc-secondary-text, #526159); }
-.rc-board-map-legend { display: flex; flex-wrap: wrap; gap: .8rem; }
-.rc-board-map-legend span { display: inline-flex; align-items: center; gap: .35rem; font-size: .75rem; }
-.rc-board-map-legend i { width: .7rem; height: .7rem; border-radius: 50%; background: var(--rc-primary); }
-.rc-board-map-legend i.is-aberta { background: #7c3aed; }
-.rc-board-map-legend i.is-em_andamento { background: #2269b1; }
-.rc-board-map-legend i.is-resolvida { background: #2f7d4f; }
+.rc-board-heat-legend { display: flex; align-items: center; gap: .5rem; color: var(--rc-secondary-text, #526159); font-size: .72rem; font-weight: 700; }
+.rc-board-heat-legend i { width: clamp(90px, 18vw, 180px); height: .7rem; border: 1px solid color-mix(in srgb, var(--rc-border) 65%, transparent); border-radius: 999px; background: linear-gradient(90deg, #2563eb, #22c55e, #facc15, #dc2626); }
 .rc-board-map-empty { padding: 1.25rem; }
 .rc-board-map-empty > div { display: flex; align-items: center; gap: .6rem; }
 .rc-board-map-empty > div > i { color: var(--rc-primary); font-size: 1.3rem; }

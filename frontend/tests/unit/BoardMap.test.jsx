@@ -1,7 +1,8 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import BoardMap from '../../src/components/BoardMap';
 import L from 'leaflet';
 
+jest.mock('leaflet.heat', () => ({}));
 jest.mock('leaflet', () => {
   const mapInstance = {
     fitBounds: jest.fn(),
@@ -9,65 +10,77 @@ jest.mock('leaflet', () => {
     setView: jest.fn()
   };
   const tileLayer = { addTo: jest.fn() };
-  const marker = {};
-  marker.addTo = jest.fn(() => marker);
-  marker.bindTooltip = jest.fn(() => marker);
+  const heatLayer = { addTo: jest.fn() };
   return {
     __esModule: true,
     default: {
       map: jest.fn(() => mapInstance),
       tileLayer: jest.fn(() => tileLayer),
-      circleMarker: jest.fn(() => marker),
+      heatLayer: jest.fn(() => heatLayer),
       latLngBounds: jest.fn(() => ({ bounds: true })),
       __mapInstance: mapInstance,
       __tileLayer: tileLayer,
-      __marker: marker
+      __heatLayer: heatLayer
     }
   };
 });
-jest.mock('react-router-dom', () => ({
-  Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>
-}), { virtual: true });
+
+const heatmap = {
+  cells: [
+    { latitude: '-23.6000', longitude: '-46.9200', total: 8 },
+    { latitude: '-23.6500', longitude: '-46.9700', total: 3 }
+  ],
+  summary: { cells: 2, representedReports: 11, maxIntensity: 8, truncated: false },
+  privacy: { coordinatePrecision: 3, minimumReportsPerCell: 3 }
+};
 
 beforeEach(() => {
   jest.clearAllMocks();
   L.map.mockReturnValue(L.__mapInstance);
   L.tileLayer.mockReturnValue(L.__tileLayer);
-  L.circleMarker.mockReturnValue(L.__marker);
+  L.heatLayer.mockReturnValue(L.__heatLayer);
   L.latLngBounds.mockReturnValue({ bounds: true });
-  L.__marker.addTo.mockReturnValue(L.__marker);
-  L.__marker.bindTooltip.mockReturnValue(L.__marker);
 });
 
-const points = [
-  { id: 1, titulo: 'Poste apagado', localizacao: 'Centro, Cotia', categoria: 'Iluminação pública', latitude: '-23.6000', longitude: '-46.9200', status: 'aprovada', resolucaoStatus: 'aberta' },
-  { id: 2, titulo: 'Registro rejeitado', localizacao: 'Caucaia do Alto', categoria: 'Outros', latitude: '-23.6500', longitude: '-46.9700', status: 'rejeitada', resolucaoStatus: 'aberta' }
-];
+test('renderiza células agregadas em uma camada de calor interativa', () => {
+  render(<BoardMap heatmap={heatmap} />);
 
-test('renderiza o mapa interativo e oferece link somente para denúncia pública', () => {
-  render(<BoardMap map={{ points, total: 2, limit: 500, truncated: false }} />);
-
-  expect(screen.getByRole('region', { name: 'Mapa interativo das denúncias' })).toBeInTheDocument();
-  expect(L.map).toHaveBeenCalled();
+  expect(screen.getByRole('region', { name: 'Mapa de calor interativo das denúncias' })).toBeInTheDocument();
   expect(L.tileLayer).toHaveBeenCalledWith(expect.stringContaining('openstreetmap.org'), expect.any(Object));
-  expect(L.circleMarker).toHaveBeenCalledTimes(2);
+  expect(L.heatLayer).toHaveBeenCalledWith([
+    [-23.6, -46.92, 8],
+    [-23.65, -46.97, 3]
+  ], expect.objectContaining({ max: 8, radius: 32 }));
   expect(L.__mapInstance.fitBounds).toHaveBeenCalled();
-  expect(screen.getByRole('link', { name: /abrir denúncia: poste apagado/i })).toHaveAttribute('href', '/denuncia/1');
-  expect(screen.getByRole('img', { name: /registro rejeitado/i })).toBeInTheDocument();
-  expect(screen.queryByRole('link', { name: /registro rejeitado/i })).not.toBeInTheDocument();
-  expect(screen.getByText('2 pontos exibidos')).toBeInTheDocument();
+  expect(screen.getByText('11 denúncias representadas')).toBeInTheDocument();
+  expect(screen.getByLabelText('Intensidade das concentrações')).toBeInTheDocument();
+  expect(screen.queryByRole('link')).not.toBeInTheDocument();
 });
 
-test('explica quando o limite geográfico foi atingido', () => {
-  render(<BoardMap map={{ points: [points[0]], total: 700, limit: 500, truncated: true }} />);
+test('enquadra uma célula e explica quando o resultado foi limitado', () => {
+  render(<BoardMap heatmap={{
+    ...heatmap,
+    cells: [heatmap.cells[0]],
+    summary: { cells: 1, representedReports: 8, maxIntensity: 8, truncated: true }
+  }} />);
 
-  expect(screen.getByText(/pontos mais recentes de 700/i)).toBeInTheDocument();
-  expect(L.__mapInstance.setView).toHaveBeenCalledWith([-23.6, -46.92], 15);
+  expect(L.__mapInstance.setView).toHaveBeenCalledWith([-23.6, -46.92], 14);
+  expect(screen.getByText(/regiões mais intensas estão visíveis/i)).toBeInTheDocument();
 });
 
-test('mostra estado vazio quando não há coordenadas válidas', () => {
-  render(<BoardMap map={{ points: [{ id: 1, latitude: null, longitude: null }], total: 0, limit: 500, truncated: false }} />);
+test('informa quando nenhuma célula atende à regra de privacidade', () => {
+  render(<BoardMap heatmap={{ ...heatmap, cells: [], summary: { cells: 0, representedReports: 0, maxIntensity: 0, truncated: false } }} />);
 
-  expect(screen.getByText(/ainda não possuem coordenadas/i)).toBeInTheDocument();
-  expect(screen.queryByTitle('Mapa das denúncias do board')).not.toBeInTheDocument();
+  expect(screen.getByText(/mínimo de 3 denúncias/i)).toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: /mapa de calor interativo/i })).not.toBeInTheDocument();
+});
+
+test('apresenta carregamento e permite tentar novamente após erro', () => {
+  const onRetry = jest.fn();
+  const { rerender } = render(<BoardMap loading />);
+  expect(screen.getByRole('status')).toHaveTextContent('Carregando concentrações geográficas');
+
+  rerender(<BoardMap error="Não foi possível carregar o mapa de calor." onRetry={onRetry} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }));
+  expect(onRetry).toHaveBeenCalled();
 });
