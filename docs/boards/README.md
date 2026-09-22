@@ -7,6 +7,8 @@ Implementação incremental na branch `feat/boards`. Nesta versão, o board acom
 - `GET /boards/mine`: requer sessão; consulta apenas denúncias do usuário autenticado.
 - `GET /boards/public`: requer `dashboard.public.view`; apresenta somente denúncias aprovadas e indicadores comunitários por categoria, setor, bairro e localização.
 - `GET /boards/analytics`: requer `dashboard.full.view`; consulta todas as denúncias e distribuições por categoria, setor e bairro.
+- `GET /boards/public/heatmap`: requer `dashboard.public.view`; retorna somente células geográficas agregadas de denúncias aprovadas.
+- `GET /boards/analytics/heatmap`: requer `dashboard.full.view`; retorna células agregadas do recorte analítico, incluindo estados privados sem expor registros individuais.
 - `GET /boards/analytics/export`: requer `dashboard.full.view` e `dashboard.export`; exporta em XLSX os registros do recorte analítico, respeitando categoria, setor, bairro e período.
 - `GET /boards/analytics/export-history`: requer `dashboard.audit.view`; consulta a auditoria paginada das exportações, ordenada por data mais recente ou mais antiga.
 
