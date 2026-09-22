@@ -11,6 +11,7 @@ jest.mock('../../src/context/authContext', () => {
 jest.mock('react-router-dom', () => ({ Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a> }), { virtual: true });
 jest.mock('../../src/components/Navbar', () => () => <nav />);
 jest.mock('../../src/components/Footer', () => () => <footer />);
+jest.mock('../../src/components/BoardMap', () => () => <section><h2>Distribuição geográfica</h2></section>);
 
 const report = { id: 1, titulo: 'Iluminação da praça', descricao: 'Lâmpada apagada', categoria: 'Iluminação pública', status: 'aprovada', resolucaoStatus: 'aberta', localizacao: 'Rua Central', bairro: 'Centro', createdAt: '2026-09-20T12:00:00Z' };
 const initial = {

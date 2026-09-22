@@ -53,7 +53,7 @@ Cada resposta do board inclui `generatedAt`, e a interface apresenta essa data c
 - Cada planilha gerada com sucesso registra na auditoria o usuário responsável, o formato XLSX, os filtros utilizados, a quantidade de registros e a data. O arquivo e seu conteúdo não são armazenados no histórico.
 - A permissão `dashboard.audit.view` é atribuída por padrão somente ao perfil `ADMIN`. Analistas mantêm as permissões de visualizar e exportar o board, mas não consultam a auditoria global.
 - `/administracao/historico-exportacoes`: tela administrativa responsiva para consultar responsável, filtros, quantidade, formato e data de cada exportação. O acesso aparece no cabeçalho do board analítico somente com `dashboard.audit.view`.
-- As visões comunitária e analítica exibem os registros com coordenadas sobre um mapa do OpenStreetMap. Marcadores aprovados levam ao detalhe público; registros privados do board analítico não geram links públicos.
+- As visões comunitária e analítica exibem os registros com coordenadas em um mapa Leaflet interativo com base cartográfica do OpenStreetMap. Marcadores aprovados mantêm uma alternativa acessível para o detalhe público; registros privados do board analítico não geram links públicos.
 - No celular e com texto ampliado, as colunas são empilhadas. Os boards usam os temas e recursos globais de acessibilidade.
 
 As cinco etapas acima e a exportação analítica estão implementadas. Não há arraste de cartões nem edição de status nesta primeira versão.
