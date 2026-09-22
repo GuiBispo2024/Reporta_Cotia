@@ -247,7 +247,7 @@ router.get('/access/roles', auth, requirePermission(PERMISSIONS.USERS_MANAGE_ROL
  * /users/access/role-history:
  *   get:
  *     summary: Consulta o histórico de alterações de perfis
- *     description: Requer `audit.view`. Permite ordenar o histórico pela data da alteração.
+ *     description: Requer `users.audit.view`. Permite ordenar o histórico pela data da alteração.
  *     tags: [Usuários]
  *     security:
  *       - bearerAuth: []
@@ -270,9 +270,9 @@ router.get('/access/roles', auth, requirePermission(PERMISSIONS.USERS_MANAGE_ROL
  *                       items: { $ref: '#/components/schemas/UserRoleHistory' }
  *       400: { description: Ordenação inválida }
  *       401: { description: Sessão ausente, expirada ou revogada }
- *       403: { description: Requer a permissão `audit.view` }
+ *       403: { description: Requer a permissão `users.audit.view` }
  */
-router.get('/access/role-history', auth, requirePermission(PERMISSIONS.AUDIT_VIEW), async (req, res, next) => {
+router.get('/access/role-history', auth, requirePermission(PERMISSIONS.USERS_AUDIT_VIEW), async (req, res, next) => {
   try {
     res.status(200).json(await UserService.getRoleHistory(req.query))
   } catch (error) {

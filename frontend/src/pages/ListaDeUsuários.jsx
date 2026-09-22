@@ -32,8 +32,9 @@ export default function ListaDeUsuários() {
   const [selectedRoles, setSelectedRoles] = useState([])
   const [savingRoles, setSavingRoles] = useState(false)
 
+  const canViewUserEmails = hasPermission(user, PERMISSIONS.USERS_VIEW)
   const canManageRoles = hasPermission(user, PERMISSIONS.USERS_MANAGE_ROLES)
-  const canViewAudit = hasPermission(user, PERMISSIONS.AUDIT_VIEW)
+  const canViewAudit = hasPermission(user, PERMISSIONS.USERS_AUDIT_VIEW)
 
   const carregar = useCallback(async () => {
     try {
@@ -126,12 +127,12 @@ export default function ListaDeUsuários() {
 
       {loading ? <div className="text-center py-5"><div role="status" aria-label="Carregando" className="spinner-border text-primary" /><p className="text-muted mt-3">Carregando participantes...</p></div> : !users.length ? <div className="rc-empty">Nenhum usuário encontrado.</div> :
       <div className="rc-users-card"><div className="table-responsive"><table className="table rc-users-table align-middle mb-0">
-        <thead><tr><th>Participante</th>{canManageRoles && <th>E-mail</th>}<th>Contribuições</th><th>Perfis</th>{canManageRoles && <th className="text-end">Ações</th>}</tr></thead>
+        <thead><tr><th>Participante</th>{canViewUserEmails && <th>E-mail</th>}<th>Contribuições</th><th>Perfis</th>{canManageRoles && <th className="text-end">Ações</th>}</tr></thead>
         <tbody>{users.map(item => {
           const itemRoles = normalizeRoles(item.roles)
           return <tr key={item.id}>
             <td><button className="rc-user-cell rc-user-profile-link" onClick={() => navigate(`/usuarios/${item.id}`)}><UserAvatar user={item} className="rc-user-avatar" /><strong>{item.username}</strong>{Number(item.id) === Number(user?.id) && <span className="rc-you-badge">Você</span>}</button></td>
-            {canManageRoles && <td className="text-muted">{item.email}</td>}
+            {canViewUserEmails && <td className="text-muted">{item.email}</td>}
             <td><span className="rc-contribution"><i aria-hidden="true" className="bi bi-megaphone" /> {item.totalDenuncias || 0}</span></td>
             <td><div className="rc-role-badges">{(itemRoles.length ? itemRoles : ['CITIZEN']).map(role => <span className={`rc-role-badge is-${role.toLowerCase()}`} key={role}>{ROLE_LABELS[role] || role}</span>)}</div></td>
             {canManageRoles && <td className="text-end"><button className="btn btn-sm btn-outline-primary rc-manage-roles-button" disabled={rolesLoading || !availableRoles.length} onClick={() => abrirPerfis(item)}><i aria-hidden="true" className="bi bi-person-gear" />{rolesLoading ? 'Carregando...' : 'Gerenciar perfis'}</button></td>}

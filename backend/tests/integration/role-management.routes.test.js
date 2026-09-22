@@ -24,8 +24,8 @@ describe('Gerenciamento de perfis de acesso', () => {
       description: 'Gerenciar perfis de acesso dos usuários.'
     })
     const viewAudit = await Permission.create({
-      key: 'audit.view',
-      description: 'Consultar a trilha de auditoria.'
+      key: 'users.audit.view',
+      description: 'Consultar a trilha administrativa de perfis dos usuários.'
     })
     await Permission.create({
       key: 'moderation.view',
@@ -107,7 +107,7 @@ describe('Gerenciamento de perfis de acesso', () => {
     })).resolves.toBe(historyCountBefore)
   })
 
-  test('bloqueia consulta do histórico sem audit.view', async () => {
+  test('bloqueia moderador no histórico de perfis sem users.audit.view', async () => {
     const response = await request(app)
       .get('/users/access/role-history')
       .set('Authorization', `Bearer ${citizen.token}`)

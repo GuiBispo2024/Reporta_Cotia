@@ -30,6 +30,14 @@ test('gera cenários coerentes e pode ser repetida preservando dados existentes'
   const analyst = await UserService.getMe(users.analyst.id);
   expect(analyst.permissions).toContain(PERMISSIONS.DASHBOARD_FULL_VIEW);
   expect(analyst.permissions).not.toContain(PERMISSIONS.MODERATION_REVIEW);
+  const moderator = await UserService.getMe(users.moderator.id);
+  expect(moderator.permissions).toContain(PERMISSIONS.DENUNCIA_AUDIT_VIEW);
+  expect(moderator.permissions).not.toContain(PERMISSIONS.USERS_AUDIT_VIEW);
+  const admin = await UserService.getMe(users.admin.id);
+  expect(admin.permissions).toEqual(expect.arrayContaining([
+    PERMISSIONS.DENUNCIA_AUDIT_VIEW,
+    PERMISSIONS.USERS_AUDIT_VIEW
+  ]));
   expect(await UserRoleHistory.count()).toBe(2);
 
   const allReports = await Denuncia.findAll();

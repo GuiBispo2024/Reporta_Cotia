@@ -47,7 +47,7 @@ describe('Documentação OpenAPI', () => {
     expect(updateRoles.security).toEqual([{ bearerAuth: [] }])
     expect(updateRoles.requestBody.content['application/json'].schema.required).toContain('roles')
     expect(updateRoles.responses[409]).toBeDefined()
-    expect(roleHistory.description).toContain('audit.view')
+    expect(roleHistory.description).toContain('users.audit.view')
     expect(roleHistory.security).toEqual([{ bearerAuth: [] }])
     expect(roleHistory.parameters.map(parameter => parameter.name)).toEqual(['page', 'limit', 'sort'])
     expect(roleHistory.responses[200].content['application/json'].schema.allOf[1].properties.data.items.$ref)
@@ -68,7 +68,7 @@ describe('Documentação OpenAPI', () => {
     expect(swaggerSpec.paths['/users'].get.description).toContain('users.view')
     expect(swaggerSpec.paths['/denuncia/moderacao'].get.description).toContain('censorship.review')
     expect(swaggerSpec.paths['/denuncia/{id}'].get.description).toContain('moderation.view')
-    expect(swaggerSpec.paths['/denuncia/{id}/historico'].get.description).toContain('audit.view')
+    expect(swaggerSpec.paths['/denuncia/{id}/historico'].get.description).toContain('denuncia.audit.view')
   })
 
   test('documenta a proteção da exclusão da última conta administradora', () => {
@@ -76,5 +76,16 @@ describe('Documentação OpenAPI', () => {
 
     expect(endpoint.requestBody.content['application/json'].schema.required).toContain('senhaAtual')
     expect(endpoint.responses[409].description).toContain('única conta administradora')
+  })
+
+  test('documenta a exportação XLSX do board analítico', () => {
+    const endpoint = swaggerSpec.paths['/boards/analytics/export'].get
+    expect(endpoint).toBeDefined()
+    expect(endpoint.description).toContain('dashboard.export')
+    expect(endpoint.responses[200].content['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']).toBeDefined()
+    const history = swaggerSpec.paths['/boards/analytics/export-history'].get
+    expect(history.description).toContain('dashboard.audit.view')
+    expect(history.parameters.map(parameter => parameter.name)).toEqual(['page', 'limit', 'sort'])
+    expect(history.responses[403]).toBeDefined()
   })
 })

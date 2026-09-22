@@ -28,11 +28,33 @@ function pagination(req) {
  * /denuncia:
  *   post:
  *     summary: Cria uma denúncia
+ *     description: Exige a permissão `denuncia.create`.
  *     tags: [Denúncias]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [titulo, descricao, localizacao]
+ *             properties:
+ *               titulo: { type: string, maxLength: 120 }
+ *               descricao: { type: string, maxLength: 2000 }
+ *               localizacao: { type: string, maxLength: 255 }
+ *               bairro: { type: string, maxLength: 120 }
+ *               categoria: { type: string }
+ *               latitude: { type: number }
+ *               longitude: { type: number }
+ *               imagens: { type: array, maxItems: 4, items: { type: string, format: binary } }
+ *     responses:
+ *       201: { description: Denúncia criada e enviada à moderação }
+ *       400: { description: Dados ou imagens inválidos }
+ *       401: { description: Sessão ausente, expirada ou revogada }
+ *       403: { description: Usuário sem `denuncia.create` }
  */
-router.post('/', auth, upload.array('imagens', 4), async (req, res, next) => {
+router.post('/', auth, requirePermission(PERMISSIONS.DENUNCIA_CREATE), upload.array('imagens', 4), async (req, res, next) => {
   try {
     const imageUrls = await Promise.all((req.files || []).map(file => storeImage(file)));
     res.status(201).json(await DenunciaService.create({ ...req.body, imageUrls, imageUrl: imageUrls[0] || null }, req.user));
@@ -278,7 +300,7 @@ router.get('/user/:userId', auth, async (req, res, next) => {
  * /denuncia/{id}/historico:
  *   get:
  *     summary: Consulta o histórico de uma denúncia
- *     description: Denúncias públicas podem ser consultadas sem login. O histórico privado exige autoria ou `audit.view`.
+ *     description: Denúncias públicas podem ser consultadas sem login. O histórico privado exige autoria ou `denuncia.audit.view`.
  *     tags: [Denúncias]
  *     security: []
  *     parameters:
@@ -320,6 +342,7 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
  * /denuncia/{id}:
  *   put:
  *     summary: Atualiza uma denúncia do usuário autenticado
+ *     description: Exige a permissão `denuncia.update_own` e autoria da denúncia.
  *     tags: [Denúncias]
  *     security:
  *       - bearerAuth: []
@@ -334,6 +357,7 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
  *               titulo: { type: string }
  *               descricao: { type: string }
  *               localizacao: { type: string }
+ *               bairro: { type: string, maxLength: 120 }
  *               categoria: { type: string }
  *               imagens: { type: array, maxItems: 4, items: { type: string, format: binary } }
  *               removeImages: { type: boolean }
@@ -342,7 +366,7 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
  *       403: { description: Usuário não é o autor }
  *       404: { description: Denúncia não encontrada }
  */
-router.put('/:id', auth, upload.array('imagens', 4), async (req, res, next) => {
+router.put('/:id', auth, requirePermission(PERMISSIONS.DENUNCIA_UPDATE_OWN), upload.array('imagens', 4), async (req, res, next) => {
   try {
     const current = await DenunciaService.buscarPorId(req.params.id, req.user);
     const newUrls = await Promise.all((req.files || []).map(file => storeImage(file)));
@@ -370,6 +394,7 @@ router.put('/:id', auth, upload.array('imagens', 4), async (req, res, next) => {
  * /denuncia/{id}:
  *   delete:
  *     summary: Exclui uma denúncia do próprio usuário
+ *     description: Exige a permissão `denuncia.delete_own` e autoria da denúncia.
  *     tags: [Denúncias]
  *     security:
  *       - bearerAuth: []
@@ -380,7 +405,7 @@ router.put('/:id', auth, upload.array('imagens', 4), async (req, res, next) => {
  *       403: { description: Usuário não é o autor }
  *       404: { description: Denúncia não encontrada }
  */
-router.delete('/:id', auth, async (req, res, next) => {
+router.delete('/:id', auth, requirePermission(PERMISSIONS.DENUNCIA_DELETE_OWN), async (req, res, next) => {
   try {
     res.status(200).json(await DenunciaService.deletar(req.params.id, req.user.id));
   } catch (error) { next(error); }

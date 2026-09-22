@@ -9,8 +9,11 @@ export default function Navbar() {
   const linkClass = ({ isActive }) => `nav-link rc-nav-link${isActive ? " active" : ""}`;
   const sair = () => logout();
   const canViewModeration = hasPermission(user, PERMISSIONS.MODERATION_VIEW);
+  const boardPath = hasPermission(user, PERMISSIONS.DASHBOARD_FULL_VIEW)
+    ? '/boards/analitico'
+    : hasPermission(user, PERMISSIONS.DASHBOARD_PUBLIC_VIEW) ? '/boards/comunidade' : '/meu-board';
 
-  return <nav className="navbar navbar-expand-lg navbar-dark rc-navbar sticky-top">
+  return <nav className="navbar navbar-expand-xl navbar-dark rc-navbar sticky-top">
     <div className="container">
       <Link className="navbar-brand rc-brand" to="/">
         <span className="rc-brand-mark"><img src="/reporta-cotia-logo.svg" alt="" /></span>
@@ -27,6 +30,7 @@ export default function Navbar() {
             <li className="nav-item ms-lg-1"><NavLink className="btn rc-nav-signup" to="/cadastro">Criar conta</NavLink></li>
           </> : <>
             <li className="nav-item"><NavLink className={linkClass} to="/minhas-denuncias"><i aria-hidden="true" className="bi bi-clipboard-check" /> Minhas denúncias</NavLink></li>
+            <li className="nav-item"><NavLink className={linkClass} to={boardPath}><i aria-hidden="true" className="bi bi-kanban" /> Boards</NavLink></li>
             <li className="nav-item"><NavLink className={linkClass} to="/lista-de-usuarios"><i aria-hidden="true" className="bi bi-people" /> Comunidade</NavLink></li>
             {canViewModeration && <li className="nav-item"><NavLink className={({ isActive }) => `nav-link rc-nav-link rc-nav-admin${isActive ? " active" : ""}`} to="/moderacao"><i aria-hidden="true" className="bi bi-shield-check" /> Moderação</NavLink></li>}
             <li className="nav-item ms-lg-1"><NavLink className="btn rc-nav-report" to="/nova-denuncia"><i aria-hidden="true" className="bi bi-plus-lg" /> Nova denúncia</NavLink></li>

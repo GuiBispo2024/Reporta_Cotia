@@ -3,8 +3,14 @@ export const PERMISSIONS = Object.freeze({
   MODERATION_REVIEW: 'moderation.review',
   CENSORSHIP_REVIEW: 'censorship.review',
   RESOLUTION_UPDATE: 'resolution.update',
+  DASHBOARD_PUBLIC_VIEW: 'dashboard.public.view',
+  DASHBOARD_FULL_VIEW: 'dashboard.full.view',
+  DASHBOARD_EXPORT: 'dashboard.export',
+  DASHBOARD_AUDIT_VIEW: 'dashboard.audit.view',
+  USERS_VIEW: 'users.view',
   USERS_MANAGE_ROLES: 'users.manage_roles',
-  AUDIT_VIEW: 'audit.view'
+  DENUNCIA_AUDIT_VIEW: 'denuncia.audit.view',
+  USERS_AUDIT_VIEW: 'users.audit.view'
 })
 
 const ROLE_LABELS = Object.freeze({

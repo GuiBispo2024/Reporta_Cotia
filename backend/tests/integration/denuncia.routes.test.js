@@ -7,10 +7,12 @@ let userId;
 let denunciaId;
 let secondaryUserId;
 const { Denuncia, Share } = require('../../models/rel');
+const seedAccessControl = require('../../seed/accessControl.seed');
 
 describe("Denúncias routes (integration)", () => {
   beforeAll(async () => {
     await db.sequelize.sync({ force: true });
+    await seedAccessControl();
 
     // Criar usuário comum
     const user = await request(app).post("/users").send({
@@ -46,7 +48,8 @@ describe("Denúncias routes (integration)", () => {
     const payload = {
       titulo: "Buraco enorme",
       descricao: "Em frente à escola",
-      localizacao: "Rua das Flores"
+      localizacao: "Rua das Flores",
+      bairro: "Centro"
     };
 
     const res = await request(app)
@@ -58,6 +61,7 @@ describe("Denúncias routes (integration)", () => {
 
     expect(res.statusCode).toBe(201);
     expect(res.body.denuncia).toHaveProperty("id");
+    expect(res.body.denuncia.bairro).toBe("Centro");
 
     denunciaId = res.body.denuncia.id;
   });

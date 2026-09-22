@@ -5,7 +5,7 @@ import denunciaService from "../services/denunciaService";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { friendlyError } from '../utils/errorMessage';
-import { formatAddress } from '../utils/formatAddress';
+import { extractDistrict, formatAddress } from '../utils/formatAddress';
 
 const CATEGORIAS = [
   "Buraco e pavimentação", "Iluminação pública", "Limpeza urbana",
@@ -16,7 +16,7 @@ const CATEGORIAS = [
 export default function NovaDenuncia() {
   const accessibilityId = useId();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ titulo: "", descricao: "", localizacao: "", categoria: "Outros", latitude: "", longitude: "" });
+  const [form, setForm] = useState({ titulo: "", descricao: "", localizacao: "", bairro: "", categoria: "Outros", latitude: "", longitude: "" });
   const [imagens, setImagens] = useState([]);
   const [previews, setPreviews] = useState([]);
   const [mensagem, setMensagem] = useState("");
@@ -32,6 +32,7 @@ export default function NovaDenuncia() {
         const longitude = coords.longitude.toFixed(7);
         setMensagem("📍 Localização encontrada. Buscando o endereço...");
         let endereco = `Latitude ${latitude}, Longitude ${longitude}`;
+        let bairro = '';
 
         try {
           const response = await fetch(
@@ -41,12 +42,13 @@ export default function NovaDenuncia() {
           if (response.ok) {
             const data = await response.json();
             endereco = formatAddress(data, endereco);
+            bairro = extractDistrict(data);
           }
         } catch {
           // Mantém as coordenadas como endereço legível quando a geocodificação falhar.
         }
 
-        setForm(prev => ({ ...prev, latitude, longitude, localizacao: endereco }));
+        setForm(prev => ({ ...prev, latitude, longitude, localizacao: endereco, bairro }));
         setMensagem("📍 Endereço e coordenadas preenchidos. Confira antes de enviar.");
       },
       () => setMensagem("Não conseguimos acessar sua localização. Autorize o acesso nas configurações do navegador ou preencha o endereço manualmente.")
@@ -106,15 +108,19 @@ export default function NovaDenuncia() {
             </div>
 
             <div className="row g-3">
-              <div className="col-md-6">
+              <div className="col-md-4">
                 <label htmlFor={`${accessibilityId}-field-2`} className="form-label fw-semibold">Categoria</label>
                 <select id={`${accessibilityId}-field-2`} className="form-select" name="categoria" value={form.categoria} onChange={change}>
                   {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
                 </select>
               </div>
-              <div className="col-md-6">
+              <div className="col-md-4">
                 <label htmlFor={`${accessibilityId}-field-3`} className="form-label fw-semibold">Localização</label>
                 <input id={`${accessibilityId}-field-3`} className="form-control" name="localizacao" placeholder="Rua, número ou referência" value={form.localizacao} onChange={change} required />
+              </div>
+              <div className="col-md-4">
+                <label htmlFor={`${accessibilityId}-field-neighborhood`} className="form-label fw-semibold">Bairro</label>
+                <input id={`${accessibilityId}-field-neighborhood`} className="form-control" name="bairro" maxLength="120" placeholder="Ex.: Centro" value={form.bairro} onChange={change} required />
               </div>
             </div>
 

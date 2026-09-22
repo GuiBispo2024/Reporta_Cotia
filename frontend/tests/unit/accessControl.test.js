@@ -7,8 +7,22 @@ test('autoriza pela permissão recebida da sessão', () => {
   expect(hasPermission(moderator, PERMISSIONS.MODERATION_REVIEW)).toBe(false)
 })
 
+test('mantém separadas as permissões de visualizar usuários e gerenciar perfis', () => {
+  const viewer = { permissions: [PERMISSIONS.USERS_VIEW] }
+
+  expect(hasPermission(viewer, PERMISSIONS.USERS_VIEW)).toBe(true)
+  expect(hasPermission(viewer, PERMISSIONS.USERS_MANAGE_ROLES)).toBe(false)
+})
+
+test('mantém separadas as auditorias de denúncias e de perfis', () => {
+  const moderator = { permissions: [PERMISSIONS.DENUNCIA_AUDIT_VIEW] }
+
+  expect(hasPermission(moderator, PERMISSIONS.DENUNCIA_AUDIT_VIEW)).toBe(true)
+  expect(hasPermission(moderator, PERMISSIONS.USERS_AUDIT_VIEW)).toBe(false)
+})
+
 test('não autoriza um perfil sem a permissão exigida', () => {
-  expect(hasPermission({ roles: ['ADMIN'], permissions: [] }, PERMISSIONS.AUDIT_VIEW)).toBe(false)
+  expect(hasPermission({ roles: ['ADMIN'], permissions: [] }, PERMISSIONS.USERS_AUDIT_VIEW)).toBe(false)
 })
 
 test('apresenta o perfil de maior responsabilidade', () => {

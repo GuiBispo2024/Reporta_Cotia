@@ -19,6 +19,7 @@ const denunciaController = require('./controllers/DenunciaController');
 const commentController = require('./controllers/CommentController');
 const likeController = require('./controllers/LikeController');
 const shareController = require('./controllers/ShareController');
+const boardController = require('./controllers/BoardController');
 
 const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3000')
   .split(',')
@@ -40,6 +41,7 @@ app.use(bodyParser.json({ limit: '1mb' }));
 app.use(securityHeaders);
 app.use(rateLimit);
 app.use(cors({
+  exposedHeaders: ['Content-Disposition', 'X-Total-Count'],
   origin: (origin, callback) => {
     if (
       !origin
@@ -71,6 +73,7 @@ app.get('/', async (req, res) => {
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/users', userController);
+app.use('/boards', boardController);
 app.use('/denuncia', denunciaController);
 app.use('/denuncia', commentController);
 app.use('/denuncia', likeController);

@@ -12,9 +12,11 @@ const PERMISSION_DESCRIPTIONS = {
   [PERMISSIONS.DASHBOARD_PUBLIC_VIEW]: 'Consultar indicadores públicos.',
   [PERMISSIONS.DASHBOARD_FULL_VIEW]: 'Consultar o dashboard analítico completo.',
   [PERMISSIONS.DASHBOARD_EXPORT]: 'Exportar relatórios analíticos.',
+  [PERMISSIONS.DASHBOARD_AUDIT_VIEW]: 'Consultar a auditoria de exportações do dashboard.',
   [PERMISSIONS.USERS_VIEW]: 'Consultar a listagem administrativa de usuários.',
   [PERMISSIONS.USERS_MANAGE_ROLES]: 'Gerenciar perfis de acesso dos usuários.',
-  [PERMISSIONS.AUDIT_VIEW]: 'Consultar a trilha de auditoria.'
+  [PERMISSIONS.DENUNCIA_AUDIT_VIEW]: 'Consultar a trilha de auditoria das denúncias.',
+  [PERMISSIONS.USERS_AUDIT_VIEW]: 'Consultar a trilha administrativa de perfis dos usuários.'
 }
 
 const ROLE_PERMISSIONS = {
@@ -28,7 +30,8 @@ const ROLE_PERMISSIONS = {
     PERMISSIONS.MODERATION_VIEW,
     PERMISSIONS.MODERATION_REVIEW,
     PERMISSIONS.CENSORSHIP_REVIEW,
-    PERMISSIONS.RESOLUTION_UPDATE
+    PERMISSIONS.RESOLUTION_UPDATE,
+    PERMISSIONS.DENUNCIA_AUDIT_VIEW
   ],
   [ROLES.ANALYST]: [
     PERMISSIONS.DASHBOARD_FULL_VIEW,

@@ -620,6 +620,11 @@ body {
 .rc-role-history-card .rc-empty { display: flex; flex-direction: column; align-items: center; gap: .35rem; }
 .rc-role-history-card .rc-empty > i { margin-bottom: .25rem; color: var(--rc-primary); font-size: 1.8rem; }
 .rc-role-history-card .rc-empty > span { color: var(--rc-secondary-text, #74827b); font-size: .8rem; }
+.rc-export-audit-filters { display: flex; flex-wrap: wrap; gap: .35rem; min-width: 220px; }
+.rc-export-audit-filters span, .rc-export-audit-format { padding: .28rem .5rem; border-radius: 999px; background: color-mix(in srgb, var(--rc-primary) 9%, var(--rc-surface, white)); color: var(--rc-secondary-text, #526159); font-size: .68rem; }
+.rc-export-audit-filters strong { color: var(--rc-text); }
+.rc-export-audit-format { color: var(--rc-primary-dark); font-weight: 800; letter-spacing: .04em; }
+.rc-export-audit-no-filter { color: var(--rc-secondary-text, #829088); font-size: .75rem; }
 .rc-pagination { margin-top: 1rem; display: flex; align-items: center; justify-content: center; gap: 1rem; }
 .rc-pagination span { color: var(--rc-secondary-text, #63736b); font-size: .82rem; font-weight: 700; }
 
@@ -795,7 +800,7 @@ body {
   .rc-map-caption small { width: 100%; margin-left: 1.35rem; }
 }
 
-@media (max-width: 991px) {
+@media (max-width: 1199px) {
   .rc-navbar .navbar-collapse { margin-top: .7rem; padding: .8rem; border: 1px solid rgba(255,255,255,.1); border-radius: 13px; background: rgba(10,61,43,.98); }
   .rc-navbar .navbar-nav { align-items: stretch !important; }
   .rc-nav-link { padding: .7rem !important; }

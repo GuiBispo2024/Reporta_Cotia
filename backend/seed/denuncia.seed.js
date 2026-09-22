@@ -15,6 +15,18 @@ const scenarios = [
   { key: 'censura', titulo: 'Lixo acumulado precisa de avaliação', categoria: 'Limpeza urbana', localizacao: 'Rua Exemplo, 500 — Centro, Cotia', descricao: 'Esta merda de lixo está bloqueando a calçada há dias.', status: 'pendente' }
 ];
 
+const neighborhoods = {
+  obras: 'Centro',
+  iluminacao: 'Jardim dos Ipês',
+  limpeza: 'Granja Viana',
+  saneamento: 'Caucaia do Alto',
+  agua: 'Centro',
+  transito: 'Granja Viana',
+  arvore: 'Caucaia do Alto',
+  outros: 'Centro',
+  censura: 'Centro'
+};
+
 module.exports = async ({ users }) => {
   const reports = {};
   for (const [index, scenario] of scenarios.entries()) {
@@ -22,7 +34,7 @@ module.exports = async ({ users }) => {
     const author = index % 2 ? users.neighbor : users.citizen;
     let report = await Denuncia.findOne({ where: { userId: author.id, titulo: data.titulo } });
     if (!report) {
-      ({ denuncia: report } = await DenunciaService.create({ ...data, imageUrl: null, imageUrls: [] }, author));
+      ({ denuncia: report } = await DenunciaService.create({ ...data, bairro: neighborhoods[key] || null, imageUrl: null, imageUrls: [] }, author));
       if (status !== 'pendente') await DenunciaService.moderar(report.id, status, motivo, users.moderator.id);
       if (setor) {
         await DenunciaService.atualizarResolucao(report.id, andamento ? 'em_andamento' : 'aberta', { setorResponsavel: setor }, users.moderator.id);
