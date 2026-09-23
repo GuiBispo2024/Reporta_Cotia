@@ -24,6 +24,30 @@ test.each([
   expect(api.get).toHaveBeenCalledWith(endpoint, { params, signal });
 });
 
+test.each([
+  [{}, '/boards/public/heatmap'],
+  [{ analytical: true }, '/boards/analytics/heatmap']
+])('consulta o endpoint correspondente ao mapa de calor', async (options, endpoint) => {
+  const params = { categoria: 'Iluminação pública', dataInicio: '2026-01-01' };
+  const signal = new AbortController().signal;
+
+  await boardService.getHeatmap({ ...options, params, signal });
+
+  expect(api.get).toHaveBeenCalledWith(endpoint, { params, signal });
+});
+
+test.each([
+  [{}, '/boards/public/map-points'],
+  [{ analytical: true }, '/boards/analytics/map-points']
+])('consulta o endpoint correspondente aos pontos individuais', async (options, endpoint) => {
+  const params = { bairro: 'Centro' };
+  const signal = new AbortController().signal;
+
+  await boardService.getMapPoints({ ...options, params, signal });
+
+  expect(api.get).toHaveBeenCalledWith(endpoint, { params, signal });
+});
+
 test('solicita a exportação analítica em XLSX e preserva o nome do arquivo', async () => {
   const blob = new Blob(['dados'], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   api.get.mockResolvedValueOnce({

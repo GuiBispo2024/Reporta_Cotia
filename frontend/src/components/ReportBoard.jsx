@@ -56,6 +56,12 @@ export default function ReportBoard({ analytical = false, community = false }) {
     ? Object.entries(SUMMARY_LABELS).filter(([key]) => !['pendente', 'rejeitada'].includes(key))
     : Object.entries(SUMMARY_LABELS);
   const [data, setData] = useState(null);
+  const [heatmap, setHeatmap] = useState(null);
+  const [heatmapLoading, setHeatmapLoading] = useState(false);
+  const [heatmapError, setHeatmapError] = useState('');
+  const [reportMap, setReportMap] = useState(null);
+  const [reportMapLoading, setReportMapLoading] = useState(false);
+  const [reportMapError, setReportMapError] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
@@ -81,11 +87,31 @@ export default function ReportBoard({ analytical = false, community = false }) {
     requestController.current = controller;
     pendingColumns.current.clear();
     setData(null);
+    setHeatmap(null);
+    setHeatmapLoading(aggregated);
+    setHeatmapError('');
+    setReportMap(null);
+    setReportMapLoading(false);
+    setReportMapError('');
     setLoading(true);
     setError('');
     setColumnErrors({});
     setLoadingColumns({});
     setSelected(null);
+    if (aggregated) {
+      boardService.getHeatmap({ analytical, params: appliedFilters, signal: controller.signal })
+        .then(result => {
+          if (version === revision.current) setHeatmap(result);
+        })
+        .catch(err => {
+          if (!controller.signal.aborted && version === revision.current) {
+            setHeatmapError(friendlyError(err, 'Não foi possível carregar o mapa de calor. Tente novamente.'));
+          }
+        })
+        .finally(() => {
+          if (version === revision.current) setHeatmapLoading(false);
+        });
+    }
     boardService.getBoard({ analytical, community, params: aggregated ? appliedFilters : {}, signal: controller.signal })
       .then(result => {
         if (version !== revision.current) return;
@@ -96,6 +122,27 @@ export default function ReportBoard({ analytical = false, community = false }) {
       .finally(() => { if (version === revision.current) setLoading(false); });
     return () => { revision.current += 1; controller.abort(); };
   }, [aggregated, analytical, community, reload, appliedFilters]);
+
+  const loadMapPoints = async () => {
+    if (!aggregated || reportMapLoading || reportMap) return;
+    const version = revision.current;
+    setReportMapLoading(true);
+    setReportMapError('');
+    try {
+      const result = await boardService.getMapPoints({
+        analytical,
+        params: appliedFilters,
+        signal: requestController.current?.signal
+      });
+      if (version === revision.current) setReportMap(result);
+    } catch (err) {
+      if (!requestController.current?.signal.aborted && version === revision.current) {
+        setReportMapError(friendlyError(err, 'Não foi possível carregar as denúncias no mapa. Tente novamente.'));
+      }
+    } finally {
+      if (version === revision.current) setReportMapLoading(false);
+    }
+  };
 
   const loadMore = async column => {
     if (pendingColumns.current.has(column.key) || column.page >= column.totalPages) return;
@@ -210,7 +257,17 @@ export default function ReportBoard({ analytical = false, community = false }) {
           </section>}
           {aggregated && <BoardCharts summary={data.summary} categories={data.breakdown?.categories || []} neighborhoods={data.breakdown?.neighborhoods || []} trend={data.trend || []} categoryTrend={analytical ? data.categoryTrend : null} community={community} />}
           {!data.summary.total && <div className="rc-board-state"><p>{aggregated ? 'Nenhuma denúncia encontrada para os filtros aplicados.' : 'Você ainda não tem denúncias para acompanhar.'}</p>{!aggregated && <Link className="btn btn-primary" to="/nova-denuncia">Registrar denúncia</Link>}</div>}
-          {aggregated && <BoardMap map={data.map} />}
+          {aggregated && <BoardMap
+            heatmap={heatmap}
+            reportMap={reportMap}
+            loading={heatmapLoading}
+            error={heatmapError}
+            reportsLoading={reportMapLoading}
+            reportsError={reportMapError}
+            onRetry={() => setReload(value => value + 1)}
+            onLoadReports={loadMapPoints}
+            onSelectReport={setSelected}
+          />}
           {aggregated && data.breakdown && <div className="rc-board-breakdowns">
             {Object.entries(BREAKDOWN_LABELS).map(([key, labels]) => <section key={key}>
               <table><caption>{labels.title}</caption><thead><tr><th scope="col">{labels.column}</th><th scope="col">Total</th></tr></thead><tbody>{(data.breakdown[key] || []).map(item => <tr key={item.label}><th scope="row">{item.label}</th><td>{item.total}</td></tr>)}</tbody></table>

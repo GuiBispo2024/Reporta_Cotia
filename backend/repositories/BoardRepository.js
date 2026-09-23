@@ -1,9 +1,9 @@
 const { Denuncia, DenunciaHistorico, Comment, BoardExportHistory, User, sequelize } = require('../models/rel');
 const { Op } = require('sequelize');
 
-const REPORT_FIELDS = ['id', 'titulo', 'descricao', 'localizacao', 'bairro', 'categoria', 'latitude', 'longitude', 'status', 'resolucaoStatus', 'setorResponsavel', 'motivoRejeicao', 'createdAt', 'updatedAt', 'resolucaoAtualizadaEm'];
+const REPORT_FIELDS = ['id', 'titulo', 'descricao', 'localizacao', 'bairro', 'categoria', 'status', 'resolucaoStatus', 'setorResponsavel', 'motivoRejeicao', 'createdAt', 'updatedAt', 'resolucaoAtualizadaEm'];
 const EXPORT_FIELDS = ['id', 'titulo', 'localizacao', 'bairro', 'categoria', 'status', 'resolucaoStatus', 'setorResponsavel', 'createdAt', 'updatedAt'];
-const MAP_FIELDS = ['id', 'titulo', 'localizacao', 'bairro', 'categoria', 'latitude', 'longitude', 'status', 'resolucaoStatus'];
+const MAP_FIELDS = [...REPORT_FIELDS, 'latitude', 'longitude'];
 
 class BoardRepository {
   static grouped(where, fields) {
@@ -23,6 +23,35 @@ class BoardRepository {
       limit,
       offset: (page - 1) * limit
     });
+  }
+
+  static async heatmapCells(where, { precision = 3, minReports = 3, limit = 1000 } = {}) {
+    const latitudeCell = sequelize.fn('ROUND', sequelize.col('latitude'), precision);
+    const longitudeCell = sequelize.fn('ROUND', sequelize.col('longitude'), precision);
+    const reportCount = sequelize.fn('COUNT', sequelize.col('id'));
+    const rows = await Denuncia.findAll({
+      where: {
+        ...where,
+        latitude: { [Op.ne]: null },
+        longitude: { [Op.ne]: null }
+      },
+      attributes: [
+        [latitudeCell, 'latitude'],
+        [longitudeCell, 'longitude'],
+        [reportCount, 'total']
+      ],
+      group: [latitudeCell, longitudeCell],
+      having: sequelize.where(reportCount, { [Op.gte]: minReports }),
+      order: [[reportCount, 'DESC']],
+      limit,
+      raw: true
+    });
+
+    return rows.map(cell => ({
+      latitude: Number(cell.latitude),
+      longitude: Number(cell.longitude),
+      total: Number(cell.total)
+    }));
   }
 
   static async mapPoints(where, limit = 500) {

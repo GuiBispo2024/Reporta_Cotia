@@ -3,7 +3,7 @@ import ReportBoard from '../../src/components/ReportBoard';
 import boardService from '../../src/services/boardService';
 import { AuthContext } from '../../src/context/authContext';
 
-jest.mock('../../src/services/boardService', () => ({ __esModule: true, default: { getBoard: jest.fn(), exportAnalytics: jest.fn() } }));
+jest.mock('../../src/services/boardService', () => ({ __esModule: true, default: { getBoard: jest.fn(), getHeatmap: jest.fn(), getMapPoints: jest.fn(), exportAnalytics: jest.fn() } }));
 jest.mock('../../src/context/authContext', () => {
   const React = require('react');
   return { AuthContext: React.createContext(null) };
@@ -11,6 +11,11 @@ jest.mock('../../src/context/authContext', () => {
 jest.mock('react-router-dom', () => ({ Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a> }), { virtual: true });
 jest.mock('../../src/components/Navbar', () => () => <nav />);
 jest.mock('../../src/components/Footer', () => () => <footer />);
+jest.mock('../../src/components/BoardMap', () => ({ reportMap, onLoadReports, onSelectReport }) => <section>
+  <h2>Mapa das denúncias</h2>
+  <button type="button" onClick={onLoadReports}>Carregar denúncias no mapa</button>
+  {reportMap?.points?.map(report => <button type="button" key={report.id} onClick={() => onSelectReport({ ...report, columnLabel: 'Aberta' })}>{`Abrir ponto: ${report.titulo}`}</button>)}
+</section>);
 
 const report = { id: 1, titulo: 'Iluminação da praça', descricao: 'Lâmpada apagada', categoria: 'Iluminação pública', status: 'aprovada', resolucaoStatus: 'aberta', localizacao: 'Rua Central', bairro: 'Centro', createdAt: '2026-09-20T12:00:00Z' };
 const initial = {
@@ -18,7 +23,21 @@ const initial = {
   summary: { total: 2, pendente: 0, aberta: 2, em_andamento: 0, resolvida: 0, rejeitada: 0 },
   columns: [{ key: 'aberta', label: 'Abertas', page: 1, totalPages: 2, total: 2, reports: [report] }]
 };
-beforeEach(() => { jest.clearAllMocks(); boardService.getBoard.mockResolvedValue(initial); });
+beforeEach(() => {
+  jest.clearAllMocks();
+  boardService.getBoard.mockResolvedValue(initial);
+  boardService.getHeatmap.mockResolvedValue({
+    cells: [{ latitude: -23.6, longitude: -46.92, total: 3 }],
+    summary: { cells: 1, representedReports: 3, maxIntensity: 3, truncated: false },
+    privacy: { coordinatePrecision: 3, minimumReportsPerCell: 3 }
+  });
+  boardService.getMapPoints.mockResolvedValue({
+    points: [{ ...report, latitude: -23.6, longitude: -46.92 }],
+    total: 1,
+    limit: 500,
+    truncated: false
+  });
+});
 
 test('board pessoal mostra os cartões e abre detalhes acessíveis', async () => {
   render(<ReportBoard />);
@@ -86,6 +105,7 @@ test('board analítico aplica filtros aos indicadores e à paginação', async (
   expect(screen.getByLabelText('Data final')).toHaveAttribute('min', '2026-01-01');
   fireEvent.click(screen.getByRole('button', { name: 'Aplicar filtros' }));
   await waitFor(() => expect(boardService.getBoard).toHaveBeenLastCalledWith(expect.objectContaining({ analytical: true, params: { categoria: 'Iluminação pública', setorResponsavel: 'Defesa Civil', bairro: 'Centro', dataInicio: '2026-01-01', dataFim: '2026-01-31' } })));
+  await waitFor(() => expect(boardService.getHeatmap).toHaveBeenLastCalledWith(expect.objectContaining({ analytical: true, params: { categoria: 'Iluminação pública', setorResponsavel: 'Defesa Civil', bairro: 'Centro', dataInicio: '2026-01-01', dataFim: '2026-01-31' } })));
   fireEvent.click(await screen.findByRole('button', { name: 'Carregar mais: Abertas' }));
   await waitFor(() => expect(boardService.getBoard).toHaveBeenLastCalledWith(expect.objectContaining({ params: { categoria: 'Iluminação pública', setorResponsavel: 'Defesa Civil', bairro: 'Centro', dataInicio: '2026-01-01', dataFim: '2026-01-31', column: 'aberta', page: 2 } })));
   await waitFor(() => expect(screen.getByRole('button', { name: 'Carregar mais: Abertas' })).not.toBeDisabled());
@@ -112,11 +132,25 @@ test('board comunitário apresenta somente indicadores públicos e localizaçõe
   expect(screen.getByText('Denúncias por localização')).toBeInTheDocument();
   expect(screen.getByText('Denúncias por bairro')).toBeInTheDocument();
   expect(screen.getByText('Centro, Cotia')).toBeInTheDocument();
-  expect(screen.getByRole('heading', { name: 'Distribuição geográfica' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Mapa das denúncias' })).toBeInTheDocument();
   expect(screen.queryByText('Em moderação')).not.toBeInTheDocument();
   expect(screen.queryByText('Rejeitadas')).not.toBeInTheDocument();
   expect(screen.queryByRole('heading', { name: 'Indicadores da moderação' })).not.toBeInTheDocument();
   expect(boardService.getBoard).toHaveBeenCalledWith(expect.objectContaining({ analytical: false, community: true }));
+});
+
+test('carrega os pontos sob demanda e abre os detalhes da denúncia no board', async () => {
+  render(<ReportBoard community />);
+
+  fireEvent.click(await screen.findByRole('button', { name: 'Carregar denúncias no mapa' }));
+  await waitFor(() => expect(boardService.getMapPoints).toHaveBeenCalledWith(expect.objectContaining({
+    analytical: false,
+    params: {}
+  })));
+
+  fireEvent.click(await screen.findByRole('button', { name: `Abrir ponto: ${report.titulo}` }));
+  expect(screen.getByRole('dialog', { name: report.titulo })).toBeInTheDocument();
+  expect(screen.getByText(report.descricao)).toBeInTheDocument();
 });
 
 test('detalhes analíticos de denúncia privada não oferecem ações do autor', async () => {

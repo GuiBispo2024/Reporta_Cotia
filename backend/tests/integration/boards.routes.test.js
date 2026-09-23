@@ -37,10 +37,10 @@ describe('Boards pessoais e analíticos', () => {
     const citizenRole = await Role.findOne({ where: { name: 'CITIZEN' } });
     await citizenRole.addPermission(publicPermission);
     await Denuncia.bulkCreate([
-      ...Array.from({ length: 3 }, (_, i) => ({ titulo: `Minha aberta ${i}`, status: 'aprovada', resolucaoStatus: 'aberta', latitude: -23.60 - i * 0.01, longitude: -46.92 - i * 0.01, userId: citizen.id })),
+      ...Array.from({ length: 3 }, (_, i) => ({ titulo: `Minha aberta ${i}`, status: 'aprovada', resolucaoStatus: 'aberta', latitude: -23.6000 - i * 0.0001, longitude: -46.9200 - i * 0.0001, userId: citizen.id })),
       { titulo: 'Minha resolvida', bairro: 'Granja Viana', status: 'aprovada', resolucaoStatus: 'resolvida', latitude: -23.63, longitude: -46.95, createdAt: new Date('2026-01-15T12:00:00.000Z'), userId: citizen.id },
-      { titulo: 'Minha pendente', status: 'pendente', latitude: -23.64, longitude: -46.96, userId: citizen.id },
-      { titulo: 'Privada de outro autor', status: 'rejeitada', tituloCensurado: true, motivoRejeicao: 'Endereço insuficiente', latitude: -23.65, longitude: -46.97, userId: other.id }
+      { titulo: 'Minha pendente', status: 'pendente', latitude: -23.6003, longitude: -46.9203, userId: citizen.id },
+      { titulo: 'Privada de outro autor', status: 'rejeitada', tituloCensurado: true, motivoRejeicao: 'Endereço insuficiente', latitude: -23.6004, longitude: -46.9204, userId: other.id }
     ].map(report => ({ descricao: 'Descrição pública', localizacao: 'Cotia', bairro: 'Centro', categoria: 'Outros', setorResponsavel: 'Defesa Civil', tituloOriginal: 'Texto reservado para censura', ...report })));
     const resolvedReport = await Denuncia.findOne({ where: { titulo: 'Minha resolvida' } });
     await Comment.create({ comentario: 'Conteúdo ocultado', censurado: true, denunciaId: resolvedReport.id, userId: citizen.id });
@@ -75,16 +75,79 @@ describe('Boards pessoais e analíticos', () => {
     expect(response.body.columns.map(column => column.key)).toEqual(['aberta', 'em_andamento', 'resolvida']);
     expect(response.body.breakdown.locations).toEqual([{ label: 'Cotia', total: 4 }]);
     expect(response.body.breakdown.neighborhoods).toEqual([{ label: 'Centro', total: 3 }, { label: 'Granja Viana', total: 1 }]);
-    expect(response.body.map).toMatchObject({ total: 4, limit: 500, truncated: false });
-    expect(response.body.map.points).toHaveLength(4);
-    expect(response.body.map.points.every(point => point.status === 'aprovada')).toBe(true);
+    expect(response.body).not.toHaveProperty('map');
     expect(response.body).not.toHaveProperty('moderation');
     expect(response.body).not.toHaveProperty('comparison');
     expect(response.body).not.toHaveProperty('categoryTrend');
-    expect(response.body.map.points[0]).toEqual(expect.objectContaining({ latitude: expect.anything(), longitude: expect.anything() }));
+    expect(JSON.stringify(response.body)).not.toMatch(/"latitude"|"longitude"/);
     expect(JSON.stringify(response.body)).not.toContain('Minha pendente');
     expect(JSON.stringify(response.body)).not.toContain('Privada de outro autor');
     expect((await get('/boards/public', citizen, { column: 'rejeitada' })).status).toBe(400);
+  });
+  test('mapas de calor respeitam escopo, filtros, permissões e privacidade', async () => {
+    expect((await request(app).get('/boards/public/heatmap')).status).toBe(401);
+    expect((await get('/boards/analytics/heatmap', citizen)).status).toBe(403);
+
+    const publicResponse = await get('/boards/public/heatmap', citizen);
+    expect(publicResponse.status).toBe(200);
+    expect(publicResponse.body).toMatchObject({
+      scope: 'public',
+      cells: [{ latitude: -23.6, longitude: -46.92, total: 3 }],
+      summary: { cells: 1, representedReports: 3, maxIntensity: 3, truncated: false },
+      privacy: { coordinatePrecision: 3, minimumReportsPerCell: 3 }
+    });
+    expect(Number.isNaN(Date.parse(publicResponse.body.generatedAt))).toBe(false);
+    expect(JSON.stringify(publicResponse.body)).not.toMatch(/Minha aberta|Cotia|userId|localizacao|titulo/);
+
+    const analyticalResponse = await get('/boards/analytics/heatmap', analyst);
+    expect(analyticalResponse.status).toBe(200);
+    expect(analyticalResponse.body).toMatchObject({
+      scope: 'analytical',
+      cells: [{ latitude: -23.6, longitude: -46.92, total: 5 }],
+      summary: { cells: 1, representedReports: 5, maxIntensity: 5, truncated: false }
+    });
+
+    const filtered = await get('/boards/analytics/heatmap', analyst, { categoria: 'Inexistente' });
+    expect(filtered.body.cells).toEqual([]);
+    expect(filtered.body.summary).toMatchObject({ cells: 0, representedReports: 0, maxIntensity: 0 });
+    expect(filtered.body.filters.categoria).toBe('Inexistente');
+    expect((await get('/boards/public/heatmap', citizen, { dataInicio: '20/01/2026' })).status).toBe(400);
+  });
+  test('pontos individuais são carregados separadamente e respeitam o escopo do board', async () => {
+    expect((await request(app).get('/boards/public/map-points')).status).toBe(401);
+    expect((await get('/boards/analytics/map-points', citizen)).status).toBe(403);
+
+    const publicResponse = await get('/boards/public/map-points', citizen);
+    expect(publicResponse.status).toBe(200);
+    expect(publicResponse.body).toMatchObject({
+      scope: 'public',
+      total: 4,
+      limit: 500,
+      truncated: false
+    });
+    expect(publicResponse.body.points).toHaveLength(4);
+    expect(publicResponse.body.points.every(point => point.status === 'aprovada')).toBe(true);
+    expect(publicResponse.body.points[0]).toEqual(expect.objectContaining({
+      id: expect.any(Number),
+      titulo: expect.any(String),
+      descricao: expect.any(String),
+      latitude: expect.anything(),
+      longitude: expect.anything()
+    }));
+    expect(JSON.stringify(publicResponse.body)).not.toContain('Privada de outro autor');
+    expect(JSON.stringify(publicResponse.body)).not.toContain('tituloOriginal');
+
+    const analyticalResponse = await get('/boards/analytics/map-points', analyst);
+    expect(analyticalResponse.status).toBe(200);
+    expect(analyticalResponse.body.total).toBe(6);
+    expect(analyticalResponse.body.points.some(point => point.titulo === 'Privada de outro autor')).toBe(true);
+    expect(JSON.stringify(analyticalResponse.body)).not.toContain('Texto reservado para censura');
+
+    const filtered = await get('/boards/public/map-points', citizen, { bairro: 'Granja Viana' });
+    expect(filtered.body.total).toBe(1);
+    expect(filtered.body.points[0].titulo).toBe('Minha resolvida');
+    expect(filtered.body.filters.bairro).toBe('Granja Viana');
+    expect((await get('/boards/public/map-points', citizen, { dataInicio: '20/01/2026' })).status).toBe(400);
   });
   test('pagina cada coluna sem alterar os indicadores gerais', async () => {
     const first = await get('/boards/mine', citizen, { column: 'aberta', limit: 2 });
@@ -101,7 +164,8 @@ describe('Boards pessoais e analíticos', () => {
     expect(response.body.summary.total).toBe(6);
     expect(response.body.breakdown.categories).toEqual([{ label: 'Outros', total: 6 }]);
     expect(response.body.breakdown.neighborhoods).toEqual([{ label: 'Centro', total: 5 }, { label: 'Granja Viana', total: 1 }]);
-    expect(response.body.map).toMatchObject({ total: 6, truncated: false });
+    expect(response.body).not.toHaveProperty('map');
+    expect(JSON.stringify(response.body)).not.toMatch(/"latitude"|"longitude"/);
     expect(response.body.metrics).toEqual({
       averageModerationHours: 24,
       averageResolutionHours: 48,
@@ -127,7 +191,7 @@ describe('Boards pessoais e analíticos', () => {
     expect(response.body.columns.find(item => item.key === 'rejeitada').reports[0].titulo).toBe('Privada de outro autor');
     expect(JSON.stringify(response.body)).not.toContain('Texto reservado para censura');
   });
-  test('filtra indicadores, colunas e mapa pelo período inclusivo informado', async () => {
+  test('filtra indicadores e colunas pelo período inclusivo informado', async () => {
     const previousReport = await Denuncia.create({
       titulo: 'Denúncia do período anterior',
       descricao: 'Registro usado na comparação',
@@ -147,7 +211,6 @@ describe('Boards pessoais e analíticos', () => {
     expect(response.body.columns.find(item => item.key === 'resolvida').reports[0].titulo).toBe('Minha resolvida');
     expect(response.body.breakdown.categories).toEqual([{ label: 'Outros', total: 1 }]);
     expect(response.body.breakdown.neighborhoods).toEqual([{ label: 'Granja Viana', total: 1 }]);
-    expect(response.body.map).toMatchObject({ total: 1 });
     expect(response.body.trend).toEqual([{ period: '2026-01', total: 1 }]);
     expect(response.body.categoryTrend).toEqual({
       periods: ['2026-01'],

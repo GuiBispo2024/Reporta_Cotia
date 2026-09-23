@@ -7,6 +7,18 @@ const boardService = {
     return response.data;
   },
 
+  async getHeatmap({ analytical = false, params = {}, signal } = {}) {
+    const endpoint = analytical ? 'analytics' : 'public';
+    const response = await api.get(`/boards/${endpoint}/heatmap`, { params, signal });
+    return response.data;
+  },
+
+  async getMapPoints({ analytical = false, params = {}, signal } = {}) {
+    const endpoint = analytical ? 'analytics' : 'public';
+    const response = await api.get(`/boards/${endpoint}/map-points`, { params, signal });
+    return response.data;
+  },
+
   async exportAnalytics(params = {}) {
     const response = await api.get('/boards/analytics/export', { params, responseType: 'blob' });
     const disposition = response.headers?.['content-disposition'] || '';

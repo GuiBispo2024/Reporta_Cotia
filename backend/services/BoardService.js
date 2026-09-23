@@ -13,6 +13,13 @@ const COLUMNS = [
   { key: 'rejeitada', label: 'Rejeitadas', where: { status: 'rejeitada' } }
 ];
 
+const HEATMAP = Object.freeze({
+  precision: 3,
+  minReports: 3,
+  limit: 1000
+});
+const MAP_POINTS_LIMIT = 500;
+
 function positiveInteger(value, fallback, max) {
   if (value === undefined) return fallback;
   if (typeof value !== 'string' || !/^\d+$/.test(value) || Number(value) < 1 || Number(value) > max) {
@@ -301,13 +308,12 @@ class BoardService {
     };
     const comparedPeriod = analytical ? comparisonPeriod(query, where) : null;
     const includeBreakdown = analytical || publicView;
-    const [statuses, categories, sectors, neighborhoods, locations, map, metricRecords, moderationDetails, previousStatuses] = await Promise.all([
+    const [statuses, categories, sectors, neighborhoods, locations, metricRecords, moderationDetails, previousStatuses] = await Promise.all([
       BoardRepository.grouped(where, ['status', 'resolucaoStatus']),
       includeBreakdown ? BoardRepository.grouped(where, ['categoria']) : [],
       includeBreakdown ? BoardRepository.grouped(where, ['setorResponsavel']) : [],
       includeBreakdown ? BoardRepository.grouped(where, ['bairro']) : [],
       includeBreakdown ? BoardRepository.grouped(where, ['localizacao']) : [],
-      includeBreakdown ? BoardRepository.mapPoints(where) : null,
       includeBreakdown ? BoardRepository.serviceMetricRecords(where) : [],
       analytical ? BoardRepository.moderationIndicators(where) : null,
       comparedPeriod ? BoardRepository.grouped(comparedPeriod.where, ['status', 'resolucaoStatus']) : []
@@ -335,7 +341,7 @@ class BoardService {
         sectors: breakdown(sectors, 'setorResponsavel'),
         neighborhoods: breakdown(neighborhoods, 'bairro'),
         locations: breakdown(locations, 'localizacao')
-      }, map, metrics: serviceMetrics(metricRecords), trend: monthlyTrend(metricRecords) } : {}),
+      }, metrics: serviceMetrics(metricRecords), trend: monthlyTrend(metricRecords) } : {}),
       ...(analytical ? { categoryTrend: categoryTrend(metricRecords), moderation: {
         pending: counts.pendente,
         approved,
@@ -358,6 +364,76 @@ class BoardService {
       } } : {}),
       filters: parsedFilters.filters,
       limit
+    };
+  }
+
+  static async getHeatmap(user, query = {}, scopeType = 'public') {
+    if (!user?.id) throw new AppError('Entre na sua conta para consultar o mapa de calor.', 401, 'AUTH_REQUIRED');
+    const analytical = scopeType === 'analytical';
+    const publicView = scopeType === 'public';
+    if (!analytical && !publicView) throw new AppError('Escopo do mapa de calor inválido.', 400, 'VALIDATION_ERROR');
+    if (analytical && !hasPermission(user, PERMISSIONS.DASHBOARD_FULL_VIEW)) {
+      throw new AppError('Sua conta não possui acesso ao mapa de calor analítico.', 403, 'FORBIDDEN');
+    }
+    if (publicView && !hasPermission(user, PERMISSIONS.DASHBOARD_PUBLIC_VIEW)) {
+      throw new AppError('Sua conta não possui acesso ao mapa de calor da comunidade.', 403, 'FORBIDDEN');
+    }
+
+    const parsedFilters = boardFilters(query);
+    const where = {
+      ...(publicView ? { status: 'aprovada' } : {}),
+      ...parsedFilters.where
+    };
+    const aggregated = await BoardRepository.heatmapCells(where, {
+      precision: HEATMAP.precision,
+      minReports: HEATMAP.minReports,
+      limit: HEATMAP.limit + 1
+    });
+    const truncated = aggregated.length > HEATMAP.limit;
+    const cells = aggregated.slice(0, HEATMAP.limit);
+    const totals = cells.map(cell => cell.total);
+
+    return {
+      scope: scopeType,
+      generatedAt: new Date().toISOString(),
+      cells,
+      summary: {
+        cells: cells.length,
+        representedReports: totals.reduce((sum, total) => sum + total, 0),
+        maxIntensity: totals.length ? Math.max(...totals) : 0,
+        truncated
+      },
+      privacy: {
+        coordinatePrecision: HEATMAP.precision,
+        minimumReportsPerCell: HEATMAP.minReports
+      },
+      filters: parsedFilters.filters
+    };
+  }
+
+  static async getMapPoints(user, query = {}, scopeType = 'public') {
+    if (!user?.id) throw new AppError('Entre na sua conta para consultar as denúncias no mapa.', 401, 'AUTH_REQUIRED');
+    const analytical = scopeType === 'analytical';
+    const publicView = scopeType === 'public';
+    if (!analytical && !publicView) throw new AppError('Escopo do mapa de denúncias inválido.', 400, 'VALIDATION_ERROR');
+    if (analytical && !hasPermission(user, PERMISSIONS.DASHBOARD_FULL_VIEW)) {
+      throw new AppError('Sua conta não possui acesso ao mapa analítico de denúncias.', 403, 'FORBIDDEN');
+    }
+    if (publicView && !hasPermission(user, PERMISSIONS.DASHBOARD_PUBLIC_VIEW)) {
+      throw new AppError('Sua conta não possui acesso ao mapa de denúncias da comunidade.', 403, 'FORBIDDEN');
+    }
+
+    const parsedFilters = boardFilters(query);
+    const where = {
+      ...(publicView ? { status: 'aprovada' } : {}),
+      ...parsedFilters.where
+    };
+    const map = await BoardRepository.mapPoints(where, MAP_POINTS_LIMIT);
+    return {
+      scope: scopeType,
+      generatedAt: new Date().toISOString(),
+      ...map,
+      filters: parsedFilters.filters
     };
   }
 
