@@ -39,6 +39,34 @@ router.get('/public/heatmap',
     catch (error) { next(error); }
   });
 
+/**
+ * @swagger
+ * /boards/public/map-points:
+ *   get:
+ *     summary: Consulta denúncias aprovadas como pontos no mapa público
+ *     description: Retorna até 500 denúncias aprovadas com coordenadas e dados públicos para abertura dos detalhes. Respeita os mesmos filtros do board comunitário e requer dashboard.public.view.
+ *     tags: [Boards]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - { in: query, name: categoria, schema: { type: string } }
+ *       - { in: query, name: setorResponsavel, schema: { type: string } }
+ *       - { in: query, name: bairro, schema: { type: string } }
+ *       - { in: query, name: dataInicio, schema: { type: string, format: date } }
+ *       - { in: query, name: dataFim, schema: { type: string, format: date } }
+ *     responses:
+ *       200: { description: Denúncias aprovadas localizadas no mapa }
+ *       400: { description: Filtros inválidos }
+ *       401: { description: Sessão não autenticada }
+ *       403: { description: Permissão dashboard.public.view ausente }
+ */
+router.get('/public/map-points',
+  requirePermission(PERMISSIONS.DASHBOARD_PUBLIC_VIEW),
+  async (req, res, next) => {
+    try { res.json(await BoardService.getMapPoints(req.user, req.query, 'public')); }
+    catch (error) { next(error); }
+  });
+
 router.get('/public', requirePermission(PERMISSIONS.DASHBOARD_PUBLIC_VIEW), async (req, res, next) => {
   try { res.json(await BoardService.getBoard(req.user, req.query, 'public')); }
   catch (error) { next(error); }
@@ -69,6 +97,34 @@ router.get('/analytics/heatmap',
   requirePermission(PERMISSIONS.DASHBOARD_FULL_VIEW),
   async (req, res, next) => {
     try { res.json(await BoardService.getHeatmap(req.user, req.query, 'analytical')); }
+    catch (error) { next(error); }
+  });
+
+/**
+ * @swagger
+ * /boards/analytics/map-points:
+ *   get:
+ *     summary: Consulta denúncias como pontos no mapa analítico
+ *     description: Retorna até 500 denúncias do recorte autorizado com coordenadas e dados necessários para abertura dos detalhes. Respeita os filtros do board e requer dashboard.full.view.
+ *     tags: [Boards]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - { in: query, name: categoria, schema: { type: string } }
+ *       - { in: query, name: setorResponsavel, schema: { type: string } }
+ *       - { in: query, name: bairro, schema: { type: string } }
+ *       - { in: query, name: dataInicio, schema: { type: string, format: date } }
+ *       - { in: query, name: dataFim, schema: { type: string, format: date } }
+ *     responses:
+ *       200: { description: Denúncias autorizadas localizadas no mapa }
+ *       400: { description: Filtros inválidos }
+ *       401: { description: Sessão não autenticada }
+ *       403: { description: Permissão dashboard.full.view ausente }
+ */
+router.get('/analytics/map-points',
+  requirePermission(PERMISSIONS.DASHBOARD_FULL_VIEW),
+  async (req, res, next) => {
+    try { res.json(await BoardService.getMapPoints(req.user, req.query, 'analytical')); }
     catch (error) { next(error); }
   });
 

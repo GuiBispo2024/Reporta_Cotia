@@ -88,4 +88,16 @@ describe('Documentação OpenAPI', () => {
     expect(history.parameters.map(parameter => parameter.name)).toEqual(['page', 'limit', 'sort'])
     expect(history.responses[403]).toBeDefined()
   })
+
+  test('documenta os pontos individuais dos mapas público e analítico', () => {
+    const publicMap = swaggerSpec.paths['/boards/public/map-points'].get
+    const analyticalMap = swaggerSpec.paths['/boards/analytics/map-points'].get
+
+    expect(publicMap.description).toContain('dashboard.public.view')
+    expect(analyticalMap.description).toContain('dashboard.full.view')
+    expect(publicMap.parameters.map(parameter => parameter.name)).toEqual([
+      'categoria', 'setorResponsavel', 'bairro', 'dataInicio', 'dataFim'
+    ])
+    expect(analyticalMap.responses[403]).toBeDefined()
+  })
 })

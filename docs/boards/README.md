@@ -9,6 +9,8 @@ Implementação incremental na branch `feat/boards`. Nesta versão, o board acom
 - `GET /boards/analytics`: requer `dashboard.full.view`; consulta todas as denúncias e distribuições por categoria, setor e bairro.
 - `GET /boards/public/heatmap`: requer `dashboard.public.view`; retorna somente células geográficas agregadas de denúncias aprovadas.
 - `GET /boards/analytics/heatmap`: requer `dashboard.full.view`; retorna células agregadas do recorte analítico, incluindo estados privados sem expor registros individuais.
+- `GET /boards/public/map-points`: requer `dashboard.public.view`; carrega sob demanda até 500 denúncias aprovadas com coordenadas e dados públicos para abertura dos detalhes.
+- `GET /boards/analytics/map-points`: requer `dashboard.full.view`; carrega sob demanda até 500 denúncias autorizadas do recorte analítico para abertura dos detalhes no próprio board.
 - `GET /boards/analytics/export`: requer `dashboard.full.view` e `dashboard.export`; exporta em XLSX os registros do recorte analítico, respeitando categoria, setor, bairro e período.
 - `GET /boards/analytics/export-history`: requer `dashboard.audit.view`; consulta a auditoria paginada das exportações, ordenada por data mais recente ou mais antiga.
 
@@ -53,7 +55,8 @@ Cada resposta do board inclui `generatedAt`, e a interface apresenta essa data c
 - Cada planilha gerada com sucesso registra na auditoria o usuário responsável, o formato XLSX, os filtros utilizados, a quantidade de registros e a data. O arquivo e seu conteúdo não são armazenados no histórico.
 - A permissão `dashboard.audit.view` é atribuída por padrão somente ao perfil `ADMIN`. Analistas mantêm as permissões de visualizar e exportar o board, mas não consultam a auditoria global.
 - `/administracao/historico-exportacoes`: tela administrativa responsiva para consultar responsável, filtros, quantidade, formato e data de cada exportação. O acesso aparece no cabeçalho do board analítico somente com `dashboard.audit.view`.
-- As visões comunitária e analítica consultam os endpoints agregados e exibem uma camada de calor Leaflet sobre a base cartográfica do OpenStreetMap. O navegador recebe somente células aproximadas e contagens; IDs, títulos e endereços não fazem parte do mapa.
+- As visões comunitária e analítica permitem alternar entre mapa de calor, pontos agrupados e denúncias individuais sobre a base cartográfica do OpenStreetMap. As duas primeiras recebem somente células aproximadas e contagens. Os dados individuais são consultados sob demanda ao escolher “Denúncias”; no mapa público, somente registros aprovados são retornados.
+- Na visualização “Denúncias”, cada marcador apresenta a situação por cor e abre no próprio board o mesmo modal de detalhes disponível nos cartões. O endpoint limita o resultado aos 500 registros mais recentes e orienta o uso dos filtros quando houver mais pontos.
 - O mapa possui controles de zoom em português, navegação por teclado, instrução acessível, reajuste ao redimensionar a tela e animações reduzidas conforme a preferência do sistema. Em telas pequenas, legenda, resumo e mapa são reorganizados sem rolagem horizontal.
 - No celular e com texto ampliado, as colunas são empilhadas. Os boards usam os temas e recursos globais de acessibilidade.
 

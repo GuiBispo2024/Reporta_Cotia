@@ -113,6 +113,42 @@ describe('Boards pessoais e analíticos', () => {
     expect(filtered.body.filters.categoria).toBe('Inexistente');
     expect((await get('/boards/public/heatmap', citizen, { dataInicio: '20/01/2026' })).status).toBe(400);
   });
+  test('pontos individuais são carregados separadamente e respeitam o escopo do board', async () => {
+    expect((await request(app).get('/boards/public/map-points')).status).toBe(401);
+    expect((await get('/boards/analytics/map-points', citizen)).status).toBe(403);
+
+    const publicResponse = await get('/boards/public/map-points', citizen);
+    expect(publicResponse.status).toBe(200);
+    expect(publicResponse.body).toMatchObject({
+      scope: 'public',
+      total: 4,
+      limit: 500,
+      truncated: false
+    });
+    expect(publicResponse.body.points).toHaveLength(4);
+    expect(publicResponse.body.points.every(point => point.status === 'aprovada')).toBe(true);
+    expect(publicResponse.body.points[0]).toEqual(expect.objectContaining({
+      id: expect.any(Number),
+      titulo: expect.any(String),
+      descricao: expect.any(String),
+      latitude: expect.anything(),
+      longitude: expect.anything()
+    }));
+    expect(JSON.stringify(publicResponse.body)).not.toContain('Privada de outro autor');
+    expect(JSON.stringify(publicResponse.body)).not.toContain('tituloOriginal');
+
+    const analyticalResponse = await get('/boards/analytics/map-points', analyst);
+    expect(analyticalResponse.status).toBe(200);
+    expect(analyticalResponse.body.total).toBe(6);
+    expect(analyticalResponse.body.points.some(point => point.titulo === 'Privada de outro autor')).toBe(true);
+    expect(JSON.stringify(analyticalResponse.body)).not.toContain('Texto reservado para censura');
+
+    const filtered = await get('/boards/public/map-points', citizen, { bairro: 'Granja Viana' });
+    expect(filtered.body.total).toBe(1);
+    expect(filtered.body.points[0].titulo).toBe('Minha resolvida');
+    expect(filtered.body.filters.bairro).toBe('Granja Viana');
+    expect((await get('/boards/public/map-points', citizen, { dataInicio: '20/01/2026' })).status).toBe(400);
+  });
   test('pagina cada coluna sem alterar os indicadores gerais', async () => {
     const first = await get('/boards/mine', citizen, { column: 'aberta', limit: 2 });
     const next = await get('/boards/mine', citizen, { column: 'aberta', limit: 2, page: 2 });

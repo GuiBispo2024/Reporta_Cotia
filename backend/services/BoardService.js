@@ -18,6 +18,7 @@ const HEATMAP = Object.freeze({
   minReports: 3,
   limit: 1000
 });
+const MAP_POINTS_LIMIT = 500;
 
 function positiveInteger(value, fallback, max) {
   if (value === undefined) return fallback;
@@ -406,6 +407,32 @@ class BoardService {
         coordinatePrecision: HEATMAP.precision,
         minimumReportsPerCell: HEATMAP.minReports
       },
+      filters: parsedFilters.filters
+    };
+  }
+
+  static async getMapPoints(user, query = {}, scopeType = 'public') {
+    if (!user?.id) throw new AppError('Entre na sua conta para consultar as denúncias no mapa.', 401, 'AUTH_REQUIRED');
+    const analytical = scopeType === 'analytical';
+    const publicView = scopeType === 'public';
+    if (!analytical && !publicView) throw new AppError('Escopo do mapa de denúncias inválido.', 400, 'VALIDATION_ERROR');
+    if (analytical && !hasPermission(user, PERMISSIONS.DASHBOARD_FULL_VIEW)) {
+      throw new AppError('Sua conta não possui acesso ao mapa analítico de denúncias.', 403, 'FORBIDDEN');
+    }
+    if (publicView && !hasPermission(user, PERMISSIONS.DASHBOARD_PUBLIC_VIEW)) {
+      throw new AppError('Sua conta não possui acesso ao mapa de denúncias da comunidade.', 403, 'FORBIDDEN');
+    }
+
+    const parsedFilters = boardFilters(query);
+    const where = {
+      ...(publicView ? { status: 'aprovada' } : {}),
+      ...parsedFilters.where
+    };
+    const map = await BoardRepository.mapPoints(where, MAP_POINTS_LIMIT);
+    return {
+      scope: scopeType,
+      generatedAt: new Date().toISOString(),
+      ...map,
       filters: parsedFilters.filters
     };
   }
