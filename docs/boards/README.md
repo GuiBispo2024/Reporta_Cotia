@@ -54,6 +54,7 @@ Cada resposta do board inclui `generatedAt`, e a interface apresenta essa data c
 - A permissão `dashboard.audit.view` é atribuída por padrão somente ao perfil `ADMIN`. Analistas mantêm as permissões de visualizar e exportar o board, mas não consultam a auditoria global.
 - `/administracao/historico-exportacoes`: tela administrativa responsiva para consultar responsável, filtros, quantidade, formato e data de cada exportação. O acesso aparece no cabeçalho do board analítico somente com `dashboard.audit.view`.
 - As visões comunitária e analítica consultam os endpoints agregados e exibem uma camada de calor Leaflet sobre a base cartográfica do OpenStreetMap. O navegador recebe somente células aproximadas e contagens; IDs, títulos e endereços não fazem parte do mapa.
+- O mapa possui controles de zoom em português, navegação por teclado, instrução acessível, reajuste ao redimensionar a tela e animações reduzidas conforme a preferência do sistema. Em telas pequenas, legenda, resumo e mapa são reorganizados sem rolagem horizontal.
 - No celular e com texto ampliado, as colunas são empilhadas. Os boards usam os temas e recursos globais de acessibilidade.
 
 As cinco etapas acima e a exportação analítica estão implementadas. Não há arraste de cartões nem edição de status nesta primeira versão.

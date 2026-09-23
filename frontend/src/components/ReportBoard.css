@@ -104,8 +104,10 @@
 .rc-board-map h2 { margin: 0; font-size: 1.05rem; font-weight: 800; }
 .rc-board-map header p { margin: .2rem 0 0; color: var(--rc-secondary-text, #526159); font-size: .8rem; }
 .rc-board-map header strong { color: var(--rc-primary); font-size: .8rem; }
+.rc-board-map-help { margin: 0; padding: 0 1rem .75rem; color: var(--rc-secondary-text, #526159); font-size: .75rem; }
 .rc-board-map-canvas { position: relative; height: clamp(320px, 48vw, 520px); overflow: hidden; border-block: 1px solid var(--rc-border); background: #dce8e1; }
 .rc-board-map-leaflet { width: 100%; height: 100%; z-index: 0; font-family: inherit; }
+.rc-board-map-leaflet:focus-visible { outline: 4px solid var(--rc-primary); outline-offset: -4px; }
 .rc-board-map-leaflet .leaflet-control-zoom a { width: 2.75rem; height: 2.75rem; line-height: 2.75rem; color: var(--rc-text); }
 .rc-board-map-leaflet .leaflet-control-attribution { color: var(--rc-secondary-text, #526159); font-size: .65rem; }
 .rc-board-map-leaflet .leaflet-interactive:focus { outline: 3px solid var(--rc-primary); outline-offset: 2px; }
@@ -120,3 +122,4 @@
 @media (max-width: 1199px) { .rc-board-moderation { grid-template-columns: 1fr 1fr; } .rc-board-rejection-reasons { grid-column: 1 / -1; } .rc-board-comparison-grid { grid-template-columns: repeat(3, minmax(130px, 1fr)); } }
 @media (max-width: 991px) { .rc-board-charts { grid-template-columns: 1fr; } }
 @media (max-width: 767px) { .rc-board-columns { grid-template-columns: minmax(0, 1fr); overflow: visible; } .rc-board-metrics, .rc-board-moderation { grid-template-columns: 1fr; } .rc-board-metrics dl, .rc-board-moderation dl, .rc-board-comparison-grid { grid-template-columns: 1fr; } .rc-board-rejection-reasons { grid-column: auto; } }
+@media (max-width: 575px) { .rc-board-map > header { align-items: flex-start; } .rc-board-map > header strong { width: 100%; padding-left: 3.25rem; } .rc-board-map-canvas { height: 360px; } .rc-board-map > footer { align-items: flex-start; } .rc-board-heat-legend { width: 100%; display: grid; grid-template-columns: auto minmax(70px, 1fr) auto; } .rc-board-heat-legend i { width: auto; } }

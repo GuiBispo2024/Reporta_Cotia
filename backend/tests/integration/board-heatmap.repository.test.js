@@ -45,4 +45,24 @@ describe('Agregação geográfica do mapa de calor', () => {
     expect(cells[0]).not.toHaveProperty('titulo');
     expect(cells[0]).not.toHaveProperty('localizacao');
   });
+
+  test('agrega mais de 500 registros sem aplicar o limite legado de pontos', async () => {
+    await Denuncia.bulkCreate(Array.from({ length: 501 }, (_, index) => report(
+      `Registro de volume ${index + 1}`,
+      -23.7001 - index % 3 * 0.0001,
+      -46.8001 - index % 3 * 0.0001,
+      { bairro: 'Teste de volume' }
+    )));
+
+    const cells = await BoardRepository.heatmapCells({
+      status: 'aprovada',
+      bairro: 'Teste de volume'
+    });
+
+    expect(cells).toContainEqual({
+      latitude: -23.7,
+      longitude: -46.8,
+      total: 501
+    });
+  });
 });

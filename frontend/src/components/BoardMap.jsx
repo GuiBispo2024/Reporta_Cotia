@@ -38,10 +38,20 @@ export default function BoardMap({ heatmap, loading = false, error = '', onRetry
 
   useEffect(() => {
     if (!mapContainerRef.current || !cells.length) return undefined;
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches || false;
     const leafletMap = L.map(mapContainerRef.current, {
       scrollWheelZoom: false,
-      zoomControl: true
+      zoomControl: false,
+      keyboard: true,
+      zoomAnimation: !reduceMotion,
+      fadeAnimation: !reduceMotion,
+      markerZoomAnimation: !reduceMotion
     });
+    L.control.zoom({
+      position: 'topleft',
+      zoomInTitle: 'Aproximar',
+      zoomOutTitle: 'Afastar'
+    }).addTo(leafletMap);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19
@@ -67,7 +77,12 @@ export default function BoardMap({ heatmap, loading = false, error = '', onRetry
       );
     }
 
-    return () => leafletMap.remove();
+    const resizeMap = () => leafletMap.invalidateSize({ pan: false });
+    window.addEventListener('resize', resizeMap);
+    return () => {
+      window.removeEventListener('resize', resizeMap);
+      leafletMap.remove();
+    };
   }, [cells, maxIntensity]);
 
   if (loading) return <MapState type="loading" message="Carregando concentrações geográficas..." />;
@@ -86,8 +101,10 @@ export default function BoardMap({ heatmap, loading = false, error = '', onRetry
       <div><span><i className="bi bi-fire" aria-hidden="true" /></span><div><h2 id="board-map-title">Mapa de calor das denúncias</h2><p>Identifique regiões com maior concentração sem expor endereços individuais.</p></div></div>
       <strong>{representedReports} {representedReports === 1 ? 'denúncia representada' : 'denúncias representadas'}</strong>
     </header>
+    <p id="board-map-help" className="rc-board-map-help">Use os botões de zoom ou, com o mapa em foco, as teclas mais, menos e as setas.</p>
+    <p className="visually-hidden" aria-live="polite">O mapa apresenta {cells.length} {cells.length === 1 ? 'região de concentração' : 'regiões de concentração'}.</p>
     <div className="rc-board-map-canvas">
-      <div ref={mapContainerRef} className="rc-board-map-leaflet" role="region" aria-label="Mapa de calor interativo das denúncias" title="Mapa de calor das denúncias" />
+      <div ref={mapContainerRef} className="rc-board-map-leaflet" role="region" tabIndex={0} aria-label="Mapa de calor interativo das denúncias" aria-describedby="board-map-help" title="Mapa de calor das denúncias" />
     </div>
     <footer>
       <div className="rc-board-heat-legend" aria-label="Intensidade das concentrações">
