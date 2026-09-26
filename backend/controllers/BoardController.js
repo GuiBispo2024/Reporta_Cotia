@@ -76,6 +76,47 @@ router.get('/analytics/quality', requirePermission(PERMISSIONS.DASHBOARD_FULL_VI
   try { res.json(await AnalyticsService.quality(req.user, req.query)); } catch (error) { next(error); }
 });
 
+/**
+ * @swagger
+ * /boards/mine:
+ *   get:
+ *     summary: Consulta o board das denúncias do usuário autenticado
+ *     description: Inclui os estados privados do próprio autor. Paginação por coluna.
+ *     tags: [Boards]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: query, name: categoria, schema: { type: string } }
+ *       - { in: query, name: bairro, schema: { type: string } }
+ *       - { in: query, name: setorResponsavel, schema: { type: string } }
+ *       - { in: query, name: dataInicio, schema: { type: string, format: date } }
+ *       - { in: query, name: dataFim, schema: { type: string, format: date } }
+ *     responses:
+ *       200: { description: Resumo e colunas paginadas do board }
+ *       400: { description: Filtro inválido }
+ *       401: { description: Sessão ausente ou inválida }
+ * /boards/public:
+ *   get:
+ *     summary: Consulta o board de denúncias aprovadas
+ *     description: Exige dashboard.public.view. Aceita categoria, bairro, setorResponsavel, dataInicio e dataFim.
+ *     tags: [Boards]
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: Resumo e colunas públicas paginadas }
+ *       400: { description: Filtro inválido }
+ *       401: { description: Sessão ausente ou inválida }
+ *       403: { description: Permissão insuficiente }
+ * /boards/analytics:
+ *   get:
+ *     summary: Consulta o board analítico completo
+ *     description: Exige dashboard.full.view. Inclui denúncias pendentes e rejeitadas. Aceita categoria, bairro, setorResponsavel, dataInicio e dataFim.
+ *     tags: [Boards]
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: Resumo e colunas analíticas paginadas }
+ *       400: { description: Filtro inválido }
+ *       401: { description: Sessão ausente ou inválida }
+ *       403: { description: Permissão insuficiente }
+ */
 router.get('/mine', async (req, res, next) => {
   try { res.json(await BoardService.getBoard(req.user, req.query)); }
   catch (error) { next(error); }

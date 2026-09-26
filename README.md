@@ -23,8 +23,8 @@ Plataforma web colaborativa para registrar, acompanhar e dar visibilidade a prob
 - Busca, filtros recolhíveis e visualização das denúncias em mapa.
 - Curtidas, compartilhamentos e comentários carregados sob demanda.
 - Prévia de até três comentários nos cards da página inicial e lista completa nos detalhes da denúncia.
-- Respostas a comentários em um nível, com edição e exclusão pelo autor.
-- Moderação com aprovação, rejeição, reabertura, situação, prioridade e setor responsável.
+- Respostas a comentários em múltiplos níveis, com edição e exclusão pelo autor.
+- Moderação com aprovação, rejeição, reabertura, situação e setor responsável.
 - Setores sugeridos para encaminhamento, como Infraestrutura, Iluminação Pública, Limpeza Urbana, Trânsito e Meio Ambiente.
 - Página exclusiva de histórico de alterações, com registro apenas quando há mudança efetiva.
 - Páginas próprias para listar curtidas, compartilhamentos e perfis públicos.
@@ -77,7 +77,7 @@ A aplicação segue uma arquitetura em camadas no backend (`controllers`, `servi
 
 ## Requisitos
 
-- Node.js 18 ou superior
+- Node.js 22.12 ou superior (CI em Node.js 24)
 - npm
 - PostgreSQL
 - Conta no Cloudinary para armazenamento de imagens em produção
@@ -108,14 +108,15 @@ DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=reporta_cotia
 DB_USER=postgres
-DB_PASSWORD=sua_senha
+DB_PASS=sua_senha
 DB_SSL=false
+DB_SYNC=false
 DB_SYNC_ALTER=false
 
 JWT_SECRET=troque_por_uma_chave_forte
-JWT_EXPIRES_IN=7d
+JWT_EXPIRES_IN=30m
 
-CORS_ORIGIN=http://localhost:3000
+CORS_ORIGINS=http://localhost:3000
 PUBLIC_API_URL=http://localhost:5000
 FRONTEND_URL=http://localhost:3000
 
@@ -236,7 +237,7 @@ Authorization: Bearer <token>
 
 | Método | Rota | Uso |
 | --- | --- | --- |
-| `GET` | `/denuncia` | Listar com paginação, busca, categoria, status, situação e prioridade |
+| `GET` | `/denuncia` | Listar com paginação, busca, categoria, status e situação |
 | `POST` | `/denuncia` | Criar denúncia com até quatro arquivos no campo `imagens` |
 | `GET` | `/denuncia/:id` | Consultar detalhes |
 | `PUT` | `/denuncia/:id` | Editar denúncia e suas imagens |
@@ -248,7 +249,7 @@ Authorization: Bearer <token>
 | `PATCH` | `/denuncia/:id/resolucao` | Atualizar andamento e setor responsável |
 | `GET` | `/denuncia/:id/historico` | Consultar a rastreabilidade das alterações |
 
-Os envios multipart usam o campo `imagens` e aceitam no máximo quatro arquivos. O campo `imageUrl` continua disponível como capa de compatibilidade, enquanto `imageUrls` representa a coleção completa.
+Os envios multipart usam o campo `imagens` e aceitam no máximo quatro arquivos. As respostas incluem `imageUrl` como capa e `imageUrls` como coleção; URLs enviadas no corpo não são aceitas como uploads. JPEG, PNG e WebP são decodificados e convertidos para WebP, com limite de 25 megapixels.
 
 ### Interações sociais
 
@@ -298,7 +299,7 @@ As mudanças de perfil passam a valer nas requisições seguintes. A interface t
 - O limitador de requisições em memória funciona por instância; ambientes distribuídos devem usar um armazenamento compartilhado, como Redis.
 - A autenticação atual utiliza token de acesso JWT e não implementa refresh token.
 - Geocodificação e mapas dependem dos serviços externos OpenStreetMap/Nominatim.
-- Restrinja `CORS_ORIGIN`, use segredos fortes e mantenha `DB_SYNC_ALTER=false` em produção.
+- Restrinja `CORS_ORIGINS`, use segredos fortes e mantenha `DB_SYNC_ALTER=false` em produção.
 
 ## Autores
 
@@ -306,3 +307,13 @@ As mudanças de perfil passam a valer nas requisições seguintes. A interface t
 - Isabelly Silva
 - Marcos Palacio
 - Sabrina Santos
+
+## Integridade e validação
+
+A exclusão de conta preserva denúncias aprovadas e remove o vínculo com o autor. A troca de senha revoga as sessões anteriores. Moderação e histórico são gravados na mesma transação; resolver exige aprovação.
+
+`DB_PASS` é a variável principal; `DB_PASSWORD` permanece como alias. `DB_DIALECT` assume `postgres`. `DATABASE_URL` pode substituir a conexão por campos. `DB_SSL` controla TLS; `DB_SSL_REJECT_UNAUTHORIZED=true` habilita validação do certificado. `TRUST_PROXY` aceita uma lista de IPs/sub-redes de proxies confiáveis; configure somente conforme a infraestrutura.
+
+As migrations incluem uma baseline para bancos vazios e preservam tabelas legadas existentes. Não use `sync({ alter: true })` como substituto de migrations.
+
+No backend, `npm run test:unit` e `npm run test:integration` selecionam suas respectivas pastas; `npm run test:all -- --runInBand` inclui cobertura dos arquivos de aplicação, mesmo quando não importados por testes. A verificação de migrations aceita `MIGRATIONS_TEST_URL`, exige banco vazio descartável e recusa bases preenchidas. O CI executa esse teste em PostgreSQL, além das suítes e do build.

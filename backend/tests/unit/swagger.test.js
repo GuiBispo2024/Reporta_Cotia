@@ -1,6 +1,12 @@
 const { swaggerSpec } = require('../../utils/swagger')
 
 describe('Documentação OpenAPI', () => {
+  test('documents all board entry points', () => {
+    for (const path of ['/boards/mine', '/boards/public', '/boards/analytics']) {
+      expect(swaggerSpec.paths[path].get.security).toEqual([{ bearerAuth: [] }]);
+      expect(swaggerSpec.paths[path].get.responses[400]).toBeDefined();
+    }
+  });
   test('documenta filtros, acesso e atualização da carga analítica e qualidade', () => {
     for (const path of ['/boards/analytics/indicators', '/boards/public/indicators', '/boards/analytics/quality']) {
       const endpoint = swaggerSpec.paths[path].get;
