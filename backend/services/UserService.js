@@ -6,6 +6,8 @@ const { extractUserAccess } = require('../utils/userAccess')
 const SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'reporta-cotia-test-secret' : undefined)
 const { deleteImage } = require('../utils/upload')
 const AppError = require('../utils/AppError')
+const { literal } = require('sequelize')
+const { validateAccount } = require('../utils/validateAccount')
 
 function serializeAuthenticatedUser(user) {
   if (!user) return null
@@ -31,6 +33,7 @@ class UserService {
     
   // Cadastrar usuário
   static async register({ username, email, password, avatarUrl = null }) {
+    ;({ username, email } = validateAccount({ username, email, password }))
     const existingEmail = await UserRepository.findByEmail(email)
     if (existingEmail) throw new Error('E-mail já cadastrado.')
     const existingUsername =  await UserRepository.findByUsername(username)
@@ -49,13 +52,13 @@ class UserService {
 
   // Login
   static async login({ email, password }) {
-    const user = await UserRepository.findByEmail(email)
+    const user = await UserRepository.findByEmail(typeof email === 'string' ? email.trim().toLowerCase() : '')
     if (!user) throw new Error('Usuário não encontrado.')
 
     const valid = await bcrypt.compare(password, user.password)
     if (!valid) throw new Error('Senha incorreta.')
 
-    const token = jwt.sign({ id: user.id, v: user.tokenVersion || 0 }, SECRET, { expiresIn: '30m' })
+    const token = jwt.sign({ id: user.id, v: user.tokenVersion || 0 }, SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '30m' })
     const userWithAccess = await UserRepository.findByIdWithAccess(user.id)
 
     return {
@@ -162,7 +165,7 @@ class UserService {
   static async update(data,userIdToken) {
     const userDb = await UserRepository.findById(userIdToken);
     if (!userDb) throw new Error("Usuário não encontrado.");
-    const updates = {};
+    const updates = validateAccount(data, { partial: true });
     if (typeof data.username === 'string' && data.username.trim()) updates.username = data.username.trim();
     if (typeof data.email === 'string' && data.email.trim()) updates.email = data.email.trim().toLowerCase();
 
@@ -182,6 +185,7 @@ class UserService {
       // Cria o hash da nova senha
       if (data.novaSenha.length < 6) throw new Error('A nova senha deve ter pelo menos 6 caracteres.');
       updates.password = await bcrypt.hash(data.novaSenha, 10);
+      updates.tokenVersion = literal('"tokenVersion" + 1');
     }
 
     const [rowsUpdate] = await UserRepository.update(userIdToken, updates);
@@ -194,7 +198,7 @@ class UserService {
     const token = jwt.sign(
       { id: updatedUser.id, v: updatedUser.tokenVersion || 0 },
       SECRET,
-      { expiresIn: "30m" }
+      { expiresIn: process.env.JWT_EXPIRES_IN || '30m' }
     );
 
     return { 
@@ -226,7 +230,7 @@ class UserService {
   static async logout(userId) {
     const user = await UserRepository.findById(userId)
     if (!user) throw new Error('Usuário não encontrado.')
-    await UserRepository.update(userId, { tokenVersion: (user.tokenVersion || 0) + 1 })
+    await UserRepository.update(userId, { tokenVersion: literal('"tokenVersion" + 1') })
     return { message: 'Logout realizado com sucesso' }
   }
 

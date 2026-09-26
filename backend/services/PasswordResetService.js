@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
-const { Op } = require('sequelize');
+const { Op, literal } = require('sequelize');
 const { sequelize, User, PasswordResetToken, PasswordResetHistorico } = require('../models/rel');
 const AppError = require('../utils/AppError');
 const { sendPasswordResetEmail } = require('../utils/passwordResetEmail');
@@ -60,8 +60,12 @@ class PasswordResetService {
         return null;
       }
 
+      const [claimed] = await PasswordResetToken.update({ usedAt: new Date() }, {
+        where: { id: resetToken.id, usedAt: null, expiresAt: { [Op.gt]: new Date() } }, transaction
+      });
+      if (!claimed) return null;
       const user = resetToken.User;
-      await user.update({ password: await bcrypt.hash(password, 10), tokenVersion: (user.tokenVersion || 0) + 1 }, { transaction });
+      await user.update({ password: await bcrypt.hash(password, 10), tokenVersion: literal('"tokenVersion" + 1') }, { transaction });
       await resetToken.update({ usedAt: new Date() }, { transaction });
       await PasswordResetToken.update({ usedAt: new Date() }, { where: { userId: user.id, usedAt: null }, transaction });
       await PasswordResetHistorico.create({ userId: user.id, email: user.email, evento: 'redefinicao', sucesso: true, detalhes: 'Senha redefinida; sessões revogadas', ...requestMeta }, { transaction });

@@ -18,12 +18,12 @@ describe('UserService (unit)', () => {
       console.log("📦 Chamado UserRepository.createWithRoles com:", data);
       return Promise.resolve({ id: 1, ...data });
     });
-    const result = await UserService.register({ username: 'u', email: 'e@e', password: '1234' });
+    const result = await UserService.register({ username: 'u', email: 'e@e.com', password: '123456' });
     console.log("✅ Resultado recebido:", result);
-    expect(UserRepository.findByEmail).toHaveBeenCalledWith('e@e');
+    expect(UserRepository.findByEmail).toHaveBeenCalledWith('e@e.com');
     expect(UserRepository.findByUsername).toHaveBeenCalledWith('u');
     expect(UserRepository.createWithRoles).toHaveBeenCalledWith(
-      expect.objectContaining({ username: 'u', email: 'e@e' }),
+      expect.objectContaining({ username: 'u', email: 'e@e.com' }),
       ['CITIZEN'],
       expect.any(Object)
     );
