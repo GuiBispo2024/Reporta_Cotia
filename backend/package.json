@@ -6,10 +6,10 @@
     "analytics:refresh": "node scripts/refreshAnalytics.js",
     "start": "node index.js",
     "seed": "node seed/runSeeds.js",
-    "test": "jest --passWithNoTests",
-    "test:unit": "jest --passWithNoTests",
-    "test:integration": "jest --passWithNoTests",
-    "test:all": "jest --passWithNoTests --coverage",
+    "test": "jest",
+    "test:unit": "jest tests/unit",
+    "test:integration": "jest tests/integration",
+    "test:all": "jest --coverage",
     "db:migrate": "npx sequelize-cli db:migrate",
     "db:migrate:undo": "npx sequelize-cli db:migrate:undo"
   },
@@ -28,7 +28,7 @@
     "multer": "^2.3.0",
     "pg": "^8.16.3",
     "sequelize": "^6.37.7",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.4",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
   },
@@ -38,5 +38,25 @@
     "sequelize-cli": "^6.6.3",
     "sqlite3": "^6.0.1",
     "supertest": "^7.1.4"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "jest": {
+    "testTimeout": 15000,
+    "collectCoverageFrom": [
+      "analytics/**/*.js",
+      "controllers/**/*.js",
+      "middlewares/**/*.js",
+      "models/**/*.js",
+      "repositories/**/*.js",
+      "services/**/*.js",
+      "utils/**/*.js",
+      "app.js",
+      "index.js"
+    ]
   }
 }
