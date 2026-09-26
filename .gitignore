@@ -2,3 +2,4 @@
 *.md
 !README.md
 !**/README.md
+!docs/analytics/*.md

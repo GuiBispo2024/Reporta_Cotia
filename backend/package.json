@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "analytics:refresh": "node scripts/refreshAnalytics.js",
     "start": "node index.js",
     "seed": "node seed/runSeeds.js",
     "test": "jest --passWithNoTests",

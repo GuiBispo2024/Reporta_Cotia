@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import ReportBoard from '../../src/components/ReportBoard';
 import boardService from '../../src/services/boardService';
 import { AuthContext } from '../../src/context/authContext';
@@ -20,9 +20,34 @@ jest.mock('../../src/components/BoardMap', () => ({ reportMap, onLoadReports, on
 const report = { id: 1, titulo: 'Iluminação da praça', descricao: 'Lâmpada apagada', categoria: 'Iluminação pública', status: 'aprovada', resolucaoStatus: 'aberta', localizacao: 'Rua Central', bairro: 'Centro', createdAt: '2026-09-20T12:00:00Z' };
 const initial = {
   generatedAt: '2026-09-20T15:30:00Z',
+  lastUpdatedAt: '2026-09-20T15:30:00Z',
   summary: { total: 2, pendente: 0, aberta: 2, em_andamento: 0, resolvida: 0, rejeitada: 0 },
   columns: [{ key: 'aberta', label: 'Abertas', page: 1, totalPages: 2, total: 2, reports: [report] }]
 };
+
+test('mostra a data da carga e o relatório de qualidade sem usar a hora da resposta', async () => {
+  boardService.getBoard.mockResolvedValue({ ...initial, generatedAt: '2026-09-26T18:00:00Z', status: 'ready',
+    quality: { sourceCount: 4, validCount: 3, excludedCount: 1, issueCount: 2, issues: [{ code: 'invalid_created_at', label: 'Data de cadastro inválida ou futura', total: 1 }] } });
+  render(<ReportBoard analytical />);
+  const updated = await screen.findByText(/Dados atualizados em/);
+  expect(updated.querySelector('time')).toHaveAttribute('dateTime', initial.lastUpdatedAt);
+  expect(updated).toHaveTextContent('20/09/2026 12:30');
+  expect(screen.getByRole('heading', { name: 'Qualidade dos dados' })).toBeInTheDocument();
+  expect(screen.getByText(/Data de cadastro inválida ou futura/)).toBeInTheDocument();
+  expect(screen.getByText(/Os indicadores refletem a última carga concluída/)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Atualizar', exact: true }));
+  await waitFor(() => expect(boardService.getBoard).toHaveBeenCalledTimes(2));
+  expect((await screen.findByText(/Dados atualizados em/)).querySelector('time')).toHaveAttribute('dateTime', initial.lastUpdatedAt);
+});
+
+test('antes da primeira carga informa espera e mantém os cartões operacionais', async () => {
+  boardService.getBoard.mockResolvedValue({ ...initial, lastUpdatedAt: null, status: 'not_processed', summary: { ...initial.summary, total: 0 } });
+  render(<ReportBoard community />);
+  expect(await screen.findByText(/Os indicadores aguardam o primeiro processamento/)).toBeInTheDocument();
+  expect(screen.queryByText(/Dados atualizados em/)).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: `Ver detalhes: ${report.titulo}` })).toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: 'Qualidade dos dados' })).not.toBeInTheDocument();
+});
 beforeEach(() => {
   jest.clearAllMocks();
   boardService.getBoard.mockResolvedValue(initial);
@@ -37,6 +62,33 @@ beforeEach(() => {
     limit: 500,
     truncated: false
   });
+});
+
+test('atualiza automaticamente ao voltar à aba e preserva o board se a consulta falhar', async () => {
+  render(<ReportBoard community />);
+  await screen.findByRole('button', { name: `Ver detalhes: ${report.titulo}` });
+  boardService.getBoard.mockRejectedValueOnce(new Error('temporário'));
+  fireEvent(window, new Event('focus'));
+  await waitFor(() => expect(boardService.getBoard).toHaveBeenCalledTimes(2));
+  expect(screen.getByRole('button', { name: `Ver detalhes: ${report.titulo}` })).toBeInTheDocument();
+  boardService.getBoard.mockResolvedValue({ ...initial, summary: { ...initial.summary, resolvida: 1 }, columns: [{ ...initial.columns[0], reports: [{ ...report, titulo: 'Atualizada pela moderação' }] }] });
+  fireEvent(window, new Event('focus'));
+  expect(await screen.findByText('Atualizada pela moderação')).toBeInTheDocument();
+});
+
+test('consulta a cada 15 segundos e encerra a atualização ao desmontar', async () => {
+  jest.useFakeTimers();
+  const view = render(<ReportBoard />);
+  try {
+    await act(async () => {});
+    expect(boardService.getBoard).toHaveBeenCalledTimes(1);
+    await act(async () => { jest.advanceTimersByTime(15000); });
+    expect(boardService.getBoard).toHaveBeenCalledTimes(2);
+    view.unmount();
+    await act(async () => { jest.advanceTimersByTime(30000); });
+    fireEvent(window, new Event('focus'));
+    expect(boardService.getBoard).toHaveBeenCalledTimes(2);
+  } finally { view.unmount(); jest.useRealTimers(); }
 });
 
 test('board pessoal mostra os cartões e abre detalhes acessíveis', async () => {
@@ -111,7 +163,7 @@ test('board analítico aplica filtros aos indicadores e à paginação', async (
   await waitFor(() => expect(screen.getByRole('button', { name: 'Carregar mais: Abertas' })).not.toBeDisabled());
 });
 
-test('board comunitário apresenta somente indicadores públicos e localizações', async () => {
+test('board comunitário apresenta indicadores por bairro sem distribuição de endereços', async () => {
   const community = {
     ...initial,
     summary: { ...initial.summary, pendente: 0, rejeitada: 0, resolutionRate: 25 },
@@ -129,9 +181,9 @@ test('board comunitário apresenta somente indicadores públicos e localizaçõe
 
   expect(await screen.findByRole('heading', { name: 'Board da comunidade' })).toBeInTheDocument();
   expect(screen.getByText(/Dados atualizados em/)).toHaveTextContent('20/09/2026 12:30');
-  expect(screen.getByText('Denúncias por localização')).toBeInTheDocument();
+  expect(screen.queryByText('Denúncias por localização')).not.toBeInTheDocument();
   expect(screen.getByText('Denúncias por bairro')).toBeInTheDocument();
-  expect(screen.getByText('Centro, Cotia')).toBeInTheDocument();
+  expect(screen.queryByText('Centro, Cotia')).not.toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Mapa das denúncias' })).toBeInTheDocument();
   expect(screen.queryByText('Em moderação')).not.toBeInTheDocument();
   expect(screen.queryByText('Rejeitadas')).not.toBeInTheDocument();

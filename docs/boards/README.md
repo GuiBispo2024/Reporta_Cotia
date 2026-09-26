@@ -2,6 +2,8 @@
 
 Implementação incremental na branch `feat/boards`. Nesta versão, o board acompanha as denúncias; mudanças de status continuam nos fluxos de moderação existentes.
 
+> Atualização da sprint analítica: resumo, distribuições, médias, evolução e comparação agora usam a última carga persistida. Consulte o [catálogo](../analytics/catalogo.md) e o [modelo, operação e roteiro de teste](../analytics/operacao.md). Cartões, mapas, exportação e operação da moderação continuam operacionais. As regras abaixo de atualização/distribuição foram ajustadas para essa separação.
+
 ## API
 
 - `GET /boards/mine`: requer sessão; consulta apenas denúncias do usuário autenticado.
@@ -18,7 +20,7 @@ Parâmetros opcionais: `categoria`, `setorResponsavel`, `bairro`, `dataInicio`, 
 
 Colunas: `pendente` (em moderação), `aberta`, `em_andamento`, `resolvida` e `rejeitada`. As três colunas de andamento incluem somente denúncias aprovadas. A taxa de resolução divide as resolvidas pelas aprovadas, sem incluir pendentes e rejeitadas.
 
-Os registros incluem título, descrição, localização, bairro, categoria, setor, estados, datas e motivo da rejeição. Denúncias antigas sem bairro permanecem disponíveis e são agrupadas como “Não informado”. Textos originais de censura, credenciais e dados pessoais do autor não são retornados. O ID de usuário informado na URL não altera o escopo pessoal.
+Os cartões incluem título, descrição, localização, bairro, categoria, setor, estados, datas e motivo da rejeição. Denúncias antigas sem bairro permanecem disponíveis nos cartões, mas não entram na distribuição analítica por bairro. Textos originais de censura, credenciais e dados pessoais do autor não são retornados. O ID de usuário informado na URL não altera o escopo pessoal. Os novos endpoints de indicadores não retornam esses cartões ou endereços.
 
 As respostas principais dos boards não incluem coordenadas. Os dados geográficos são fornecidos exclusivamente pelos endpoints de mapa de calor, já agrupados em células com no mínimo três denúncias e sem identificadores, títulos ou endereços.
 
@@ -30,7 +32,7 @@ Quando `dataInicio` e `dataFim` são informadas no board analítico, a resposta 
 
 O campo `trend` apresenta a quantidade mensal de denúncias nos últimos 12 meses que possuem registros no recorte consultado. No board analítico, `categoryTrend` distribui esses mesmos meses por categoria, incluindo totais e zeros para meses sem registros. A interface combina essa evolução com gráficos de situação, categorias mais recorrentes e bairros com mais denúncias.
 
-Cada resposta do board inclui `generatedAt`, e a interface apresenta essa data como a última atualização dos indicadores. O horário é renovado quando a página abre, quando os filtros são aplicados ou quando o usuário solicita uma atualização.
+Cada resposta inclui `generatedAt`, a hora da resposta. Nos boards comunitário e analítico, a interface mostra `lastUpdatedAt`, que corresponde à última carga concluída e não muda ao recarregar a página. Antes da primeira carga, `status=not_processed` e a interface informa que os indicadores aguardam processamento. O board pessoal mantém a data de consulta operacional.
 
 ## Etapas
 

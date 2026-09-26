@@ -1,6 +1,7 @@
 const request = require('supertest');
 const ExcelJS = require('exceljs');
 const app = require('../../app');
+const { refreshAnalytics } = require('../../analytics/process');
 const { sequelize, User, Role, Permission, Denuncia, DenunciaHistorico, Comment, BoardExportHistory } = require('../../models/rel');
 
 describe('Boards pessoais e analíticos', () => {
@@ -48,6 +49,7 @@ describe('Boards pessoais e analíticos', () => {
       { tipo: 'moderacao', statusAnterior: 'pendente', statusNovo: 'aprovada', denunciaId: resolvedReport.id, createdAt: new Date('2026-01-16T12:00:00.000Z') },
       { tipo: 'resolucao', statusAnterior: 'aberta', statusNovo: 'resolvida', denunciaId: resolvedReport.id, createdAt: new Date('2026-01-18T12:00:00.000Z') }
     ]);
+    await refreshAnalytics();
   });
   afterAll(() => sequelize.close());
 
@@ -73,7 +75,7 @@ describe('Boards pessoais e analíticos', () => {
     expect(Number.isNaN(Date.parse(response.body.generatedAt))).toBe(false);
     expect(response.body.summary).toMatchObject({ total: 4, aberta: 3, resolvida: 1, pendente: 0, rejeitada: 0 });
     expect(response.body.columns.map(column => column.key)).toEqual(['aberta', 'em_andamento', 'resolvida']);
-    expect(response.body.breakdown.locations).toEqual([{ label: 'Cotia', total: 4 }]);
+    expect(response.body.breakdown).not.toHaveProperty('locations');
     expect(response.body.breakdown.neighborhoods).toEqual([{ label: 'Centro', total: 3 }, { label: 'Granja Viana', total: 1 }]);
     expect(response.body).not.toHaveProperty('map');
     expect(response.body).not.toHaveProperty('moderation');
@@ -204,8 +206,10 @@ describe('Boards pessoais e analíticos', () => {
       createdAt: new Date('2025-12-15T12:00:00.000Z'),
       userId: citizen.id
     });
+    await refreshAnalytics();
     const response = await get('/boards/analytics', analyst, { dataInicio: '2026-01-01', dataFim: '2026-01-31' });
     await previousReport.destroy();
+    await refreshAnalytics();
     expect(response.status).toBe(200);
     expect(response.body.summary).toMatchObject({ total: 1, resolvida: 1 });
     expect(response.body.columns.find(item => item.key === 'resolvida').reports[0].titulo).toBe('Minha resolvida');

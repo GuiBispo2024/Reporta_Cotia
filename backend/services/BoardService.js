@@ -1,8 +1,11 @@
 const BoardRepository = require('../repositories/BoardRepository');
+const AnalyticsService = require('./AnalyticsService');
 const AppError = require('../utils/AppError');
 const { PERMISSIONS } = require('../constants/accessControl');
 const { hasPermission } = require('../utils/authorization');
 const { Op } = require('sequelize');
+const { sequelize } = require('../models/db/db');
+const { neighborhood } = require('../analytics/quality');
 const ExcelJS = require('exceljs');
 
 const COLUMNS = [
@@ -46,78 +49,6 @@ function dateFilter(value) {
   return parsed;
 }
 
-function average(values) {
-  if (!values.length) return null;
-  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length * 10) / 10;
-}
-
-function serviceMetrics(records) {
-  const moderationHours = [];
-  const resolutionHours = [];
-  for (const record of records) {
-    const plain = record.get ? record.get({ plain: true }) : record;
-    const history = (plain.DenunciaHistoricos || []).slice()
-      .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-    const moderation = history.find(item => item.tipo === 'moderacao' && ['aprovada', 'rejeitada'].includes(item.statusNovo));
-    if (moderation) {
-      const duration = (new Date(moderation.createdAt) - new Date(plain.createdAt)) / 3600000;
-      if (Number.isFinite(duration) && duration >= 0) moderationHours.push(duration);
-    }
-    const approval = history.find(item => item.tipo === 'moderacao' && item.statusNovo === 'aprovada');
-    const resolution = approval && history.find(item => item.tipo === 'resolucao' && item.statusNovo === 'resolvida' && new Date(item.createdAt) >= new Date(approval.createdAt));
-    if (approval && resolution) {
-      const duration = (new Date(resolution.createdAt) - new Date(approval.createdAt)) / 3600000;
-      if (Number.isFinite(duration) && duration >= 0) resolutionHours.push(duration);
-    }
-  }
-  return {
-    averageModerationHours: average(moderationHours),
-    averageResolutionHours: average(resolutionHours),
-    moderationSampleSize: moderationHours.length,
-    resolutionSampleSize: resolutionHours.length
-  };
-}
-
-function monthlyTrend(records) {
-  const totals = new Map();
-  for (const record of records) {
-    const plain = record.get ? record.get({ plain: true }) : record;
-    const date = new Date(plain.createdAt);
-    if (Number.isNaN(date.getTime())) continue;
-    const period = date.toISOString().slice(0, 7);
-    totals.set(period, (totals.get(period) || 0) + 1);
-  }
-  return [...totals.entries()]
-    .sort(([first], [second]) => first.localeCompare(second))
-    .slice(-12)
-    .map(([period, total]) => ({ period, total }));
-}
-
-function categoryTrend(records) {
-  const periodSet = new Set();
-  const categories = new Map();
-  for (const record of records) {
-    const plain = record.get ? record.get({ plain: true }) : record;
-    const date = new Date(plain.createdAt);
-    if (Number.isNaN(date.getTime())) continue;
-    const period = date.toISOString().slice(0, 7);
-    const category = plain.categoria || 'Não informado';
-    periodSet.add(period);
-    if (!categories.has(category)) categories.set(category, new Map());
-    const values = categories.get(category);
-    values.set(period, (values.get(period) || 0) + 1);
-  }
-  const periods = [...periodSet].sort().slice(-12);
-  const series = [...categories.entries()]
-    .map(([label, values]) => {
-      const monthlyValues = periods.map(period => values.get(period) || 0);
-      return { label, total: monthlyValues.reduce((sum, value) => sum + value, 0), values: monthlyValues };
-    })
-    .filter(item => item.total)
-    .sort((first, second) => second.total - first.total || first.label.localeCompare(second.label, 'pt-BR'));
-  return { periods, series };
-}
-
 function statusCounts(rows) {
   const counts = Object.fromEntries(COLUMNS.map(item => [item.key, 0]));
   for (const row of rows) {
@@ -138,33 +69,7 @@ function summaryFromCounts(counts) {
   };
 }
 
-function percentageChange(current, previous) {
-  if (!previous) return current ? null : 0;
-  return Math.round((current - previous) / previous * 100);
-}
-
-function comparisonPeriod(query, where) {
-  if (!query.dataInicio || !query.dataFim) return null;
-  const currentStart = new Date(`${query.dataInicio}T00:00:00.000Z`);
-  const currentEndExclusive = new Date(`${query.dataFim}T00:00:00.000Z`);
-  currentEndExclusive.setUTCDate(currentEndExclusive.getUTCDate() + 1);
-  const duration = currentEndExclusive.getTime() - currentStart.getTime();
-  const previousStart = new Date(currentStart.getTime() - duration);
-  const previousEnd = new Date(currentStart);
-  previousEnd.setUTCDate(previousEnd.getUTCDate() - 1);
-  const baseWhere = { ...where };
-  delete baseWhere.createdAt;
-  return {
-    dataInicio: previousStart.toISOString().slice(0, 10),
-    dataFim: previousEnd.toISOString().slice(0, 10),
-    where: {
-      ...baseWhere,
-      createdAt: { [Op.gte]: previousStart, [Op.lt]: currentStart }
-    }
-  };
-}
-
-function boardFilters(query = {}) {
+function boardFilters(query = {}, snapshotNeighborhood = true) {
   const categoria = textFilter(query.categoria);
   const setorResponsavel = textFilter(query.setorResponsavel);
   const bairro = textFilter(query.bairro);
@@ -180,11 +85,17 @@ function boardFilters(query = {}) {
     exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() + 1);
     createdAt[Op.lt] = exclusiveEnd;
   }
+  // The dropdown uses canonical neighborhood names from the last analytical load.
+  // Resolve that cohort by report ID instead of comparing it with legacy free text.
+  const normalizedNeighborhood = neighborhood(bairro);
+  const neighborhoodWhere = bairro && snapshotNeighborhood ? {
+    id: { [Op.in]: sequelize.literal(`(SELECT "denunciaId" FROM "AnalyticsFacts" WHERE "runId" = (SELECT "activeRunId" FROM "AnalyticsStates" WHERE "id" = 1) AND "bairro" ${normalizedNeighborhood === null ? 'IS NULL' : `= ${sequelize.escape(normalizedNeighborhood)}`})`) }
+  } : bairro ? { bairro } : {};
   return {
     where: {
       ...(categoria ? { categoria } : {}),
       ...(setorResponsavel ? { setorResponsavel } : {}),
-      ...(bairro ? { bairro } : {}),
+      ...neighborhoodWhere,
       ...(dataInicio || dataFim ? { createdAt } : {})
     },
     filters: {
@@ -299,24 +210,18 @@ class BoardService {
       ? COLUMNS.filter(item => ['aberta', 'em_andamento', 'resolvida'].includes(item.key))
       : COLUMNS;
     if (column !== undefined && !availableColumns.some(item => item.key === column)) throw new AppError('Coluna inválida.', 400, 'VALIDATION_ERROR');
-    const parsedFilters = boardFilters(query);
+    const parsedFilters = boardFilters(query, analytical || publicView);
     // The authenticated account defines the personal scope; query parameters cannot replace it.
     const scope = analytical ? {} : publicView ? { status: 'aprovada' } : { userId: user.id };
     const where = {
       ...scope,
       ...parsedFilters.where
     };
-    const comparedPeriod = analytical ? comparisonPeriod(query, where) : null;
     const includeBreakdown = analytical || publicView;
-    const [statuses, categories, sectors, neighborhoods, locations, metricRecords, moderationDetails, previousStatuses] = await Promise.all([
+    const [statuses, indicators, moderationDetails] = await Promise.all([
       BoardRepository.grouped(where, ['status', 'resolucaoStatus']),
-      includeBreakdown ? BoardRepository.grouped(where, ['categoria']) : [],
-      includeBreakdown ? BoardRepository.grouped(where, ['setorResponsavel']) : [],
-      includeBreakdown ? BoardRepository.grouped(where, ['bairro']) : [],
-      includeBreakdown ? BoardRepository.grouped(where, ['localizacao']) : [],
-      includeBreakdown ? BoardRepository.serviceMetricRecords(where) : [],
-      analytical ? BoardRepository.moderationIndicators(where) : null,
-      comparedPeriod ? BoardRepository.grouped(comparedPeriod.where, ['status', 'resolucaoStatus']) : []
+      includeBreakdown ? AnalyticsService.indicators(user, query, scopeType) : null,
+      analytical ? BoardRepository.moderationIndicators(where) : null
     ]);
     const counts = statusCounts(statuses);
     const columns = await Promise.all(availableColumns.filter(item => !column || item.key === column).map(async item => {
@@ -328,21 +233,13 @@ class BoardService {
     }));
     const summary = summaryFromCounts(counts);
     const { approved } = summary;
-    const previousSummary = comparedPeriod ? summaryFromCounts(statusCounts(previousStatuses)) : null;
-    const breakdown = (rows, field) => rows.map(row => ({ label: row[field] || 'Não informado', total: Number(row.total) }))
-      .sort((a, b) => b.total - a.total || a.label.localeCompare(b.label, 'pt-BR'));
     return {
       scope: scopeType,
       generatedAt: new Date().toISOString(),
       summary,
       columns,
-      ...(includeBreakdown ? { breakdown: {
-        categories: breakdown(categories, 'categoria'),
-        sectors: breakdown(sectors, 'setorResponsavel'),
-        neighborhoods: breakdown(neighborhoods, 'bairro'),
-        locations: breakdown(locations, 'localizacao')
-      }, metrics: serviceMetrics(metricRecords), trend: monthlyTrend(metricRecords) } : {}),
-      ...(analytical ? { categoryTrend: categoryTrend(metricRecords), moderation: {
+      ...(indicators || {}),
+      ...(analytical ? { moderation: {
         pending: counts.pendente,
         approved,
         rejected: counts.rejeitada,
@@ -350,17 +247,6 @@ class BoardService {
         censoredComments: moderationDetails.censoredComments,
         censoredTotal: moderationDetails.censoredReports + moderationDetails.censoredComments,
         rejectionReasons: moderationDetails.rejectionReasons
-      } } : {}),
-      ...(comparedPeriod ? { comparison: {
-        current: { dataInicio: query.dataInicio, dataFim: query.dataFim, ...summary },
-        previous: { dataInicio: comparedPeriod.dataInicio, dataFim: comparedPeriod.dataFim, ...previousSummary },
-        changes: {
-          totalPercent: percentageChange(summary.total, previousSummary.total),
-          approvedPercent: percentageChange(summary.approved, previousSummary.approved),
-          resolvedPercent: percentageChange(summary.resolvida, previousSummary.resolvida),
-          rejectedPercent: percentageChange(summary.rejeitada, previousSummary.rejeitada),
-          resolutionRatePoints: summary.resolutionRate - previousSummary.resolutionRate
-        }
       } } : {}),
       filters: parsedFilters.filters,
       limit
