@@ -64,6 +64,19 @@ describe('Interações sociais e sessões', () => {
     await Comment.destroy({ where: { id: [older.id, newer.id] } })
   })
 
+  test('loads only descendants of the selected page of threads', async () => {
+    const repository = require('../../repositories/CommentRepository');
+    const first = await Comment.create({ comentario: 'First', denunciaId, userId: 1 });
+    const second = await Comment.create({ comentario: 'Second', denunciaId, userId: 1 });
+    const reply = await Comment.create({ comentario: 'Visible reply', denunciaId, userId: 1, parentCommentId: first.id });
+    await Comment.create({ comentario: 'Other thread', denunciaId, userId: 1, parentCommentId: second.id });
+    const result = await repository.findByDenunciaId(denunciaId, false, { page: 1, limit: 1, sort: 'oldest' });
+    expect(result.totalThreads).toBe(2);
+    expect(result.comments).toHaveLength(1);
+    expect(result.comments[0].Replies.map(row => row.id)).toEqual([reply.id]);
+    await Comment.destroy({ where: { id: [first.id, second.id] } });
+  })
+
   test('curte, pagina o histórico e descurte', async () => {
     expect((await request(app).post(`/denuncia/${denunciaId}/like`).set('Authorization', `Bearer ${token}`)).status).toBe(201)
     const list = await request(app).get(`/denuncia/${denunciaId}/likes`).query({ page: 1, limit: 10 })

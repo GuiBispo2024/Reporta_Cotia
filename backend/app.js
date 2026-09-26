@@ -12,6 +12,7 @@ const AppError = require('./utils/AppError');
 const { sequelize } = require('./models/rel');
 
 const app = express();
+if (process.env.TRUST_PROXY) app.set('trust proxy', process.env.TRUST_PROXY.split(',').map(value => value.trim()));
 const { swaggerUi, swaggerSpec } = require('./utils/swagger');
 
 const userController = require('./controllers/UserController');
@@ -21,7 +22,7 @@ const likeController = require('./controllers/LikeController');
 const shareController = require('./controllers/ShareController');
 const boardController = require('./controllers/BoardController');
 
-const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3000')
+const allowedOrigins = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || 'http://localhost:3000')
   .split(',')
   .map(origin => origin.trim())
   .filter(Boolean);

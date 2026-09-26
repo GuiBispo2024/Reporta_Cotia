@@ -159,7 +159,7 @@ describe('DenunciaService (unit)', () => {
     const res = await DenunciaService.atualizar(1, { titulo: "novo", latitude: "", longitude: "   " }, 10);
 
     expect(res.message).toBe("Denúncia atualizada e reenviada para moderação.");
-    expect(DenunciaRepository.update).toHaveBeenCalledWith(1, expect.objectContaining({ latitude: null, longitude: null }));
+    expect(DenunciaRepository.update).toHaveBeenCalledWith(1, expect.objectContaining({ latitude: null, longitude: null }), expect.any(Object));
   });
 
   test('atualizar: erro se não existe', async () => {

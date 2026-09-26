@@ -1,5 +1,5 @@
-const { Comment, User } = require('../models/rel')
-const { Op } = require('sequelize')
+const { Comment, User, sequelize } = require('../models/rel')
+const { Op, QueryTypes } = require('sequelize')
 
 class CommentRepository {
     
@@ -20,8 +20,17 @@ class CommentRepository {
       attributes: includeSensitive ? undefined : { exclude: ['comentarioOriginal'] }
     }
     const attachReplies = async roots => {
+      if (!roots.length) return []
+      const descendants = await sequelize.query(`WITH RECURSIVE thread_ids(id) AS (
+        SELECT "id" FROM "Comentarios" WHERE "id" IN (:roots) AND "denunciaId" = :denunciaId
+        UNION
+        SELECT c."id" FROM "Comentarios" c JOIN thread_ids p ON c."parentCommentId" = p.id
+        WHERE c."denunciaId" = :denunciaId
+      ) SELECT id FROM thread_ids WHERE id NOT IN (:roots)`, {
+        replacements: { roots: roots.map(root => root.id), denunciaId }, type: QueryTypes.SELECT
+      })
       const replies = await Comment.findAll({
-        where: { denunciaId, parentCommentId: { [Op.ne]: null } },
+        where: { denunciaId, id: { [Op.in]: descendants.map(row => row.id) } },
         include: [{ model: User, attributes: ['id', 'username', 'avatarUrl'] }],
         order: [['createdAt', 'ASC'], ['id', 'ASC']],
         attributes: includeSensitive ? undefined : { exclude: ['comentarioOriginal'] }

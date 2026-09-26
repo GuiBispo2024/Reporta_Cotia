@@ -1,6 +1,7 @@
 // Camada leve de segurança sem dependências extras.
 // Em produção, recomenda-se complementar com Helmet e rate-limit do provedor.
 const buckets = new Map();
+let lastSweep = 0;
 
 function securityHeaders(req, res, next) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -19,7 +20,17 @@ function rateLimit(req, res, next) {
   const max = isRead ? 1000 : 120;
   const key = `${req.ip || req.socket.remoteAddress || 'unknown'}:${isRead ? 'read' : 'write'}`;
   const now = Date.now();
+  if (now - lastSweep >= windowMs) {
+    for (const [bucketKey, bucket] of buckets) {
+      if (now - bucket.start >= windowMs) buckets.delete(bucketKey);
+    }
+    lastSweep = now;
+  }
   const current = buckets.get(key);
+  if (!current && buckets.size >= 10000) {
+    res.setHeader('Retry-After', '60');
+    return res.status(429).json({ message: 'Tente novamente em um minuto.', code: 'RATE_LIMITED' });
+  }
 
   if (!current || now - current.start >= windowMs) {
     buckets.set(key, { start: now, count: 1 });

@@ -21,7 +21,8 @@ module.exports = async (req, res, next) => {
     const { adm: _legacyAdm, ...session } = decoded
     req.user = { ...session, roles, permissions }
     next()
-  } catch {
+  } catch (error) {
+    if (!['JsonWebTokenError', 'TokenExpiredError', 'NotBeforeError'].includes(error.name)) return next(error)
     return res.status(401).json({ message: 'Sua sessão expirou. Entre novamente para continuar.', code: 'SESSION_EXPIRED' })
   }
 }
