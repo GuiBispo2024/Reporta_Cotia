@@ -268,6 +268,10 @@ class UserRepository{
                 return { status: 'last_admin' }
             }
 
+            // Preserve published civic records while removing their author association.
+            await Denuncia.update({ userId: null }, {
+                where: { userId, status: 'aprovada' }, transaction
+            })
             await user.destroy({ transaction })
             return { status: 'deleted' }
         })

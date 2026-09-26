@@ -1,5 +1,5 @@
 const DenunciaRepository = require('../repositories/DenunciaRepository');
-const { DenunciaHistorico, User } = require('../models/rel');
+const { DenunciaHistorico, User, sequelize } = require('../models/rel');
 const filterBadWords = require('../utils/filterBadWords');
 const AppError = require('../utils/AppError');
 const { validateDenuncia } = require('../utils/validateDenuncia');
@@ -59,15 +59,16 @@ class DenunciaService {
     };
   }
 
-  static async moderar(id, status, motivoRejeicao = null, moderatorId = null) {
+  static async moderar(id, status, motivoRejeicao = null, moderatorId = null, transaction = null) {
+    if (!transaction) return sequelize.transaction(tx => this.moderar(id, status, motivoRejeicao, moderatorId, tx));
     if (!['pendente', 'aprovada', 'rejeitada'].includes(status)) {
       throw new AppError('Status de moderação inválido.', 400, 'VALIDATION_ERROR');
     }
 
-    const denuncia = await DenunciaRepository.findById(id);
+    const denuncia = await DenunciaRepository.findById(id, transaction);
     if (!denuncia) throw new AppError('Denúncia não encontrada.', 404, 'NOT_FOUND');
 
-    if (status === 'pendente' && denuncia.resolucaoStatus === 'resolvida') {
+    if (status !== 'aprovada' && denuncia.resolucaoStatus === 'resolvida') {
       throw new AppError('Denúncias resolvidas não podem ter a moderação reaberta.', 409, 'REPORT_RESOLVED');
     }
 
@@ -75,12 +76,22 @@ class DenunciaService {
       throw new AppError('Informe o motivo da rejeição.', 400, 'REJECTION_REASON_REQUIRED');
     }
     const motivo = status === 'rejeitada' ? motivoRejeicao.trim().slice(0, 1000) : null;
-    const statusAnterior = denuncia.status;
-    await DenunciaRepository.update(id, { status, motivoRejeicao: motivo });
-    if (status !== 'aprovada') {
-      await DenunciaRepository.clearSocialHistory(id);
+    if (denuncia.status === status && (denuncia.motivoRejeicao || null) === motivo) {
+      return { message: 'Nenhuma alteração para salvar.', denuncia, changed: false };
     }
-    if (moderatorId) await DenunciaHistorico.create({ tipo: 'moderacao', statusAnterior, statusNovo: status, motivo, denunciaId: id, userId: moderatorId });
+    const statusAnterior = denuncia.status;
+    if (status !== 'aprovada' && denuncia.resolucaoStatus === 'em_andamento') {
+      await DenunciaRepository.update(id, { resolucaoStatus: 'aberta', resolucaoAtualizadaEm: null, setorResponsavel: null }, transaction);
+      if (moderatorId) await DenunciaHistorico.create({ tipo: 'resolucao', statusAnterior: 'em_andamento', statusNovo: 'aberta', denunciaId: id, userId: moderatorId }, { transaction });
+      denuncia.resolucaoStatus = 'aberta';
+      denuncia.resolucaoAtualizadaEm = null;
+      denuncia.setorResponsavel = null;
+    }
+    await DenunciaRepository.update(id, { status, motivoRejeicao: motivo }, transaction);
+    if (status !== 'aprovada') {
+      await DenunciaRepository.clearSocialHistory(id, transaction);
+    }
+    if (moderatorId) await DenunciaHistorico.create({ tipo: 'moderacao', statusAnterior, statusNovo: status, motivo, denunciaId: id, userId: moderatorId }, { transaction });
     denuncia.status = status;
     denuncia.motivoRejeicao = motivo;
     return { message: status === 'rejeitada' ? 'Denúncia rejeitada. O autor poderá consultar o motivo e corrigir o registro.' : `Denúncia marcada como ${status}.`, denuncia };
@@ -101,14 +112,16 @@ class DenunciaService {
     return { message: manterCensura ? 'A censura foi mantida.' : 'A censura foi removida após revisão.', field, value, censurado: manterCensura };
   }
 
-  static async atualizarResolucao(id, resolucaoStatus, details = {}, moderatorId = null) {
+  static async atualizarResolucao(id, resolucaoStatus, details = {}, moderatorId = null, transaction = null) {
+    if (!transaction) return sequelize.transaction(tx => this.atualizarResolucao(id, resolucaoStatus, details, moderatorId, tx));
     if (!['aberta', 'em_andamento', 'resolvida'].includes(resolucaoStatus)) {
       throw new AppError('Status de resolução inválido.', 400, 'VALIDATION_ERROR');
     }
 
-    const denuncia = await DenunciaRepository.findById(id);
+    const denuncia = await DenunciaRepository.findById(id, transaction);
     if (!denuncia) throw new AppError('Denúncia não encontrada.', 404, 'NOT_FOUND');
 
+    if (denuncia.status !== 'aprovada') throw new AppError('Apenas denúncias aprovadas podem ter o andamento atualizado.', 409, 'INVALID_STATUS');
     const setoresPermitidos = [
       'Secretaria de Infraestrutura e Obras',
       'Secretaria de Mobilidade e Trânsito',
@@ -141,7 +154,7 @@ class DenunciaService {
       resolucaoStatus,
       setorResponsavel: setorResponsavel || null,
       resolucaoAtualizadaEm: new Date()
-    });
+    }, transaction);
     if (moderatorId) await DenunciaHistorico.create({
       tipo: 'resolucao',
       statusAnterior,
@@ -149,7 +162,7 @@ class DenunciaService {
       responsavel: setorResponsavel || null,
       denunciaId: id,
       userId: moderatorId
-    });
+    }, { transaction });
 
     return {
       message: 'Andamento e setor responsável atualizados com sucesso.',

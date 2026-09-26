@@ -1,5 +1,7 @@
 const DenunciaService = require('../../services/DenunciaService');
 const DenunciaRepository = require('../../repositories/DenunciaRepository');
+const { sequelize } = require('../../models/rel');
+jest.spyOn(sequelize, 'transaction').mockImplementation(fn => fn({ LOCK: { UPDATE: 'UPDATE' } }));
 const filterBadWords = require('../../utils/filterBadWords');
 
 jest.mock('../../repositories/DenunciaRepository');
@@ -67,7 +69,7 @@ describe('DenunciaService (unit)', () => {
 
     console.log("📦 Resultado:", res);
 
-    expect(res.message).toBe("Denúncia marcada como aprovada.");
+    expect(res.changed).toBe(false);
     expect(res.denuncia.status).toBe("aprovada");
   });
 

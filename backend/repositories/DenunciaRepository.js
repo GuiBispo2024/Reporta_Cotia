@@ -37,8 +37,9 @@ class DenunciaRepository {
     return Denuncia.create(data);
   }
 
-  static async findById(id) {
+  static async findById(id, transaction = null) {
     return Denuncia.findByPk(id, {
+      ...(transaction ? { transaction, lock: { level: transaction.LOCK.UPDATE, of: Denuncia } } : {}),
       include: { model: User, attributes: ['id', 'username', 'avatarUrl'] }
     });
   }
@@ -520,14 +521,14 @@ class DenunciaRepository {
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  static async update(id, data) {
-    return Denuncia.update(data, { where: { id } });
+  static async update(id, data, transaction = null) {
+    return Denuncia.update(data, { where: { id }, transaction });
   }
 
-  static async clearSocialHistory(denunciaId) {
+  static async clearSocialHistory(denunciaId, transaction = null) {
     return Promise.all([
-      Like.destroy({ where: { denunciaId } }),
-      Share.destroy({ where: { denunciaId } })
+      Like.destroy({ where: { denunciaId }, transaction }),
+      Share.destroy({ where: { denunciaId }, transaction })
     ]);
   }
 
