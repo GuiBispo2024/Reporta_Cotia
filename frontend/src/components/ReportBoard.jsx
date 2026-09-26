@@ -15,8 +15,7 @@ const SUMMARY_LABELS = { total: 'Total de denúncias', pendente: 'Em moderação
 const BREAKDOWN_LABELS = {
   categories: { title: 'Denúncias por categoria', column: 'Categoria' },
   sectors: { title: 'Denúncias por setor', column: 'Setor' },
-  neighborhoods: { title: 'Denúncias por bairro', column: 'Bairro' },
-  locations: { title: 'Denúncias por localização', column: 'Localização' }
+  neighborhoods: { title: 'Denúncias por bairro', column: 'Bairro' }
 };
 const COMPARISON_METRICS = [
   { label: 'Total de denúncias', value: 'total', change: 'totalPercent' },
@@ -198,7 +197,9 @@ export default function ReportBoard({ analytical = false, community = false }) {
         <div><span className="rc-board-eyebrow">{viewCopy.eyebrow}</span><h1>{viewCopy.title}</h1><p>{viewCopy.description}</p></div>
         <div className="d-flex flex-wrap gap-2"><Link className="btn btn-outline-primary" to={aggregated ? '/meu-board' : '/minhas-denuncias'}>{aggregated ? 'Meu board pessoal' : 'Ver em lista'}</Link>{canViewExportHistory && <Link className="btn btn-outline-secondary" to="/administracao/historico-exportacoes"><i aria-hidden="true" className="bi bi-clock-history me-1" />Histórico de exportações</Link>}{canExport && <button className="btn btn-primary" onClick={exportBoard} disabled={loading || exporting}>{exporting ? 'Gerando planilha...' : 'Exportar Excel'}</button>}<button className="btn btn-outline-secondary" onClick={() => setReload(value => value + 1)} disabled={loading}>Atualizar</button></div>
       </header>
-      {data?.generatedAt && <p className="rc-board-updated" aria-live="polite"><i className="bi bi-clock-history" aria-hidden="true" /> Dados atualizados em <time dateTime={data.generatedAt}>{dateTimeLabel(data.generatedAt)}</time></p>}
+      {(aggregated ? data?.lastUpdatedAt : data?.generatedAt) && <p className="rc-board-updated" aria-live="polite"><i className="bi bi-clock-history" aria-hidden="true" /> Dados atualizados em <time dateTime={aggregated ? data.lastUpdatedAt : data.generatedAt}>{dateTimeLabel(aggregated ? data.lastUpdatedAt : data.generatedAt)}</time></p>}
+      {aggregated && data?.status === 'not_processed' && <p className="alert alert-info" role="status">Os indicadores aguardam o primeiro processamento. As denúncias continuam disponíveis abaixo.</p>}
+      {aggregated && data?.lastUpdatedAt && <p className="rc-board-guidance">Os indicadores refletem a última carga concluída. Os cartões, mapas, a operação da moderação e a exportação consultam os registros atuais e podem apresentar diferenças.</p>}
       {exportMessage && <p className="alert alert-success" role="status">{exportMessage}</p>}
       {exportError && <p className="alert alert-danger" role="alert">{exportError}</p>}
 
@@ -219,7 +220,17 @@ export default function ReportBoard({ analytical = false, community = false }) {
             {visibleSummaryLabels.map(([key, label]) => <div key={key}><dt>{label}</dt><dd>{data.summary[key]}</dd></div>)}
             {aggregated && <div><dt>Resolução das aprovadas</dt><dd>{data.summary.resolutionRate}%</dd></div>}
           </dl>
-          {aggregated && <p className="rc-board-guidance">{community ? 'Os indicadores consideram somente denúncias aprovadas e não exibem conteúdos em moderação ou rejeitados.' : 'Os indicadores consideram todas as denúncias dos filtros aplicados. A taxa de resolução considera somente as aprovadas.'}</p>}
+          {aggregated && <p className="rc-board-guidance">{community ? 'Os indicadores consideram somente denúncias aprovadas elegíveis e não exibem conteúdos em moderação ou rejeitados.' : 'Os indicadores consideram as denúncias elegíveis dos filtros aplicados. A taxa de resolução considera somente as aprovadas.'}</p>}
+          {analytical && data.quality && <section className="rc-board-moderation" aria-labelledby={`${id}-quality-title`}>
+            <header><span className="rc-board-eyebrow">Confiabilidade dos indicadores</span><h2 id={`${id}-quality-title`}>Qualidade dos dados</h2><p>Inconsistências da última carga no recorte selecionado. Um registro pode apresentar mais de uma inconsistência.</p></header>
+            <dl>
+              <div><dt>Registros processados</dt><dd>{data.quality.sourceCount}</dd></div>
+              <div><dt>Com inconsistências</dt><dd>{data.quality.issueCount}</dd></div>
+              <div><dt>Excluídos dos totais</dt><dd>{data.quality.excludedCount}</dd></div>
+            </dl>
+            <p>Datas de cadastro ou estados inválidos excluem o registro dos totais. Categoria ou bairro ausentes excluem apenas a distribuição correspondente. Históricos inconsistentes não entram nas médias.</p>
+            {data.quality.issues.length ? <ul>{data.quality.issues.map(issue => <li key={issue.code}>{issue.label}: <strong>{issue.total}</strong></li>)}</ul> : <p>Nenhuma inconsistência identificada neste recorte.</p>}
+          </section>}
           {aggregated && data.metrics && <section className="rc-board-metrics" aria-labelledby={`${id}-metrics-title`}>
             <div><span className="rc-board-eyebrow">Eficiência do atendimento</span><h2 id={`${id}-metrics-title`}>Tempos médios</h2><p>Calculados somente com denúncias que possuem histórico completo no período selecionado.</p></div>
             <dl>
@@ -256,7 +267,7 @@ export default function ReportBoard({ analytical = false, community = false }) {
             </div>
           </section>}
           {aggregated && <BoardCharts summary={data.summary} categories={data.breakdown?.categories || []} neighborhoods={data.breakdown?.neighborhoods || []} trend={data.trend || []} categoryTrend={analytical ? data.categoryTrend : null} community={community} />}
-          {!data.summary.total && <div className="rc-board-state"><p>{aggregated ? 'Nenhuma denúncia encontrada para os filtros aplicados.' : 'Você ainda não tem denúncias para acompanhar.'}</p>{!aggregated && <Link className="btn btn-primary" to="/nova-denuncia">Registrar denúncia</Link>}</div>}
+          {!data.summary.total && data.status !== 'not_processed' && <div className="rc-board-state"><p>{aggregated ? 'Nenhuma denúncia elegível na última carga para os filtros aplicados.' : 'Você ainda não tem denúncias para acompanhar.'}</p>{!aggregated && <Link className="btn btn-primary" to="/nova-denuncia">Registrar denúncia</Link>}</div>}
           {aggregated && <BoardMap
             heatmap={heatmap}
             reportMap={reportMap}
