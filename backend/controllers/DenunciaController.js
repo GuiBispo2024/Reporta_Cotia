@@ -12,8 +12,11 @@ const { hasPermission } = require('../utils/authorization');
 
 function pagination(req) {
   const hasPagination = req.query.page !== undefined || req.query.limit !== undefined;
-  const page = Math.max(Number.parseInt(req.query.page || '1', 10), 1);
-  const limit = Math.min(Math.max(Number.parseInt(req.query.limit || '12', 10), 1), 50);
+  const page = Number(req.query.page ?? 1);
+  const limit = Number(req.query.limit ?? 12);
+  if (!Number.isSafeInteger(page) || page < 1 || !Number.isSafeInteger(limit) || limit < 1 || limit > 50 || !Number.isSafeInteger((page - 1) * limit)) {
+    throw new AppError('Informe page inteiro positivo e limit entre 1 e 50.', 400, 'VALIDATION_ERROR');
+  }
   return { hasPagination, page, limit };
 }
 
@@ -268,8 +271,11 @@ router.get('/filter', optionalAuth, async (req, res, next) => {
  */
 router.get('/public/user/:userId', async (req, res, next) => {
   try {
-    const page = Math.max(Number.parseInt(req.query.page || '1', 10), 1);
-    const limit = Math.min(Math.max(Number.parseInt(req.query.limit || '12', 10), 1), 50);
+    const page = Number(req.query.page ?? 1);
+  const limit = Number(req.query.limit ?? 12);
+  if (!Number.isSafeInteger(page) || page < 1 || !Number.isSafeInteger(limit) || limit < 1 || limit > 50 || !Number.isSafeInteger((page - 1) * limit)) {
+    throw new AppError('Informe page inteiro positivo e limit entre 1 e 50.', 400, 'VALIDATION_ERROR');
+  }
     res.status(200).json(await DenunciaService.buscarPublicadasPorUsuario(req.params.userId, { page, limit }));
   } catch (error) { next(error); }
 });
