@@ -2,9 +2,79 @@ const router = require('express').Router();
 const auth = require('../middlewares/auth');
 const requirePermission = require('../middlewares/requirePermission');
 const BoardService = require('../services/BoardService');
+const AnalyticsService = require('../services/AnalyticsService');
 const { PERMISSIONS } = require('../constants/accessControl');
 
 router.use(auth);
+
+/**
+ * @swagger
+ * /boards/analytics/indicators:
+ *   get:
+ *     summary: Consulta indicadores da última carga analítica concluída
+ *     description: Requer dashboard.full.view (analista ou administrador). Não retorna registros individuais nem textos das denúncias. Período inclusivo por cadastro em UTC; bairro normalizado. Retorna status not_processed e lastUpdatedAt nulo antes da primeira carga. generatedAt é a data da resposta; lastUpdatedAt é a publicação da carga e dataAsOf é seu início.
+ *     tags: [Boards]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - { in: query, name: categoria, schema: { type: string } }
+ *       - { in: query, name: bairro, schema: { type: string } }
+ *       - { in: query, name: setorResponsavel, schema: { type: string } }
+ *       - { in: query, name: dataInicio, schema: { type: string, format: date } }
+ *       - { in: query, name: dataFim, schema: { type: string, format: date } }
+ *     responses:
+ *       200: { description: summary, breakdown, metrics, trend, categoryTrend, quality e comparison opcional }
+ *       400: { description: Filtros inválidos }
+ *       401: { description: Sessão não autenticada }
+ *       403: { description: Permissão insuficiente }
+ * /boards/public/indicators:
+ *   get:
+ *     summary: Consulta indicadores agregados de denúncias aprovadas
+ *     description: Requer dashboard.public.view. Usa os mesmos filtros e datas do endpoint analítico. Não inclui relatório de qualidade, denúncias pendentes ou rejeitadas. Sem carga retorna status not_processed e lastUpdatedAt nulo.
+ *     tags: [Boards]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - { in: query, name: categoria, schema: { type: string } }
+ *       - { in: query, name: bairro, schema: { type: string } }
+ *       - { in: query, name: setorResponsavel, schema: { type: string } }
+ *       - { in: query, name: dataInicio, schema: { type: string, format: date } }
+ *       - { in: query, name: dataFim, schema: { type: string, format: date } }
+ *     responses:
+ *       200: { description: summary, breakdown, metrics, trend, filters, generatedAt, lastUpdatedAt e dataAsOf }
+ *       400: { description: Filtros inválidos }
+ *       401: { description: Sessão não autenticada }
+ *       403: { description: Permissão insuficiente }
+ * /boards/analytics/quality:
+ *   get:
+ *     summary: Consulta relatório paginado de qualidade dos dados
+ *     description: Requer dashboard.full.view. Retorna IDs das denúncias e códigos de inconsistência, sem conteúdo pessoal; summary informa totais por regra no recorte completo e lastAttempt informa o último processamento. Datas inválidas aparecem no relatório sem filtro de período. Falhas não substituem a última carga válida.
+ *     tags: [Boards]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - { in: query, name: categoria, schema: { type: string } }
+ *       - { in: query, name: bairro, schema: { type: string } }
+ *       - { in: query, name: setorResponsavel, schema: { type: string } }
+ *       - { in: query, name: dataInicio, schema: { type: string, format: date } }
+ *       - { in: query, name: dataFim, schema: { type: string, format: date } }
+ *       - { in: query, name: page, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+ *       - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+ *     responses:
+ *       200: { description: data, total, page, limit, totalPages, summary, filters, lastUpdatedAt, lastAttempt e status }
+ *       400: { description: Filtros ou paginação inválidos }
+ *       401: { description: Sessão não autenticada }
+ *       403: { description: Permissão insuficiente }
+ */
+router.get('/analytics/indicators', requirePermission(PERMISSIONS.DASHBOARD_FULL_VIEW), async (req, res, next) => {
+  try { res.json(await AnalyticsService.indicators(req.user, req.query)); } catch (error) { next(error); }
+});
+router.get('/public/indicators', requirePermission(PERMISSIONS.DASHBOARD_PUBLIC_VIEW), async (req, res, next) => {
+  try { res.json(await AnalyticsService.indicators(req.user, req.query, 'public')); } catch (error) { next(error); }
+});
+router.get('/analytics/quality', requirePermission(PERMISSIONS.DASHBOARD_FULL_VIEW), async (req, res, next) => {
+  try { res.json(await AnalyticsService.quality(req.user, req.query)); } catch (error) { next(error); }
+});
 
 router.get('/mine', async (req, res, next) => {
   try { res.json(await BoardService.getBoard(req.user, req.query)); }

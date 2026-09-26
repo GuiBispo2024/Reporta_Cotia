@@ -1,6 +1,18 @@
 const { swaggerSpec } = require('../../utils/swagger')
 
 describe('Documentação OpenAPI', () => {
+  test('documenta filtros, acesso e atualização da carga analítica e qualidade', () => {
+    for (const path of ['/boards/analytics/indicators', '/boards/public/indicators', '/boards/analytics/quality']) {
+      const endpoint = swaggerSpec.paths[path].get;
+      expect(endpoint.security).toEqual([{ bearerAuth: [] }]);
+      expect(endpoint.parameters.map(item => item.name)).toEqual(expect.arrayContaining(['categoria', 'bairro', 'dataInicio', 'dataFim']));
+      expect(endpoint.responses[400]).toBeDefined();
+      expect(endpoint.responses[401]).toBeDefined();
+      expect(endpoint.responses[403]).toBeDefined();
+    }
+    expect(swaggerSpec.paths['/boards/analytics/indicators'].get.description).toContain('lastUpdatedAt');
+    expect(swaggerSpec.paths['/boards/analytics/quality'].get.parameters.map(item => item.name)).toContain('limit');
+  });
   test('documenta perfis e permissões do usuário autenticado', () => {
     expect(swaggerSpec.components.schemas.AccessRole.enum).toEqual([
       'CITIZEN', 'MODERATOR', 'ANALYST', 'ADMIN'
