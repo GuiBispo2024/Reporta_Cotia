@@ -5,8 +5,9 @@ const requirePermission = require('../middlewares/requirePermission');
 const optionalAuth = require('../middlewares/optionalAuth');
 const AppError = require('../utils/AppError');
 const DenunciaService = require('../services/DenunciaService');
-const { upload, storeImage, deleteImage } = require('../utils/upload');
+const { upload, storeImages, deleteImage } = require('../utils/upload');
 const { PERMISSIONS } = require('../constants/accessControl');
+const { validateDenuncia } = require('../utils/validateDenuncia');
 const { hasPermission } = require('../utils/authorization');
 
 function pagination(req) {
@@ -55,10 +56,12 @@ function pagination(req) {
  *       403: { description: Usuário sem `denuncia.create` }
  */
 router.post('/', auth, requirePermission(PERMISSIONS.DENUNCIA_CREATE), upload.array('imagens', 4), async (req, res, next) => {
+  let imageUrls = [];
   try {
-    const imageUrls = await Promise.all((req.files || []).map(file => storeImage(file)));
-    res.status(201).json(await DenunciaService.create({ ...req.body, imageUrls, imageUrl: imageUrls[0] || null }, req.user));
-  } catch (error) { next(error); }
+    validateDenuncia(req.body);
+    imageUrls = await storeImages(req.files || []);
+    res.status(201).json(await DenunciaService.create({ ...req.body, imageUrls, imageUrl: imageUrls[0] || null }, req.user, { uploadedImages: true }));
+  } catch (error) { await Promise.all(imageUrls.map(url => deleteImage(url).catch(() => {}))); next(error); }
 });
 
 /**
@@ -367,10 +370,16 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
  *       404: { description: Denúncia não encontrada }
  */
 router.put('/:id', auth, requirePermission(PERMISSIONS.DENUNCIA_UPDATE_OWN), upload.array('imagens', 4), async (req, res, next) => {
+  let newUrls = [];
+  let saved = false;
   try {
     const current = await DenunciaService.buscarPorId(req.params.id, req.user);
-    const newUrls = await Promise.all((req.files || []).map(file => storeImage(file)));
-    const removeRequested = req.body.removeImages === 'true' || req.body.removeImage === 'true' || req.body.removeImage === true;
+    if (Number(current.userId) !== Number(req.user.id)) throw new AppError('Acesso negado.', 403, 'FORBIDDEN');
+    if (current.status !== 'rejeitada') throw new AppError('Apenas registros rejeitados podem ser editados.', 409, 'INVALID_STATUS');
+    validateDenuncia(req.body, { partial: true });
+    if ('imageUrl' in req.body || 'imageUrls' in req.body) throw new AppError('Use o upload de imagens.', 400, 'INVALID_IMAGE_REFERENCE');
+    newUrls = await storeImages(req.files || []);
+    const removeRequested = req.body.removeImages === true || req.body.removeImages === 'true' || req.body.removeImage === 'true' || req.body.removeImage === true;
     const replaceImages = newUrls.length > 0 || removeRequested;
     const data = { ...req.body };
     delete data.removeImages;
@@ -379,14 +388,15 @@ router.put('/:id', auth, requirePermission(PERMISSIONS.DENUNCIA_UPDATE_OWN), upl
       data.imageUrls = newUrls;
       data.imageUrl = newUrls[0] || null;
     }
-    const result = await DenunciaService.atualizar(req.params.id, data, req.user.id);
+    const result = await DenunciaService.atualizar(req.params.id, data, req.user.id, { uploadedImages: true });
+    saved = true;
     if (replaceImages) await Promise.all(
       (current.imageUrls?.length ? current.imageUrls : [current.imageUrl])
         .filter(Boolean)
         .map(url => deleteImage(url).catch(() => {}))
     );
     res.status(200).json(result);
-  } catch (error) { next(error); }
+  } catch (error) { if (!saved) await Promise.all(newUrls.map(url => deleteImage(url).catch(() => {}))); next(error); }
 });
 
 /**

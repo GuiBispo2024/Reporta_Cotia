@@ -2,7 +2,8 @@ const express = require('express')
 const router = express.Router()
 const UserService = require('../services/UserService')
 const auth = require('../middlewares/auth')
-const { upload, storeImage } = require('../utils/upload')
+const { upload, storeImage, deleteImage } = require('../utils/upload')
+const { validateAccount } = require('../utils/validateAccount')
 const PasswordResetService = require('../services/PasswordResetService')
 const requirePermission = require('../middlewares/requirePermission')
 const { PERMISSIONS } = require('../constants/accessControl')
@@ -59,11 +60,14 @@ const { hasPermission } = require('../utils/authorization')
 
 //Cadastra um usuário
 router.post('/', upload.single('avatar'), async(req,res, next)=>{
+    let avatarUrl
     try{
-        const avatarUrl = await storeImage(req.file, 'perfis')
+        validateAccount(req.body)
+        avatarUrl = await storeImage(req.file, 'perfis')
         const user = await UserService.register({ ...req.body, avatarUrl })
         res.status(201).json({user})
     }catch(error){
+        if (avatarUrl) await deleteImage(avatarUrl).catch(() => {})
         if (error.name === 'SequelizeUniqueConstraintError') {
           return res.status(409).json({ message: 'Já existe uma conta com este e-mail ou nome de usuário.' })
         }
@@ -498,11 +502,13 @@ router.put('/update', auth, async (req, res) => {
  *       401: { description: Sessão ausente, expirada ou revogada }
  */
 router.patch('/avatar', auth, upload.single('avatar'), async (req, res, next) => {
+  let avatarUrl
   try {
     if (!req.file) return res.status(400).json({ message: 'Selecione uma imagem para o perfil.' })
-    const avatarUrl = await storeImage(req.file, 'perfis')
+    avatarUrl = await storeImage(req.file, 'perfis')
     res.status(200).json(await UserService.updateAvatar(req.user.id, avatarUrl))
   } catch (error) {
+    if (avatarUrl) await deleteImage(avatarUrl).catch(() => {})
     next(error)
   }
 })

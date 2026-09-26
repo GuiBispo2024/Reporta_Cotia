@@ -22,7 +22,8 @@ function protectCensorshipSources(result, requester) {
 }
 
 class DenunciaService {
-  static async create(data, user) {
+  static async create(data, user, { uploadedImages = false } = {}) {
+    if (!uploadedImages && (data.imageUrl || data.imageUrls?.length)) throw new AppError('Use o upload de imagens.', 400, 'INVALID_IMAGE_REFERENCE');
     validateDenuncia(data);
     const { titulo, descricao, localizacao, bairro, categoria = 'Outros', latitude, longitude, imageUrl, imageUrls = [] } = data;
     if (!Array.isArray(imageUrls) || imageUrls.length > 4) throw new AppError('Envie no máximo 4 imagens.', 400, 'IMAGE_LIMIT');
@@ -231,8 +232,10 @@ class DenunciaService {
     return DenunciaRepository.findApprovedByUserId(userId, options);
   }
 
-  static async atualizar(id, data, userIdToken) {
-    const denuncia = await DenunciaRepository.findById(id);
+  static async atualizar(id, data, userIdToken, { uploadedImages = false } = {}, transaction = null) {
+    if (!transaction) return sequelize.transaction(tx => this.atualizar(id, data, userIdToken, { uploadedImages }, tx));
+    if (!uploadedImages && ('imageUrl' in data || 'imageUrls' in data)) throw new AppError('Use o upload de imagens.', 400, 'INVALID_IMAGE_REFERENCE');
+    const denuncia = await DenunciaRepository.findById(id, transaction);
     if (!denuncia) throw new AppError('Denúncia não encontrada.', 404, 'NOT_FOUND');
     if (Number(denuncia.userId) !== Number(userIdToken)) {
       throw new AppError('Você não tem permissão para atualizar esta denúncia.', 403, 'FORBIDDEN');
@@ -271,8 +274,8 @@ class DenunciaService {
     dadosAtualizados.status = 'pendente';
     dadosAtualizados.motivoRejeicao = null;
 
-    await DenunciaRepository.update(id, dadosAtualizados);
-    await DenunciaRepository.clearSocialHistory(id);
+    await DenunciaRepository.update(id, dadosAtualizados, transaction);
+    await DenunciaRepository.clearSocialHistory(id, transaction);
     return { message: 'Denúncia atualizada e reenviada para moderação.' };
   }
 
