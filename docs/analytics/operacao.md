@@ -14,10 +14,12 @@ Migration `202609260001-create-analytics` cria as quatro tabelas e índices de r
 
 1. Aplicar `cd backend` e `npm run db:migrate` no ambiente de destino.
 2. Executar `npm run analytics:refresh` para a primeira carga.
-3. Configurar o agendador do ambiente para executar o mesmo comando, por exemplo a cada hora. Usar o mesmo banco e variáveis da API. Agendamento externo não é criado automaticamente pelo código.
+3. Iniciar/reiniciar a API com `npm start`. O worker embutido executa uma carga inicial e processa automaticamente criações, edições, moderação, resolução, exclusões e mudanças de histórico. Alterações próximas são agrupadas por 500 ms; alterações transacionais aguardam o commit. O comando manual continua disponível para manutenção.
 4. Conferir o código de saída (0 sucesso, 1 falha), `AnalyticsRuns` e `/boards/analytics/quality`. Monitorar falhas e atraso de `lastUpdatedAt`.
 
-Não se processa ao abrir o painel nem ao clicar em Atualizar. Esse botão relê a última carga. Não há endpoint HTTP que permita a um visitante iniciar a carga.
+Não se processa dentro das requisições do painel ou da moderação. O worker trabalha em segundo plano, repete falhas após 30 segundos e reconcilia a origem a cada cinco minutos para incluir alterações externas. Mudanças durante uma carga disparam outra após seu término. Não há endpoint HTTP que permita a um visitante iniciar a carga.
+
+O board consulta atualizações a cada 15 segundos enquanto a aba está visível e ao retornar à aba/janela. Consultas silenciosas preservam os dados em caso de falha transitória, não interrompem um modal aberto e não são iniciadas durante carregamento/paginação. Os indicadores normalmente aparecem na próxima consulta após a carga automática concluir; não há promessa de atualização instantânea. Mudanças da carga podem reiniciar a paginação das colunas.
 
 A carga lê denúncias por chave crescente em lotes de 500, com históricos do lote, em transação REPEATABLE READ no PostgreSQL. Um advisory lock transacional impede duas cargas concorrentes entre processos; um bloqueio em memória protege chamadas locais. Uma execução concorrente falha com `ANALYTICS_BUSY`. As tabelas analíticas são substituídas e o ponteiro é publicado na mesma transação. Falhas revertem todas as mudanças e são registradas fora da transação. Reexecutar não acumula contagens, inclui edições/exclusões e permite recuperar uma falha.
 
@@ -37,6 +39,7 @@ Uma interrupção abrupta do processo pode deixar uma execução `running` na au
 - Os boards comunitário e analítico usam esses mesmos cálculos persistidos para resumo, distribuições, tempos, evolução e comparação. O pessoal permanece operacional.
 - Cartões, mapas, exportação XLSX e seção de operação da moderação continuam consultando registros atuais, sujeitos a alterações posteriores à carga e sem excluir registros por qualidade. O painel informa essa diferença. Não usar a exportação operacional como extrato exato do cubo.
 - Nesses recursos, o filtro de bairro resolve os IDs pertencentes ao bairro normalizado na última carga. Isso permite selecionar `Jardim Sao Jose` e encontrar originais como `Jd. São José`; novos cadastros/mudanças de bairro entram nesse recorte após reprocessar. Outros filtros e os estados dos cartões continuam operacionais.
+- Denúncias antigas sem `bairro` podem recuperá-lo do endereço no formato inequívoco do formulário (`rua - bairro - Cotia - São Paulo/SP`). O caso de Parque Mirante da Mata é coberto por teste. A origem não é reescrita; o relatório identifica a recuperação. Cartões e pontos individuais apresentam o mesmo bairro recuperado.
 - Indicadores não incluem endereços nem textos livres das denúncias/históricos. Distribuição por localização textual foi removida; permanecem bairro e setor. Mapas e detalhes mantêm os contratos próprios existentes.
 
 ## Roteiro de teste para o Jira
@@ -50,7 +53,7 @@ Uma interrupção abrupta do processo pode deixar uma execução `running` na au
 7. Simular falha da carga em ambiente de teste: último snapshot e horário devem permanecer; auditoria deve indicar falha. Executar novamente com sucesso.
 8. Conferir painel em desktop/celular, relatório resumido de qualidade, estado vazio e horário estável ao clicar Atualizar sem executar nova carga.
 
-Aceite em homologação e configuração do agendador são etapas do ambiente de destino, não comprovadas apenas pelos testes locais.
+Aceite em homologação e reinício da API para ativar o worker são etapas do ambiente de destino, não comprovadas apenas pelos testes locais. Agendador externo é opcional, pois a API agora mantém a carga automaticamente.
 
 ## Verificação automatizada
 

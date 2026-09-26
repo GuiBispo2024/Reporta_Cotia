@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import ReportBoard from '../../src/components/ReportBoard';
 import boardService from '../../src/services/boardService';
 import { AuthContext } from '../../src/context/authContext';
@@ -62,6 +62,33 @@ beforeEach(() => {
     limit: 500,
     truncated: false
   });
+});
+
+test('atualiza automaticamente ao voltar à aba e preserva o board se a consulta falhar', async () => {
+  render(<ReportBoard community />);
+  await screen.findByRole('button', { name: `Ver detalhes: ${report.titulo}` });
+  boardService.getBoard.mockRejectedValueOnce(new Error('temporário'));
+  fireEvent(window, new Event('focus'));
+  await waitFor(() => expect(boardService.getBoard).toHaveBeenCalledTimes(2));
+  expect(screen.getByRole('button', { name: `Ver detalhes: ${report.titulo}` })).toBeInTheDocument();
+  boardService.getBoard.mockResolvedValue({ ...initial, summary: { ...initial.summary, resolvida: 1 }, columns: [{ ...initial.columns[0], reports: [{ ...report, titulo: 'Atualizada pela moderação' }] }] });
+  fireEvent(window, new Event('focus'));
+  expect(await screen.findByText('Atualizada pela moderação')).toBeInTheDocument();
+});
+
+test('consulta a cada 15 segundos e encerra a atualização ao desmontar', async () => {
+  jest.useFakeTimers();
+  const view = render(<ReportBoard />);
+  try {
+    await act(async () => {});
+    expect(boardService.getBoard).toHaveBeenCalledTimes(1);
+    await act(async () => { jest.advanceTimersByTime(15000); });
+    expect(boardService.getBoard).toHaveBeenCalledTimes(2);
+    view.unmount();
+    await act(async () => { jest.advanceTimersByTime(30000); });
+    fireEvent(window, new Event('focus'));
+    expect(boardService.getBoard).toHaveBeenCalledTimes(2);
+  } finally { view.unmount(); jest.useRealTimers(); }
 });
 
 test('board pessoal mostra os cartões e abre detalhes acessíveis', async () => {

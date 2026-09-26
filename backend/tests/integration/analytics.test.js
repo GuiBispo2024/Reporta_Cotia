@@ -194,3 +194,27 @@ test('processa mais de um lote sem perder ou duplicar denúncias', async () => {
     expect(await AnalyticsFacts.count({ where: { categoria: 'Água e esgoto' } })).toBe(501);
   } finally { read.mockRestore(); }
 });
+
+test('worker publica mudanças da moderação e inclui bairro de denúncias antigas no board', async () => {
+  const { startAnalyticsWorker } = require('../../analytics/worker');
+  const DenunciaService = require('../../services/DenunciaService');
+  const worker = startAnalyticsWorker({ debounceMs: 60000 });
+  try {
+    await worker.flush();
+    const report = await Denuncia.create(input({ status: 'pendente', bairro: null, localizacao: 'Rua de teste - Parque Mirante da Mata - Cotia - São Paulo' }));
+    const moderator = await User.findOne();
+    await DenunciaService.moderar(report.id, 'aprovada', null, moderator.id);
+    await worker.flush();
+    const approved = await get('/boards/public', tokens.citizen, { bairro: 'Parque Mirante da Mata' });
+    expect(approved.status).toBe(200);
+    expect(approved.body.summary).toMatchObject({ total: 1, aberta: 1 });
+    expect(approved.body.breakdown.neighborhoods).toEqual([{ label: 'Parque Mirante da Mata', total: 1 }]);
+    expect(approved.body.columns.find(column => column.key === 'aberta').reports[0].id).toBe(report.id);
+    expect(approved.body.columns.find(column => column.key === 'aberta').reports[0].bairro).toBe('Parque Mirante da Mata');
+    await DenunciaService.atualizarResolucao(report.id, 'resolvida', {}, moderator.id);
+    await worker.flush();
+    const resolved = await get('/boards/public', tokens.citizen, { bairro: 'Parque Mirante da Mata' });
+    expect(resolved.body.summary).toMatchObject({ total: 1, aberta: 0, resolvida: 1 });
+    expect(resolved.body.columns.find(column => column.key === 'resolvida').reports[0].id).toBe(report.id);
+  } finally { await worker.stop(); }
+});

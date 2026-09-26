@@ -76,6 +76,8 @@ export default function ReportBoard({ analytical = false, community = false }) {
   const revision = useRef(0);
   const requestController = useRef(null);
   const pendingColumns = useRef(new Set());
+  const liveState = useRef(null);
+  liveState.current = { data, loading, selected, reportMap };
   const dialogRef = useDialogAccessibility(!!selected, () => setSelected(null));
   const canExport = analytical && hasPermission(user, PERMISSIONS.DASHBOARD_EXPORT);
   const canViewExportHistory = analytical && hasPermission(user, PERMISSIONS.DASHBOARD_AUDIT_VIEW);
@@ -121,6 +123,54 @@ export default function ReportBoard({ analytical = false, community = false }) {
       .finally(() => { if (version === revision.current) setLoading(false); });
     return () => { revision.current += 1; controller.abort(); };
   }, [aggregated, analytical, community, reload, appliedFilters]);
+
+  useEffect(() => {
+    let active = true;
+    let refreshing = false;
+    const controller = new AbortController();
+    const refresh = async () => {
+      if (document.visibilityState === 'hidden' || refreshing || liveState.current.loading
+        || liveState.current.selected || pendingColumns.current.size) return;
+      refreshing = true;
+      const version = revision.current;
+      const valid = () => active && version === revision.current;
+      try {
+        const result = await boardService.getBoard({ analytical, community, params: aggregated ? appliedFilters : {}, signal: controller.signal });
+        if (!valid()) return;
+        setData(previous => ({ ...result, columns: result.columns.map(column => {
+          const existing = previous?.columns.find(item => item.key === column.key);
+          return existing && previous.lastUpdatedAt === result.lastUpdatedAt && existing.total === column.total
+            && JSON.stringify(existing.reports.slice(0, column.reports.length)) === JSON.stringify(column.reports)
+            ? existing : column;
+        }) }));
+        if (result.breakdown && !appliedFilters.categoria && !appliedFilters.setorResponsavel && !appliedFilters.bairro) setFilterOptions(result.breakdown);
+        if (aggregated) {
+          const map = await boardService.getHeatmap({ analytical, params: appliedFilters, signal: controller.signal });
+          if (!valid()) return;
+          setHeatmap(map);
+          setHeatmapError('');
+          if (liveState.current.reportMap) {
+            const points = await boardService.getMapPoints({ analytical, params: appliedFilters, signal: controller.signal });
+            if (valid()) setReportMap(points);
+          }
+        }
+      } catch {
+        // Keep the current board during a transient background error; retry on the next tick.
+      } finally {
+        refreshing = false;
+      }
+    };
+    const interval = setInterval(refresh, 15000);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      active = false;
+      clearInterval(interval);
+      controller.abort();
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [aggregated, analytical, community, appliedFilters, reload]);
 
   const loadMapPoints = async () => {
     if (!aggregated || reportMapLoading || reportMap) return;

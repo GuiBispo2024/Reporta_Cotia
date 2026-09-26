@@ -34,3 +34,11 @@ test('resolução anterior à aprovação invalida médias e sinaliza qualidade'
 test('estado incompatível não entra nos totais', () => {
   expect(factFromReport(report({ status: 'rejeitada' }), now)).toMatchObject({ eligible: false, status: null, issues: ['invalid_status'] });
 });
+
+test('recupera Parque Mirante da Mata do formato legado sem inventar bairro para endereços ambíguos', () => {
+  const recovered = factFromReport(report({ bairro: null, localizacao: 'Rua de teste, 10 - Parque Mirante da Mata - Cotia - São Paulo' }), now);
+  expect(recovered.bairro).toBe('Parque Mirante da Mata');
+  expect(recovered.issues).toEqual(['recovered_neighborhood']);
+  expect(factFromReport(report({ bairro: null, localizacao: 'Rua de teste, Cotia' }), now).bairro).toBeNull();
+  expect(factFromReport(report({ bairro: 'Centro', localizacao: 'Rua de teste - Parque Mirante da Mata - Cotia - SP' }), now).bairro).toBe('Centro');
+});

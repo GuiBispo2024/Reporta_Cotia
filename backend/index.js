@@ -1,5 +1,6 @@
 const app = require('./app');
 const { sequelize } = require('./models/rel');
+const { startAnalyticsWorker } = require('./analytics/worker');
 const port = process.env.PORT || 8081;
 
 async function startServer() {
@@ -15,10 +16,12 @@ async function startServer() {
       console.log('Banco sincronizado por DB_SYNC.');
     }
 
-    app.listen(port, () => {
+    const analyticsWorker = startAnalyticsWorker();
+    const server = app.listen(port, () => {
       console.log(`Servidor rodando na porta ${port}`);
       console.log(`Swagger disponível em http://localhost:${port}/api-docs`);
     });
+    server.on('close', () => { void analyticsWorker.stop(); });
   } catch (err) {
     console.error('Erro ao iniciar API:', err);
     process.exit(1);

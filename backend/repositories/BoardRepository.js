@@ -1,5 +1,10 @@
 const { Denuncia, Comment, BoardExportHistory, User, sequelize } = require('../models/rel');
 const { Op } = require('sequelize');
+const { legacyNeighborhood } = require('../analytics/quality');
+const withNeighborhood = record => {
+  const report = record.get ? record.get({ plain: true }) : record;
+  return { ...report, bairro: report.bairro?.trim() || legacyNeighborhood(report.localizacao) || null };
+};
 
 const REPORT_FIELDS = ['id', 'titulo', 'descricao', 'localizacao', 'bairro', 'categoria', 'status', 'resolucaoStatus', 'setorResponsavel', 'motivoRejeicao', 'createdAt', 'updatedAt', 'resolucaoAtualizadaEm'];
 const EXPORT_FIELDS = ['id', 'titulo', 'localizacao', 'bairro', 'categoria', 'status', 'resolucaoStatus', 'setorResponsavel', 'createdAt', 'updatedAt'];
@@ -15,14 +20,15 @@ class BoardRepository {
     });
   }
 
-  static reports(where, page, limit) {
-    return Denuncia.findAll({
+  static async reports(where, page, limit) {
+    const reports = await Denuncia.findAll({
       where,
       attributes: REPORT_FIELDS,
       order: [['createdAt', 'DESC'], ['id', 'DESC']],
       limit,
       offset: (page - 1) * limit
     });
+    return reports.map(withNeighborhood);
   }
 
   static async heatmapCells(where, { precision = 3, minReports = 3, limit = 1000 } = {}) {
@@ -71,7 +77,7 @@ class BoardRepository {
       Denuncia.count({ where: mapWhere })
     ]);
 
-    return { points, total, limit, truncated: total > points.length };
+    return { points: points.map(withNeighborhood), total, limit, truncated: total > points.length };
   }
 
   static async moderationIndicators(where) {
@@ -115,13 +121,14 @@ class BoardRepository {
     };
   }
 
-  static exportReports(where) {
-    return Denuncia.findAll({
+  static async exportReports(where) {
+    const reports = await Denuncia.findAll({
       where,
       attributes: EXPORT_FIELDS,
       order: [['createdAt', 'DESC'], ['id', 'DESC']],
       raw: true
     });
+    return reports.map(withNeighborhood);
   }
 
   static recordExportAudit(data) {

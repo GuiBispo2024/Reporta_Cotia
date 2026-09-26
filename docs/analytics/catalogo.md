@@ -32,6 +32,7 @@ Múltiplas decisões/reaberturas não criam novas unidades: mede-se a primeira d
 
 - Categoria: reconhecida pelo catálogo de `validateDenuncia`, ignorando caixa, acentos e espaços repetidos; armazenada com o nome canônico.
 - Bairro: aparar/colapsar espaços, ignorar caixa/acentos e expandir os prefixos `Jd.`/`Jd` para Jardim e `Vl.`/`Vl` para Vila. Não usar correspondência aproximada nem juntar nomes diferentes sem regra explícita. O nome operacional original é preservado.
+- Legados sem campo bairro: recuperar somente do formato `rua - bairro - Cotia - São Paulo/SP` salvo pelo formulário antigo. A recuperação fica identificada no relatório de qualidade e é usada também nos cartões/mapas/exportação. Não deduzir bairro de coordenadas ou de nomes desenhados no mapa; outros formatos continuam ausentes.
 - Endereço incompleto: bairro ausente ou menos de dois segmentos não vazios separados por vírgula em `localizacao`. É uma heurística de preenchimento do texto livre, não validação postal. Um endereço incompleto não invalida um bairro conhecido nem indicadores sem dimensão geográfica.
 - Categorias/bairros ausentes, estados inválidos, datas inconsistentes e históricos necessários ausentes são sinalizados automaticamente. O relatório conta denúncias com problemas uma vez e cada regra separadamente.
 - Problemas em datas de cadastro aparecem no relatório sem filtro de período, pois não possuem dia válido para atribuição.

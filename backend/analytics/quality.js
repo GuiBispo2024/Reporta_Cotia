@@ -3,6 +3,7 @@ const { CATEGORIAS } = require('../utils/validateDenuncia');
 const ISSUE_LABELS = Object.freeze({
   missing_category: 'Categoria ausente', invalid_category: 'Categoria desconhecida',
   missing_neighborhood: 'Bairro ausente', incomplete_address: 'Endereço incompleto',
+  recovered_neighborhood: 'Bairro recuperado do endereço cadastrado',
   invalid_created_at: 'Data de cadastro inválida ou futura', invalid_status: 'Status inconsistente',
   invalid_history: 'Datas do histórico inconsistentes',
   missing_moderation_history: 'Histórico de moderação ausente',
@@ -19,6 +20,12 @@ function neighborhood(value) {
 const categories = new Map(CATEGORIAS.map(category => [key(category), category]));
 const date = value => value == null || value === '' ? NaN : new Date(value).getTime();
 
+function legacyNeighborhood(value) {
+  const parts = clean(value).split(' - ').map(part => part.trim());
+  return parts.length === 4 && key(parts[2]) === 'cotia'
+    && ['sao paulo', 'sp'].includes(key(parts[3])) ? parts[1] : null;
+}
+
 function factFromReport(report, now) {
   const issues = new Set();
   const createdAt = date(report.createdAt);
@@ -26,10 +33,15 @@ function factFromReport(report, now) {
   if (!validDate) issues.add('invalid_created_at');
   const categoria = categories.get(key(report.categoria)) || null;
   if (!categoria) issues.add(clean(report.categoria) ? 'invalid_category' : 'missing_category');
-  const bairro = neighborhood(report.bairro);
+  // Legacy forms saved "street - neighborhood - Cotia - state" without a separate bairro.
+  // Recover only this unambiguous application format; never infer from map tiles/coordinates.
+  const legacyDistrict = legacyNeighborhood(report.localizacao);
+  const explicitBairro = neighborhood(report.bairro);
+  const bairro = explicitBairro || neighborhood(legacyDistrict);
+  if (!explicitBairro && bairro) issues.add('recovered_neighborhood');
   if (!bairro) issues.add('missing_neighborhood');
   // The source is free text: this is a completeness check, not address verification.
-  if (!bairro || clean(report.localizacao).split(',').filter(part => part.trim()).length < 2) issues.add('incomplete_address');
+  if (!bairro || (!legacyDistrict && clean(report.localizacao).split(',').filter(part => part.trim()).length < 2)) issues.add('incomplete_address');
   const validStatus = ['pendente', 'aprovada', 'rejeitada'].includes(report.status)
     && ['aberta', 'em_andamento', 'resolvida'].includes(report.resolucaoStatus)
     && (report.status === 'aprovada' || report.resolucaoStatus === 'aberta');
@@ -58,4 +70,4 @@ function factFromReport(report, now) {
     eligible: validDate && validStatus, hasIssues: issues.size > 0, issues: [...issues], moderationHours, resolutionHours
   };
 }
-module.exports = { ISSUE_LABELS, neighborhood, factFromReport };
+module.exports = { ISSUE_LABELS, neighborhood, legacyNeighborhood, factFromReport };
