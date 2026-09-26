@@ -1,4 +1,4 @@
-const { Denuncia, DenunciaHistorico, Comment, BoardExportHistory, User, sequelize } = require('../models/rel');
+const { Denuncia, Comment, BoardExportHistory, User, sequelize } = require('../models/rel');
 const { Op } = require('sequelize');
 
 const REPORT_FIELDS = ['id', 'titulo', 'descricao', 'localizacao', 'bairro', 'categoria', 'status', 'resolucaoStatus', 'setorResponsavel', 'motivoRejeicao', 'createdAt', 'updatedAt', 'resolucaoAtualizadaEm'];
@@ -72,18 +72,6 @@ class BoardRepository {
     ]);
 
     return { points, total, limit, truncated: total > points.length };
-  }
-
-  static serviceMetricRecords(where) {
-    return Denuncia.findAll({
-      where,
-      attributes: ['id', 'categoria', 'createdAt'],
-      include: [{
-        model: DenunciaHistorico,
-        attributes: ['tipo', 'statusNovo', 'createdAt'],
-        required: false
-      }]
-    });
   }
 
   static async moderationIndicators(where) {
