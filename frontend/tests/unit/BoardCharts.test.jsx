@@ -39,6 +39,7 @@ test('apresenta gráficos acessíveis de situação, categoria e evolução', ()
   expect(within(categoryTrendTable).getByRole('cell', { name: /Iluminação pública, jan.*2026: 2/i })).toHaveTextContent('2');
   expect(within(categoryTrendTable).getByRole('cell', { name: /Iluminação pública, fev.*2026: 3/i })).toHaveTextContent('3');
   expect(within(categoryTrendTable).getByRole('rowheader', { name: 'Outros' })).toBeInTheDocument();
+  expect(within(categoryTrendTable).getByRole('region', { name: 'Evolução mensal por categoria: tabela rolável' })).toHaveAttribute('tabindex', '0');
 })
 
 test('board comunitário não inclui estados privados no gráfico', () => {

@@ -21,11 +21,14 @@ export default function NovaDenuncia() {
   const [previews, setPreviews] = useState([]);
   const [mensagem, setMensagem] = useState("");
   const [loading, setLoading] = useState(false);
+  const [locating, setLocating] = useState(false);
 
   const change = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const usarLocalizacao = () => {
     if (!navigator.geolocation) return setMensagem("Seu navegador não oferece geolocalização.");
+    setLocating(true);
+    setMensagem("Buscando sua localização...");
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
         const latitude = coords.latitude.toFixed(7);
@@ -34,10 +37,12 @@ export default function NovaDenuncia() {
         let endereco = `Latitude ${latitude}, Longitude ${longitude}`;
         let bairro = '';
 
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
         try {
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
-            { headers: { 'Accept-Language': 'pt-BR' } }
+            { headers: { 'Accept-Language': 'pt-BR' }, signal: controller.signal }
           );
           if (response.ok) {
             const data = await response.json();
@@ -46,12 +51,19 @@ export default function NovaDenuncia() {
           }
         } catch {
           // Mantém as coordenadas como endereço legível quando a geocodificação falhar.
+        } finally {
+          clearTimeout(timeout);
+          setLocating(false);
         }
 
         setForm(prev => ({ ...prev, latitude, longitude, localizacao: endereco, bairro }));
-        setMensagem("📍 Endereço e coordenadas preenchidos. Confira antes de enviar.");
+        setMensagem(bairro ? "📍 Endereço e coordenadas preenchidos. Confira antes de enviar." : "📍 Coordenadas preenchidas. Confira o endereço e informe o bairro antes de enviar.");
       },
-      () => setMensagem("Não conseguimos acessar sua localização. Autorize o acesso nas configurações do navegador ou preencha o endereço manualmente.")
+      () => {
+        setLocating(false);
+        setMensagem("Não conseguimos acessar sua localização. Autorize o acesso nas configurações do navegador ou preencha o endereço manualmente.");
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
     );
   };
 
@@ -107,6 +119,9 @@ export default function NovaDenuncia() {
               <input id={`${accessibilityId}-field-1`} className="form-control" name="titulo" maxLength="120" placeholder="Ex.: Buraco grande na via" value={form.titulo} onChange={change} required />
             </div>
 
+            <button type="button" className="btn btn-outline-primary w-100 mb-3" onClick={usarLocalizacao} disabled={locating || loading}>
+              {locating ? 'Buscando localização...' : '📍 Usar minha localização atual'}
+            </button>
             <div className="row g-3">
               <div className="col-md-4">
                 <label htmlFor={`${accessibilityId}-field-2`} className="form-label fw-semibold">Categoria</label>
@@ -124,7 +139,9 @@ export default function NovaDenuncia() {
               </div>
             </div>
 
-            <div className="row g-3 mt-1">
+            <details className="rc-location-details mt-3">
+              <summary>Ajustar coordenadas manualmente (opcional)</summary>
+              <div className="row g-3">
               <div className="col-6">
                 <label htmlFor={`${accessibilityId}-field-4`} className="form-label small">Latitude</label>
                 <input id={`${accessibilityId}-field-4`} className="form-control" name="latitude" value={form.latitude} onChange={change} placeholder="-23.0000000" />
@@ -133,10 +150,8 @@ export default function NovaDenuncia() {
                 <label htmlFor={`${accessibilityId}-field-5`} className="form-label small">Longitude</label>
                 <input id={`${accessibilityId}-field-5`} className="form-control" name="longitude" value={form.longitude} onChange={change} placeholder="-46.0000000" />
               </div>
-              <div className="col-12">
-                <button type="button" className="btn btn-outline-primary w-100" onClick={usarLocalizacao}>📍 Usar minha localização atual</button>
               </div>
-            </div>
+            </details>
 
             <div className="mb-3 mt-3">
               <label htmlFor={`${accessibilityId}-field-6`} className="form-label fw-semibold">Descrição</label>
@@ -145,16 +160,17 @@ export default function NovaDenuncia() {
 
             <div className="mb-4">
               <label htmlFor={`${accessibilityId}-field-7`} className="form-label fw-semibold">Fotos do problema <span className="text-muted fw-normal">(até 4 imagens, 5 MB cada)</span></label>
-              <input id={`${accessibilityId}-field-7`} className="form-control" type="file" accept="image/*" multiple onChange={escolherImagem} />
+              <input id={`${accessibilityId}-field-7`} className="form-control" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={escolherImagem} aria-describedby={`${accessibilityId}-photo-help`} />
+              <small id={`${accessibilityId}-photo-help`} className="text-muted">Use JPEG, PNG ou WebP, até 25 megapixels. Fotos HEIC precisam ser convertidas antes do envio.</small>
               {!!previews.length && <div className="rc-upload-gallery mt-3">{previews.map((preview, index) => <div key={preview}><img src={preview} alt={`Pré-visualização ${index + 1}`} /><button type="button" onClick={() => removerImagem(index)} aria-label={`Remover imagem ${index + 1}`}><i aria-hidden="true" className="bi bi-x-lg" /></button></div>)}</div>}
             </div>
 
-            <button className="btn btn-primary btn-lg w-100" disabled={loading}>
+            <button className="btn btn-primary btn-lg w-100" disabled={loading || locating}>
               {loading ? "Enviando..." : "Enviar denúncia"}
             </button>
           </form>
 
-          {mensagem && <div className="alert alert-info mt-3 mb-0">{mensagem}</div>}
+          {mensagem && <div role="status" className="alert alert-info mt-3 mb-0">{mensagem}</div>}
         </div>
       </main>
       <Footer />

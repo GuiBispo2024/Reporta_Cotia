@@ -31,7 +31,8 @@ function CategoryTrend({ data }) {
   if (!data?.series?.length || !data?.periods?.length) return null;
   return <article className="rc-board-chart rc-board-category-trend">
     <h3>Evolução mensal por categoria</h3>
-    <div>
+    <p className="rc-board-table-help">Deslize a tabela para consultar todos os meses.</p>
+    <div role="region" aria-label="Evolução mensal por categoria: tabela rolável" tabIndex={0}>
       <table>
         <thead><tr><th scope="col">Categoria</th>{data.periods.map(period => <th scope="col" key={period}><time dateTime={period}>{periodLabel(period)}</time></th>)}<th scope="col">Total</th></tr></thead>
         <tbody>{data.series.map(item => <tr key={item.label}><th scope="row">{item.label}</th>{item.values.map((value, index) => <td key={data.periods[index]} aria-label={`${item.label}, ${periodLabel(data.periods[index])}: ${value}`}>{value}</td>)}<td><strong>{item.total}</strong></td></tr>)}</tbody>
