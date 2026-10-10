@@ -3,9 +3,8 @@ async function sendPasswordResetEmail(email, token) {
   const resetUrl = `${frontendUrl}/redefinir-senha?token=${encodeURIComponent(token)}`;
 
   if (!process.env.RESEND_API_KEY || !process.env.RESET_EMAIL_FROM) {
-    if (process.env.NODE_ENV === 'production') throw new Error('Provedor de recuperação de senha não configurado.');
-    if (process.env.NODE_ENV !== 'production') console.log(`[password-reset] ${email}: ${resetUrl}`);
-    return;
+    if (process.env.NODE_ENV === 'test') return;
+    throw new Error('Provedor de recuperação de senha não configurado.');
   }
 
   const response = await fetch('https://api.resend.com/emails', {

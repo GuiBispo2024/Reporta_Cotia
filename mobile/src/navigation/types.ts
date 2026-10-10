@@ -4,6 +4,8 @@ export type RootStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList> | undefined;
   Login: undefined;
   Register: undefined;
+  ForgotPassword: undefined;
+  ResetPassword: { token?: string } | undefined;
   CreateReport: undefined;
   ReportDetail: { id: number };
   Home: undefined;

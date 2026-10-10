@@ -11,7 +11,7 @@ Cada etapa tem seu commit e instruções de teste. As implementações seguem em
 | 5 | Verificações mobile no CI | Implementada; execução remota ocorre ao enviar a branch |
 | 6 | Diagnóstico e validação em aparelhos | Diagnóstico implementado; testes físicos e ajustes dependem dos resultados |
 | 7 | Navegação por abas | Implementada |
-| 8 | Recuperação de senha | Planejada |
+| 8 | Recuperação de senha | Implementada; entrega de e-mail depende do provedor no backend |
 | 9 | Gerenciamento e exclusão da conta | Planejada |
 | 10 | Edição e reenvio de denúncias rejeitadas | Planejada |
 
@@ -117,3 +117,11 @@ Não há aparelho Android conectado nem APK gerado nesta máquina. Portanto, ess
 ## Etapa 7 — abas
 
 Confira Início e Conta sem login. Entre: Minhas deve aparecer e listar somente seus registros. Abra detalhes e nova denúncia: Voltar deve retornar à aba de origem. Alterne abas com busca/paginação preenchidas; confira fonte grande e leitor de tela. Saia pela aba Conta: Minhas e as telas privadas devem desaparecer, inclusive ao pressionar Voltar do Android. A criação continua acessível pelo botão Nova denúncia na lista.
+
+## Etapa 8 — senha
+
+Em Entrar, use Esqueci minha senha. Solicite as instruções, copie o link do e-mail e use Já recebi o link para colá-lo no app. Informe e confirme a nova senha. Teste senha divergente, link expirado e reutilização do link; depois entre com a nova senha. A senha antiga e as sessões antigas devem ser recusadas.
+
+O mesmo e-mail permite redefinir pelo site; o app extrai somente o token, sem abrir ou requisitar a URL colada. O development build aceita `reportacotia-development://redefinir-senha?token=...` (produção: reportacotia), mas o e-mail atual continua com o link web. Custom scheme exige app instalado; o fluxo de copiar/colar também funciona no Expo Go. Não há associação de Universal/App Links nesta etapa.
+
+O backend já usa token de 30 minutos, hash no banco e uso único. Configure RESEND_API_KEY, RESET_EMAIL_FROM e FRONTEND_URL corretos no backend para receber o e-mail, inclusive em desenvolvimento. Sem provedor, a resposta permanece genérica e a falha fica no histórico administrativo, sem imprimir link/token no console. O envio real de e-mail depende dessa configuração e ainda precisa ser conferido; nos testes isolados o token é fornecido apenas em NODE_ENV=test.

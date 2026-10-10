@@ -47,6 +47,7 @@ export function AccountScreen({ route, navigation }: NativeStackScreenProps<Root
       {isRegister && <Field label="Confirmar senha" value={confirmation} onChangeText={setConfirmation} secureTextEntry autoCapitalize="none" editable={!busy} />}
       {!!error && <Text accessibilityRole="alert" style={{ color: theme.colors.danger }}>{error}</Text>}
       <Button title={isRegister ? 'Criar conta' : 'Entrar'} loading={busy} onPress={() => void submit()} />
+      {!isRegister && <Button title="Esqueci minha senha" disabled={busy} onPress={() => navigation.navigate('ForgotPassword')} />}
       <Button title={isRegister ? 'Já tenho conta' : 'Criar uma conta'} disabled={busy} onPress={() => navigation.replace(isRegister ? 'Login' : 'Register')} />
     </>}
   </Screen>;
