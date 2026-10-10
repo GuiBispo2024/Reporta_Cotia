@@ -301,6 +301,18 @@ As mudanças de perfil passam a valer nas requisições seguintes. A interface t
 - Geocodificação e mapas dependem dos serviços externos OpenStreetMap/Nominatim.
 - Restrinja `CORS_ORIGINS`, use segredos fortes e mantenha `DB_SYNC_ALTER=false` em produção.
 
+## Aplicativo mobile (REP-27)
+
+A base Android/iOS em React Native, Expo e TypeScript fica em `mobile/`, independente do frontend web. Consulte [mobile/README.md](mobile/README.md) para instalação, ambientes, integração com a API, testes e builds.
+
+```bash
+cd mobile
+npm ci
+npm run check
+npm run smoke:api
+npm start
+```
+
 ## Autores
 
 - Guilherme Bispo

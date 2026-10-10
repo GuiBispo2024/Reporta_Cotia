@@ -1,0 +1,17 @@
+import type { PropsWithChildren } from 'react';
+import { ScrollView, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { theme } from '../theme';
+
+export function Screen({ children }: PropsWithChildren) {
+  return (
+    <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
+      <ScrollView contentContainerStyle={styles.content}>{children}</ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: theme.colors.background },
+  content: { flexGrow: 1, padding: theme.spacing.lg, gap: theme.spacing.lg, width: '100%', maxWidth: 720, alignSelf: 'center' },
+});

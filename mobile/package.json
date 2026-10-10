@@ -1,0 +1,49 @@
+{
+  "name": "reporta-cotia-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.ts",
+  "engines": {
+    "node": ">=20.19.4"
+  },
+  "scripts": {
+    "start": "node scripts/expo.cjs development start",
+    "start:staging": "node scripts/expo.cjs staging start --clear",
+    "start:production": "node scripts/expo.cjs production start --clear",
+    "android": "node scripts/expo.cjs development run:android",
+    "ios": "node scripts/expo.cjs development run:ios",
+    "expo": "node scripts/expo.cjs",
+    "config": "node scripts/expo.cjs development config --type public",
+    "typecheck": "tsc --noEmit",
+    "test": "jest --runInBand",
+    "test:config": "node --test tests/environment.test.cjs",
+    "check": "npm run typecheck && npm run test:config && npm test",
+    "export": "node scripts/expo.cjs development export --platform all",
+    "smoke:api": "node scripts/smoke-api.cjs"
+  },
+  "dependencies": {
+    "@react-navigation/native": "^7.5.0",
+    "@react-navigation/native-stack": "^7.20.0",
+    "axios": "^1.13.0",
+    "dotenv": "^17.2.3",
+    "expo": "~55.0.31",
+    "expo-build-properties": "~55.0.18",
+    "expo-constants": "~55.0.17",
+    "expo-status-bar": "~55.0.6",
+    "expo-system-ui": "~55.0.22",
+    "react": "19.2.0",
+    "react-native": "0.83.10",
+    "react-native-safe-area-context": "~5.6.2",
+    "react-native-screens": "~4.23.0"
+  },
+  "devDependencies": {
+    "@testing-library/react-native": "^13.3.3",
+    "@types/jest": "^29.5.14",
+    "@types/react": "~19.2.2",
+    "axios-mock-adapter": "^2.1.0",
+    "jest": "^29.7.0",
+    "jest-expo": "~55.0.22",
+    "react-test-renderer": "19.2.0",
+    "typescript": "~5.9.2"
+  }
+}
