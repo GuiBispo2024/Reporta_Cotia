@@ -46,3 +46,29 @@ jobs:
       - run: npm ci
       - run: npm test -- --watchAll=false --runInBand --coverage
       - run: npm run build
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      CI: '1'
+      EXPO_NO_DOTENV: '1'
+      API_BASE_URL: https://api.example.invalid
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npx expo-doctor
+      - run: node scripts/expo.cjs production export --platform all
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mobile-production-bundles
+          path: mobile/dist
+          retention-days: 7
+          if-no-files-found: error

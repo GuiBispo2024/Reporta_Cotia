@@ -8,7 +8,7 @@ Cada etapa tem seu commit e instruções de teste. As implementações seguem em
 | 2 | Rascunhos persistentes com fotos | Implementada; testar fechamento e reabertura no Android |
 | 3 | Idempotência no backend | Implementada; executar migration antes do envio mobile |
 | 4 | Envio mobile com prevenção de duplicidade | Implementada; testar perda de resposta no Android |
-| 5 | Verificações mobile no CI | Planejada |
+| 5 | Verificações mobile no CI | Implementada; execução remota ocorre ao enviar a branch |
 | 6 | Ajustes após testes em aparelhos | Depende dos testes reais |
 | 7 | Navegação por abas | Planejada |
 | 8 | Recuperação de senha | Planejada |
@@ -91,3 +91,9 @@ POST /denuncia aceita o header opcional Idempotency-Key (UUID v4). Repetir chave
 5. Uma rejeição 400 de validação permite corrigir os campos. Erros de rede/servidor preservam a chave e exigem confirmação. Se um anexo pendente desaparecer, o app consulta o comprovante, mas não reenvia conteúdo diferente.
 
 O identificador e as fotos são gravados antes da requisição. Não desinstale nem limpe os dados do app com um envio pendente: isso remove a chave local; consulte "Minhas denúncias" antes de começar outro envio.
+
+## Etapa 5 — CI
+
+Na pasta mobile, execute `npm ci` e `npm run check`. O workflow validate.yml faz esses checks, Expo Doctor e exportação dos bundles Android/iOS em configuração production, e guarda os bundles por 7 dias. A URL de API no CI é um domínio reservado inválido para que os testes não enviem dados a produção; o artefato é de verificação e não deve ser distribuído como app.
+
+Depois de enviar a branch ao GitHub, confira o job mobile na aba Actions. O CI não gera APK, não faz deploy e não precisa de credencial Expo. Testes que exigem API local estão separados e não são ativados nesse job. A execução remota ainda não ocorreu nesta entrega local.
