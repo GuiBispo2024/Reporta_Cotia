@@ -1,6 +1,8 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 jest.mock('../../repositories/UserRepository'); // ajusta o path conforme seu projeto
+jest.mock('../../services/SessionService');
+const SessionService = require('../../services/SessionService');
 const UserRepository = require('../../repositories/UserRepository');
 const UserService = require('../../services/UserService'); // ajuste path se necessário
 
@@ -70,7 +72,7 @@ describe('UserService (unit)', () => {
       }]
     });
 
-    const spySign = jest.spyOn(jwt, 'sign').mockReturnValue('TOKEN');
+    SessionService.create.mockResolvedValue({ token: 'TOKEN' });
 
     const res = await UserService.login({ email: 'e@e', password: '1234' });
 
@@ -78,11 +80,7 @@ describe('UserService (unit)', () => {
     console.log("👤 Dados do usuário retornado:", res.user);
 
     expect(UserRepository.findByEmail).toHaveBeenCalledWith('e@e');
-    expect(spySign).toHaveBeenCalledWith(
-      { id: 10, v: 0 },
-      expect.any(String),
-      { expiresIn: '30m' }
-    );
+    expect(SessionService.create).toHaveBeenCalledWith(expect.objectContaining({ id: 10 }), 'mobile');
     expect(res).toHaveProperty('token', 'TOKEN');
     expect(res.user).toMatchObject({ id: 10, username: 'u', email: 'e@e' });
     expect(res.user.roles).toEqual(['CITIZEN']);
@@ -90,7 +88,6 @@ describe('UserService (unit)', () => {
     expect(res.user).not.toHaveProperty('adm');
     expect(res.user).not.toHaveProperty('password');
 
-    spySign.mockRestore();
   });
 
   test('getById: lança erro se não existe', async () => {
@@ -147,7 +144,7 @@ describe('UserService (unit)', () => {
         permissions: [{ key: 'denuncia.create' }]
       }]
     });
-    const spySign = jest.spyOn(jwt, "sign").mockReturnValue("TOKEN_ATUALIZADO");
+    SessionService.create.mockResolvedValue({ token: 'TOKEN_ATUALIZADO' });
 
     const result = await UserService.update(
       { senhaAtual: "senhaAntiga", novaSenha: "nova123" },
@@ -159,17 +156,12 @@ describe('UserService (unit)', () => {
 
     expect(UserRepository.findById).toHaveBeenCalled();
     expect(UserRepository.update).toHaveBeenCalled();
-    expect(spySign).toHaveBeenCalledWith(
-      { id: 1, v: 0 },
-      expect.any(String),
-      { expiresIn: '30m' }
-    );
+    expect(SessionService.create).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }), 'mobile');
     expect(result).toHaveProperty("token", "TOKEN_ATUALIZADO");
     expect(result.user.roles).toEqual(['CITIZEN']);
     expect(result.user.permissions).toEqual(['denuncia.create']);
     expect(result.user).not.toHaveProperty('adm');
 
-    spySign.mockRestore();
   });
 
   test('update: erro se senha atual incorreta', async () => {

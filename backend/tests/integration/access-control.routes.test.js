@@ -88,8 +88,9 @@ describe('Autorização por permissão nas rotas', () => {
     await auditorUser.addRole(auditorRole)
 
     const admOnlyUser = await registerAndLogin('admin-route', 'admin-route@example.com')
+    const { exp: _exp, iat: _iat, ...claims } = jwt.decode(admOnlyUser.token)
     admOnlyToken = jwt.sign(
-      { id: admOnlyUser.userId, adm: true, v: 0 },
+      { ...claims, adm: true },
       process.env.JWT_SECRET || 'reporta-cotia-test-secret',
       { expiresIn: '30m' }
     )

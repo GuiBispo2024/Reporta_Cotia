@@ -42,11 +42,12 @@ app.use(bodyParser.json({ limit: '1mb' }));
 app.use(securityHeaders);
 app.use(rateLimit);
 app.use(cors({
+  credentials: true,
   exposedHeaders: ['Content-Disposition', 'X-Total-Count'],
   origin: (origin, callback) => {
     if (
       !origin
-      || allowedOrigins.includes('*')
+      || (process.env.NODE_ENV !== 'production' && allowedOrigins.includes('*'))
       || allowedOrigins.includes(origin)
       || isLocalDevelopmentOrigin(origin)
     ) {

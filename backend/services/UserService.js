@@ -1,13 +1,12 @@
 const bcrypt = require('bcryptjs')
-const jwt = require('jsonwebtoken')
 const UserRepository = require('../repositories/UserRepository')
 const { ROLES, ROLE_DESCRIPTIONS } = require('../constants/accessControl')
 const { extractUserAccess } = require('../utils/userAccess')
-const SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'reporta-cotia-test-secret' : undefined)
 const { deleteImage } = require('../utils/upload')
 const AppError = require('../utils/AppError')
 const { literal } = require('sequelize')
 const { validateAccount } = require('../utils/validateAccount')
+const SessionService = require('./SessionService')
 
 function serializeAuthenticatedUser(user) {
   if (!user) return null
@@ -51,19 +50,18 @@ class UserService {
   }
 
   // Login
-  static async login({ email, password }) {
+  static async login({ email, password }, client = 'mobile') {
+    if (typeof password !== 'string' || !password) throw new AppError('E-mail ou senha inválidos.', 401, 'INVALID_CREDENTIALS')
     const user = await UserRepository.findByEmail(typeof email === 'string' ? email.trim().toLowerCase() : '')
-    if (!user) throw new Error('Usuário não encontrado.')
+    if (!user) throw new AppError('E-mail ou senha inválidos.', 401, 'INVALID_CREDENTIALS')
 
     const valid = await bcrypt.compare(password, user.password)
-    if (!valid) throw new Error('Senha incorreta.')
-
-    const token = jwt.sign({ id: user.id, v: user.tokenVersion || 0 }, SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '30m' })
+    if (!valid) throw new AppError('E-mail ou senha inválidos.', 401, 'INVALID_CREDENTIALS')
     const userWithAccess = await UserRepository.findByIdWithAccess(user.id)
 
     return {
       message: 'Login bem-sucedido',
-      token,
+      ...await SessionService.create(userWithAccess, client),
       user: serializeAuthenticatedUser(userWithAccess)
     }
   }
@@ -162,30 +160,25 @@ class UserService {
   }
 
   // Atualizar
-  static async update(data,userIdToken) {
+  static async update(data,userIdToken, sessionId, client = 'mobile') {
     const userDb = await UserRepository.findById(userIdToken);
     if (!userDb) throw new Error("Usuário não encontrado.");
     const updates = validateAccount(data, { partial: true });
     if (typeof data.username === 'string' && data.username.trim()) updates.username = data.username.trim();
     if (typeof data.email === 'string' && data.email.trim()) updates.email = data.email.trim().toLowerCase();
 
-    // --- TROCA DE SENHA ---
-    if (data.senhaAtual || data.novaSenha) {
-
-      if (!data.senhaAtual || !data.novaSenha) {
-        throw new Error("Para trocar a senha, preencha os dois campos.");
+    const changingEmail = updates.email && updates.email !== userDb.email;
+    const changingPassword = Boolean(data.novaSenha);
+    if (changingEmail || changingPassword || data.senhaAtual) {
+      if (typeof data.senhaAtual !== 'string' || !data.senhaAtual) {
+        throw new AppError('Informe a senha atual para alterar e-mail ou senha.', 400, 'REAUTH_REQUIRED');
       }
-
-      // Verifica se a senha atual está correta
-      const senhaCorreta = await bcrypt.compare(data.senhaAtual, userDb.password);
-      if (!senhaCorreta) {
-        throw new Error("Senha atual incorreta.");
+      if (!await bcrypt.compare(data.senhaAtual, userDb.password)) throw new AppError('Senha atual incorreta.', 400, 'INVALID_PASSWORD');
+      if (changingPassword) {
+        if (typeof data.novaSenha !== 'string' || data.novaSenha.length < 6) throw new AppError('A nova senha deve ter pelo menos 6 caracteres.', 400, 'VALIDATION_ERROR');
+        updates.password = await bcrypt.hash(data.novaSenha, 10);
       }
-
-      // Cria o hash da nova senha
-      if (data.novaSenha.length < 6) throw new Error('A nova senha deve ter pelo menos 6 caracteres.');
-      updates.password = await bcrypt.hash(data.novaSenha, 10);
-      updates.tokenVersion = literal('"tokenVersion" + 1');
+      if (changingEmail || changingPassword) updates.tokenVersion = literal('"tokenVersion" + 1');
     }
 
     const [rowsUpdate] = await UserRepository.update(userIdToken, updates);
@@ -194,17 +187,17 @@ class UserService {
     // Busca usuário atualizado
     const updatedUser = await UserRepository.findByIdWithAccess(userIdToken);
 
-    // Gera novo token
-    const token = jwt.sign(
-      { id: updatedUser.id, v: updatedUser.tokenVersion || 0 },
-      SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '30m' }
-    );
+    // Um access token sozinho não pode obter uma nova credencial de renovação.
+    let session = {};
+    if (changingEmail || changingPassword) {
+      await SessionService.revoke(sessionId);
+      session = await SessionService.create(updatedUser, client);
+    }
 
     return { 
       message: "Usuário atualizado com sucesso", 
       user: serializeAuthenticatedUser(updatedUser),
-      token
+      ...session
     };
   }
 

@@ -14,6 +14,12 @@ const RolePermission = require('./Reporta_Cotia_Tables/RolePermission')
 const UserRoleHistory = require('./Reporta_Cotia_Tables/UserRoleHistory')
 const BoardExportHistory = require('./Reporta_Cotia_Tables/BoardExportHistory')
 const analytics = require('./Analytics')
+const AuthSession = require('./Reporta_Cotia_Tables/AuthSession')
+const SessionRefreshToken = require('./Reporta_Cotia_Tables/SessionRefreshToken')
+User.hasMany(AuthSession, { foreignKey: 'userId', onDelete: 'CASCADE' })
+AuthSession.belongsTo(User, { foreignKey: 'userId' })
+AuthSession.hasMany(SessionRefreshToken, { foreignKey: 'sessionId', onDelete: 'CASCADE' })
+SessionRefreshToken.belongsTo(AuthSession, { foreignKey: 'sessionId' })
 
 //User <-> Denuncia
 User.hasMany(Denuncia,{
@@ -120,7 +126,7 @@ Permission.belongsToMany(Role, {
 })
 
 module.exports = {
-    sequelize, User, Denuncia, Comment, Like, Share,
+    sequelize, User, Denuncia, Comment, Like, Share, AuthSession, SessionRefreshToken,
     DenunciaHistorico, PasswordResetToken, PasswordResetHistorico,
     Role, Permission, UserRole, RolePermission, UserRoleHistory, BoardExportHistory, ...analytics
 }

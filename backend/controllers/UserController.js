@@ -8,6 +8,8 @@ const PasswordResetService = require('../services/PasswordResetService')
 const requirePermission = require('../middlewares/requirePermission')
 const { PERMISSIONS } = require('../constants/accessControl')
 const { hasPermission } = require('../utils/authorization')
+const SessionService = require('../services/SessionService')
+const { clientType, readRefresh, sendSession, clearRefresh } = require('../utils/sessionTransport')
 
 /**
  * @swagger
@@ -114,13 +116,42 @@ router.post('/', upload.single('avatar'), async(req,res, next)=>{
  */
 
 //Login de usuário
-router.post('/login', async (req, res) => {
+router.post('/login', async (req, res, next) => {
   try {
-    const result = await UserService.login(req.body)
-    res.status(200).json(result)
+    const client = clientType(req)
+    const result = await UserService.login(req.body, client)
+    sendSession(res, result, client)
   } catch (error) {
-    res.status(401).json({ message: error.message })
+    next(error)
   }
+})
+
+router.post('/session/refresh', async (req, res, next) => {
+  let client;
+  try {
+    client = clientType(req)
+    const result = await SessionService.refresh(readRefresh(req, client), client)
+    const { userId, ...session } = result
+    sendSession(res, { ...session, user: await UserService.getMe(userId) }, client)
+  } catch (error) {
+    if (client === 'web' && error.statusCode === 401) clearRefresh(res)
+    next(error)
+  }
+})
+router.post('/session/activity', auth, async (req, res, next) => {
+  try {
+    res.set('Cache-Control', 'no-store')
+    res.json(await SessionService.activity(req.user.sid, req.user.id, req.body?.idleForMs ?? 0))
+  } catch (error) { next(error) }
+})
+router.post('/session/end', async (req, res, next) => {
+  try {
+    const client = clientType(req)
+    await SessionService.end(readRefresh(req, client), client)
+    if (client === 'web') clearRefresh(res)
+    res.set('Cache-Control', 'no-store')
+    res.status(204).end()
+  } catch (error) { next(error) }
 })
 
 /**
@@ -461,13 +492,14 @@ router.get('/:id', async (req, res) => {
  */
 
 //Altera um usuário
-router.put('/update', auth, async (req, res) => {
+router.put('/update', auth, async (req, res, next) => {
   try {
-    const result = await UserService.update(req.body, req.user.id)
-    res.status(200).json(result)
+    const result = await UserService.update(req.body, req.user.id, req.user.sid, req.authSession.client)
+    if (result.refreshToken) sendSession(res, result, req.authSession.client)
+    else res.set('Cache-Control', 'no-store').status(200).json(result)
   } catch (error) {
-    const status = error.name === 'SequelizeUniqueConstraintError' ? 409 : 400
-    res.status(status).json({ message: error.message })
+    if (error.name === 'SequelizeUniqueConstraintError') return res.status(409).json({ message: 'E-mail ou nome de usuário já cadastrado.' })
+    next(error)
   }
 })
 

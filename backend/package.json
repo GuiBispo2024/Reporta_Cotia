@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "sessions:prune": "node scripts/pruneSessions.js",
+    "sessions:smoke": "node scripts/smokeSessions.js",
     "analytics:refresh": "node scripts/refreshAnalytics.js",
     "start": "node index.js",
     "seed": "node seed/runSeeds.js",

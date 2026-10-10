@@ -32,7 +32,7 @@ describe('Users routes (integration)', () => {
     console.log("➡️ Iniciando teste de criação de usuário");
     const payload = { username: 'testuser', email: 't@example.com', password: '123456' };
     const res = await request(app).post('/users').send(payload);
-    console.log("Resposta:", res.statusCode, res.body);
+    console.log("Resposta:", res.statusCode);
     expect([200,201]).toContain(res.statusCode); // endpoint retorna 201 conforme router
     expect(res.body).toHaveProperty('user');
     expect(res.body.user).not.toHaveProperty('adm');
@@ -46,7 +46,7 @@ describe('Users routes (integration)', () => {
     const loginRes = await request(app)
       .post('/users/login')
       .send({ email: 'login@example.com', password: '123456' });
-    console.log("Resposta:", loginRes.statusCode, loginRes.body);
+    console.log('Login:', loginRes.statusCode);
     expect(loginRes.statusCode).toBe(200);
     expect(loginRes.body).toHaveProperty('token');
     expect(jwt.decode(loginRes.body.token)).not.toHaveProperty('adm');
@@ -81,7 +81,7 @@ describe('Users routes (integration)', () => {
     const res = await request(app).get("/users")
       .set("Authorization", `Bearer ${tokenUsuario}`);
 
-    console.log("Resposta:", res.statusCode, res.body);
+    console.log("Resposta:", res.statusCode);
 
     expect(res.statusCode).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
@@ -112,7 +112,7 @@ describe('Users routes (integration)', () => {
     const res = await request(app).get(`/users/${idUsuario}`)
       .set("Authorization", `Bearer ${tokenUsuario}`);
 
-    console.log("Resposta:", res.statusCode, res.body);
+    console.log("Resposta:", res.statusCode);
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty("id", idUsuario);
@@ -132,13 +132,17 @@ describe('Users routes (integration)', () => {
       .send({
         username: "updatedUser",
         email: "new@example.com",
+        senhaAtual: 'novaSenha123',
         password: "654321"
       });
 
-    console.log("Resposta:", res.statusCode, res.body);
+    console.log("Resposta:", res.statusCode);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.user).toHaveProperty("username", "updatedUser");
+    const previousToken = tokenUsuario;
+    tokenUsuario = res.body.token;
+    expect((await request(app).get('/users/me').set('Authorization', `Bearer ${previousToken}`)).status).toBe(401);
     expect(res.body.user.roles).toContain('CITIZEN');
     expect(res.body.user.permissions).toEqual(expect.arrayContaining([
       'denuncia.create',
@@ -205,7 +209,7 @@ describe('Users routes (integration)', () => {
       .set("Authorization", `Bearer ${tokenUsuario}`)
       .send({ senhaAtual: 'novaSenha123' });
 
-    console.log("Resposta:", res.statusCode, res.body);
+    console.log("Resposta:", res.statusCode);
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty("message");

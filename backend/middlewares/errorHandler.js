@@ -13,7 +13,8 @@ function errorHandler(err, req, res, next) {
   const status = isKnown ? err.statusCode : 500;
 
   if (!isKnown) {
-    console.error(err);
+    // Não registrar corpo, headers ou SQL/binds: podem conter credenciais.
+    console.error('[API] Falha interna', { name: err?.name || 'Error', code: err?.code || 'INTERNAL_ERROR' });
   }
 
   res.status(status).json({

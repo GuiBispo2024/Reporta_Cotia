@@ -113,8 +113,8 @@ DB_SSL=false
 DB_SYNC=false
 DB_SYNC_ALTER=false
 
-JWT_SECRET=troque_por_uma_chave_forte
-JWT_EXPIRES_IN=30m
+JWT_SECRET=
+# Preencha com uma chave aleatória forte (geração descrita abaixo).
 
 CORS_ORIGINS=http://localhost:3000
 PUBLIC_API_URL=http://localhost:5000
@@ -288,7 +288,8 @@ As mudanças de perfil passam a valer nas requisições seguintes. A interface t
 - Endpoints protegidos verificam permissões específicas, como `moderation.review`, `denuncia.audit.view` e `users.audit.view`.
 - O perfil `CITIZEN` é obrigatório; um administrador não pode remover o próprio perfil `ADMIN`, e a plataforma sempre preserva ao menos uma conta administradora.
 - Mudanças de perfis são transacionais e registradas na trilha de auditoria somente quando há alteração efetiva.
-- O logout invalida tokens emitidos anteriormente por meio do versionamento da sessão.
+- O logout dos novos clientes revoga a sessão atual e seus tokens de acesso e renovação.
+- Os novos clientes usam sessão revogável, access JWT de 5 minutos e refresh token rotativo. Os hashes dos refresh tokens ficam no banco; reutilização revoga a família. O endpoint legado `/users/logout` continua invalidando todas as sessões pelo versionamento.
 - Tokens de redefinição são armazenados como hash, expiram e não podem ser reutilizados.
 - A moderação preserva o conteúdo original para permitir reabertura e nova análise.
 - O histórico registra o autor, a ação, o estado anterior, o novo estado e a data, sem criar uma entrada quando o formulário é salvo sem alterações.
@@ -297,9 +298,29 @@ As mudanças de perfil passam a valer nas requisições seguintes. A interface t
 ## Observações de produção
 
 - O limitador de requisições em memória funciona por instância; ambientes distribuídos devem usar um armazenamento compartilhado, como Redis.
-- A autenticação atual utiliza token de acesso JWT e não implementa refresh token.
+- A autenticação exige a migração `202610100001-create-auth-sessions.js`; tokens legados sem sessão são recusados e usuários precisam entrar novamente após a implantação.
 - Geocodificação e mapas dependem dos serviços externos OpenStreetMap/Nominatim.
 - Restrinja `CORS_ORIGINS`, use segredos fortes e mantenha `DB_SYNC_ALTER=false` em produção.
+
+## Sessões, renovação e inatividade
+
+A sessão termina após **15 minutos sem interação**, com imposição no servidor, ou após 8 horas totais. O access JWT dura 5 minutos. Refresh e consultas automáticas não renovam a inatividade; apenas o endpoint de atividade é chamado a partir de interações do usuário. `JWT_EXPIRES_IN` não controla mais esse prazo. Troca de e-mail ou senha exige senha atual, invalida todas as sessões existentes e cria nova sessão. Redefinição de senha também invalida todas as sessões. Edições comuns do perfil não emitem tokens.
+
+| Endpoint | Uso |
+| --- | --- |
+| `POST /users/session/refresh` | Rotacionar refresh e obter novo access token sem estender inatividade |
+| `POST /users/session/activity` | Confirmar atividade, usando access token válido |
+| `POST /users/session/end` | Revogar a sessão atual usando refresh, mesmo após access expirar |
+
+No web, access token e perfil ficam somente em memória; o refresh fica em cookie HttpOnly, host-only, SameSite=Lax e Secure em produção. Origens de navegador são validadas e devem ser HTTPS em produção. O contador superior indica o prazo; o último minuto oferece continuação e o encerramento exibe aviso. Abas sincronizam atividade e logout sem compartilhar tokens em armazenamento.
+
+Em produção, configure `NODE_ENV=production`; o frontend usa `/api` no mesmo domínio. `frontend/vercel.json` encaminha esse prefixo à API publicada, evitando cookies entre sites. Se hospedar em outro provedor, configure o mesmo proxy e ajuste seu destino se a API mudar. Configure `CORS_ORIGINS` com a origem HTTPS exata do frontend; wildcard não é aceito em produção. No desenvolvimento, `REACT_APP_API_URL` continua selecionando a API local.
+
+Antes de iniciar/implantar a API, execute `npm run db:migrate` em `backend` e configure `JWT_SECRET` com pelo menos 32 caracteres aleatórios. Para gerar uma chave, execute localmente `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"` e guarde o resultado no ambiente do servidor; não o versione. Limpe sessões vencidas periodicamente com `npm run sessions:prune`; os refresh tokens correspondentes são removidos em cascata. Nenhum corpo, header ou token é gravado pelo logger de erros da API.
+
+No mobile, somente a credencial de refresh e seus prazos ficam no SecureStore. Access token e perfil ficam na memória e são obtidos por renovação ao reabrir. Toques e digitação contam como atividade; o tempo em segundo plano conta como inatividade. Há aviso no último minuto e retorno ao acesso de visitante após expirar. Senhas não são armazenadas.
+
+Verificação de segurança (10/10/2026): 203 testes backend, 90 web, 49 mobile, 5 de configuração e 2 consultas reais da API aprovados; build web e bundles Hermes Android/iOS de produção gerados. `npm run sessions:smoke` em `backend` também confirmou rotação concorrente, cookies, origem, revogação e inatividade no PostgreSQL local, criando e removendo apenas uma conta temporária. Esse comando recusa banco remoto e ambiente de produção.
 
 ## Aplicativo mobile (REP-27)
 
