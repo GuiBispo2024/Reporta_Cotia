@@ -7,7 +7,7 @@ Cada etapa tem seu commit e instruções de teste. As implementações seguem em
 | 1 | Development build e perfis de distribuição | Configuração, Expo Doctor e Prebuild Android aprovados; APK pendente |
 | 2 | Rascunhos persistentes com fotos | Implementada; testar fechamento e reabertura no Android |
 | 3 | Idempotência no backend | Implementada; executar migration antes do envio mobile |
-| 4 | Envio mobile com prevenção de duplicidade | Planejada |
+| 4 | Envio mobile com prevenção de duplicidade | Implementada; testar perda de resposta no Android |
 | 5 | Verificações mobile no CI | Planejada |
 | 6 | Ajustes após testes em aparelhos | Depende dos testes reais |
 | 7 | Navegação por abas | Planejada |
@@ -81,3 +81,13 @@ Há um rascunho por conta/API no aparelho. Ele contém textos, coordenadas e fot
 Na pasta backend: `npm run db:migrate` e reinicie a API. `npm test -- --runInBand` verifica repetição, conflito de conteúdo, isolamento por autor e rollback. `node scripts/smokeReportSubmissions.js` verifica concorrência no PostgreSQL local de desenvolvimento usando uma conta temporária removida ao terminar.
 
 POST /denuncia aceita o header opcional Idempotency-Key (UUID v4). Repetir chave e conteúdo retorna o mesmo protocolo; mudar conteúdo retorna 409. GET /denuncia/submissions/:key consulta o comprovante somente para o autor autenticado. Clientes existentes podem continuar enviando sem a chave. Os comprovantes persistem até a exclusão da conta; remover a denúncia não permite recriá-la com a mesma chave. A fila usa bloqueio da conta no banco durante o upload para impedir duplicações entre instâncias da API.
+
+## Etapa 4 — envio seguro
+
+1. Com a migration aplicada e a API reiniciada, envie normalmente e confira um protocolo.
+2. Prepare uma denúncia, desconecte a rede antes de enviar e tente enviar. Os campos ficam preservados e bloqueados enquanto o resultado estiver incerto.
+3. Feche/reabra o app, recupere a rede e toque "Confirmar envio pendente". Deve existir somente um protocolo em "Minhas denúncias".
+4. Para simular resposta perdida depois da gravação, use um proxy de desenvolvimento que interrompa a resposta de POST /denuncia. Ao confirmar, o app deve recuperar o protocolo existente, sem criar outro.
+5. Uma rejeição 400 de validação permite corrigir os campos. Erros de rede/servidor preservam a chave e exigem confirmação. Se um anexo pendente desaparecer, o app consulta o comprovante, mas não reenvia conteúdo diferente.
+
+O identificador e as fotos são gravados antes da requisição. Não desinstale nem limpe os dados do app com um envio pendente: isso remove a chave local; consulte "Minhas denúncias" antes de começar outro envio.

@@ -1,0 +1,22 @@
+import { act, renderHook, waitFor } from '@testing-library/react-native';
+import { useReportDraft } from '../src/services/useReportDraft';
+import { openDraftStore, type DraftContent } from '../src/services/draftService';
+jest.mock('../src/services/draftService', () => ({ openDraftStore: jest.fn() }));
+jest.mock('expo-crypto', () => ({ randomUUID: jest.fn(() => 'f1768e55-b65c-4faf-a5cc-51ac3b095676') }));
+const content: DraftContent = { input: { titulo: 'Buraco', descricao: 'Na rua', localizacao: 'Rua', bairro: '', categoria: 'Outros' }, latitude: '', longitude: '', photos: [] };
+test('persiste identificador antes do envio e recupera a mesma chave após reabrir', async () => {
+  let stored: any = null;
+  const store = { load: jest.fn(async () => stored ? { draft: stored, missingPhotos: 0 } : null), save: jest.fn(async (body) => { stored = { ...body }; return stored; }), discard: jest.fn(async () => { stored = null; }) };
+  jest.mocked(openDraftStore).mockResolvedValue(store);
+  const first = renderHook(() => useReportDraft('api', 1, content, jest.fn()));
+  await waitFor(() => expect(first.result.current.ready).toBe(true));
+  let saved: any;
+  await act(async () => { saved = await first.result.current.prepareSubmission(); });
+  expect(stored.submissionKey).toBe(saved.submissionKey);
+  first.unmount();
+  const restore = jest.fn(); const second = renderHook(() => useReportDraft('api', 1, content, restore));
+  await waitFor(() => expect(second.result.current.submissionKey).toBe(saved.submissionKey));
+  await act(async () => { expect((await second.result.current.prepareSubmission()).submissionKey).toBe(saved.submissionKey); });
+  await act(async () => { await second.result.current.discard(true); });
+  second.unmount(); expect(stored).toBeNull();
+});

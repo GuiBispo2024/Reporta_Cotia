@@ -6,7 +6,7 @@ import { Field } from '../components/Field';
 import { Screen } from '../components/Screen';
 import { useAuth } from '../context/AuthContext';
 import type { RootStackParamList } from '../navigation/types';
-import { categories, createReport, type ReportInput } from '../services/reportService';
+import { categories, createReport, getSubmission, type ReportInput } from '../services/reportService';
 import { toApiError } from '../utils/ApiError';
 import { theme } from '../theme';
 import { selectPhotos, type ReportPhoto } from '../services/photoService';
@@ -31,7 +31,7 @@ export function CreateReportScreen({ navigation }: NativeStackScreenProps<RootSt
   const draft = useReportDraft(client.defaults?.baseURL ?? '', user?.id ?? 0, { input, photos, latitude, longitude }, (saved) => {
     setInput(saved.input); setPhotos(saved.photos); setLatitude(saved.latitude); setLongitude(saved.longitude);
   });
-  const locked = busy || !draft.ready;
+  const locked = busy || !draft.ready || !!draft.submissionKey;
   async function locate() {
     if (locatingRef.current || busy || picking.current) return;
     locatingRef.current = true; setLocating(true); setError(''); setLocationNotice('');
@@ -58,8 +58,22 @@ export function CreateReportScreen({ navigation }: NativeStackScreenProps<RootSt
       setError('Preencha título, descrição e endereço.'); return;
     }
     submitting.current = true; setBusy(true); setError('');
-    try { await draft.flush(); const report = await createReport(client, { ...input, ...parseCoordinates(latitude, longitude) }, photos); setReportId(report.id); await draft.discard(true); }
-    catch (reason) { setError(toApiError(reason).message); }
+    try {
+      parseCoordinates(latitude, longitude);
+      if (draft.submissionKey) {
+        try { const report = await getSubmission(client, draft.submissionKey); setReportId(report.id); await draft.discard(true); return; }
+        catch (reason) { if (toApiError(reason).status !== 404) throw reason; }
+        if (draft.missingPhotos) throw new Error('Anexo indisponível; não é seguro reenviar.');
+      }
+      const saved = await draft.prepareSubmission();
+      const report = await createReport(client, { ...saved.input, ...parseCoordinates(saved.latitude, saved.longitude) }, saved.photos, saved.submissionKey);
+      setReportId(report.id); await draft.discard(true);
+    }
+    catch (reason) {
+      const failure = toApiError(reason);
+      if ([400, 403, 429].includes(failure.status ?? 0)) await draft.releaseSubmission().catch(() => {});
+      setError(failure.message);
+    }
     finally { submitting.current = false; setBusy(false); }
   }
   if (reportId !== null) return <Screen>
@@ -71,6 +85,7 @@ export function CreateReportScreen({ navigation }: NativeStackScreenProps<RootSt
   return <Screen>
     <Text style={styles.title}>O que precisa de atenção?</Text>
     <Text accessibilityLiveRegion="polite" style={styles.body}>{draft.notice}</Text>
+    {!!draft.submissionKey && <Text accessibilityRole="alert" style={styles.body}>Envio aguardando confirmação. Os dados estão preservados; use o botão abaixo para consultar o protocolo e, se necessário, repetir o mesmo envio.</Text>}
     <Button title="Descartar rascunho" disabled={locked || selecting || locating} onPress={() => Alert.alert('Descartar rascunho?', 'Os textos e fotos salvos neste aparelho serão removidos.', [
       { text: 'Cancelar', style: 'cancel' }, { text: 'Descartar', style: 'destructive', onPress: () => { void draft.discard().then(() => { setInput({ titulo: '', descricao: '', localizacao: '', bairro: '', categoria: 'Outros' }); setPhotos([]); setLatitude(''); setLongitude(''); }); } },
     ])} />
@@ -99,7 +114,7 @@ export function CreateReportScreen({ navigation }: NativeStackScreenProps<RootSt
     </View>)}
     {!canCreate && <Text accessibilityRole="alert">Sua conta não tem permissão para publicar denúncias.</Text>}
     {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
-    <Button title="Enviar denúncia" loading={busy} disabled={locked || !canCreate || selecting || locating} onPress={() => void submit()} />
+    <Button title={draft.submissionKey ? 'Confirmar envio pendente' : 'Enviar denúncia'} loading={busy} disabled={busy || !draft.ready || !canCreate || selecting || locating} onPress={() => void submit()} />
   </Screen>;
 }
 const styles = StyleSheet.create({

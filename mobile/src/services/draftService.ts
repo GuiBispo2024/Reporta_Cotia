@@ -4,8 +4,8 @@ import type { ReportInput } from './reportService';
 import type { ReportPhoto } from './photoService';
 
 export type Draft = { version: 1; id: string; revision: number; input: ReportInput;
-  latitude: string; longitude: string; photos: ReportPhoto[]; updatedAt: string };
-export type DraftContent = Pick<Draft, 'input' | 'latitude' | 'longitude' | 'photos'>;
+  latitude: string; longitude: string; photos: ReportPhoto[]; updatedAt: string; submissionKey?: string };
+export type DraftContent = Pick<Draft, 'input' | 'latitude' | 'longitude' | 'photos' | 'submissionKey'>;
 const queues = new Map<string, Promise<unknown>>();
 export async function openDraftStore(api: string, userId: number, scope = 'new') {
   const key = await digestStringAsync(CryptoDigestAlgorithm.SHA256, `${api}|${userId}|${scope}`);
@@ -25,6 +25,7 @@ export async function openDraftStore(api: string, userId: number, scope = 'new')
         if (draft.version !== 1 || typeof draft.id !== 'string' || !Number.isSafeInteger(draft.revision)
           || !draft.input || !['titulo', 'descricao', 'localizacao', 'bairro', 'categoria'].every((field) => typeof draft.input[field as keyof ReportInput] === 'string')
           || typeof draft.latitude !== 'string' || typeof draft.longitude !== 'string'
+          || (draft.submissionKey !== undefined && !/^[0-9a-f-]{36}$/i.test(draft.submissionKey))
           || !Array.isArray(draft.photos) || draft.photos.length > 4
           || draft.photos.some((photo) => typeof photo.uri !== 'string' || !photo.uri.startsWith(prefix) || photo.uri.slice(prefix.length).includes('/') || photo.type !== 'image/jpeg' || typeof photo.name !== 'string')) return null;
         return draft;

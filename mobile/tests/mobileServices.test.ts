@@ -2,7 +2,7 @@ import MockAdapter from 'axios-mock-adapter';
 import axios from 'axios';
 import { createHttpClient } from '../src/services/httpClient';
 import { login, register, getMe } from '../src/services/authService';
-import { listReports, listMyReports, createReport, getReport, getReportHistory } from '../src/services/reportService';
+import { listReports, listMyReports, createReport, getReport, getReportHistory, getSubmission } from '../src/services/reportService';
 
 // Axios captura o construtor FormData ao importar: usar o polyfill nativo desde o início.
 jest.mock('axios', () => {
@@ -17,6 +17,14 @@ const input = { titulo: 'Buraco', descricao: 'Descrição', localizacao: 'Rua A'
 const report = { ...input, id: 1, status: 'aprovada', resolucaoStatus: 'aberta' };
 afterEach(() => mock.reset());
 afterAll(() => mock.restore());
+test('resposta perdida permite consultar protocolo e repete a mesma chave', async () => {
+  const key = 'f1768e55-b65c-4faf-a5cc-51ac3b095676';
+  mock.onPost('denuncia').networkErrorOnce();
+  await expect(createReport(client, input, [], key)).rejects.toMatchObject({ code: 'NETWORK_ERROR' });
+  expect(mock.history.post[0]?.headers?.['Idempotency-Key']).toBe(key);
+  mock.onGet(`denuncia/submissions/${key}`).reply(200, { denuncia: report });
+  await expect(getSubmission(client, key)).resolves.toMatchObject({ id: 1 });
+});
 test('criação transmite coordenadas numéricas sem convertê-las para texto no JSON', async () => {
   mock.onPost('denuncia', { ...input, latitude: -23.6, longitude: -46.9 }).reply(201, { denuncia: report });
   await expect(createReport(client, { ...input, latitude: -23.6, longitude: -46.9 })).resolves.toMatchObject({ id: 1 });
