@@ -24,7 +24,9 @@ module.exports = () => {
       },
     },
     android: { package: `br.com.reportacotia.app${suffix}` },
-    plugins: ['expo-status-bar', 'expo-secure-store', ['expo-build-properties', { android: { usesCleartextTraffic: isDevelopment } }]],
+    plugins: ['expo-status-bar', 'expo-secure-store', ['expo-image-picker', {
+      photosPermission: 'Selecionar fotos para anexar à denúncia.', cameraPermission: 'Fotografar problemas urbanos para a denúncia.', microphonePermission: false,
+    }], ['expo-build-properties', { android: { usesCleartextTraffic: isDevelopment } }]],
     extra: environment,
   };
 };

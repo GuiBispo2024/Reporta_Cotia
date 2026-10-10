@@ -9,6 +9,7 @@ import { getReport, getReportHistory, type HistoryEntry, type Report } from '../
 import { toApiError } from '../utils/ApiError';
 import { theme } from '../theme';
 import { resolutionLabels } from './ReportsScreen';
+import { ReportImages } from '../components/ReportImages';
 
 export function ReportDetailScreen({ route }: NativeStackScreenProps<RootStackParamList, 'ReportDetail'>) {
   const { client } = useAuth();
@@ -46,6 +47,7 @@ export function ReportDetailScreen({ route }: NativeStackScreenProps<RootStackPa
     <Text style={theme.typography.body}>Setor responsável: {report.setorResponsavel || 'Ainda não definido'}</Text>
     {!!report.motivoRejeicao && <Text accessibilityRole="alert" style={{ ...theme.typography.body, color: theme.colors.danger }}>Motivo da rejeição: {report.motivoRejeicao}</Text>}
     <Text selectable style={theme.typography.body}>{report.descricao}</Text>
+    <ReportImages report={report} />
     <Text selectable style={theme.typography.body}>{report.localizacao}{report.bairro ? ` · ${report.bairro}` : ''}</Text>
     {!!report.User?.username && <Text style={theme.typography.body}>Publicado por {report.User.username}</Text>}
     {!!report.createdAt && <Text style={theme.typography.caption}>{new Date(report.createdAt).toLocaleDateString('pt-BR')}</Text>}

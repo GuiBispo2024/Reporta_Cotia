@@ -1,7 +1,14 @@
 import MockAdapter from 'axios-mock-adapter';
+import axios from 'axios';
 import { createHttpClient } from '../src/services/httpClient';
 import { login, register, getMe } from '../src/services/authService';
 import { listReports, listMyReports, createReport, getReport, getReportHistory } from '../src/services/reportService';
+
+// Axios captura o construtor FormData ao importar: usar o polyfill nativo desde o início.
+jest.mock('axios', () => {
+  global.FormData = require('react-native/Libraries/Network/FormData').default;
+  return jest.requireActual('axios');
+});
 
 const client = createHttpClient({ appEnv: 'development', apiBaseUrl: 'http://localhost:5000', apiTimeoutMs: 15000 });
 const mock = new MockAdapter(client);
@@ -10,6 +17,20 @@ const input = { titulo: 'Buraco', descricao: 'Descrição', localizacao: 'Rua A'
 const report = { ...input, id: 1, status: 'aprovada', resolucaoStatus: 'aberta' };
 afterEach(() => mock.reset());
 afterAll(() => mock.restore());
+test('upload envia anexos como multipart no campo imagens', async () => {
+  const originalFormData = global.FormData;
+  global.FormData = require('react-native/Libraries/Network/FormData').default;
+  const uploadClient = axios.create();
+  const uploadMock = new MockAdapter(uploadClient);
+  uploadMock.onPost('denuncia').reply((config) => {
+    const parts = (config.data as { getParts: () => Array<{ fieldName: string; uri?: string; type?: string }> }).getParts();
+    expect(parts.find((part) => part.fieldName === 'imagens')).toMatchObject({ uri: 'file:///foto.jpg', type: 'image/jpeg' });
+    return [201, { denuncia: report }];
+  });
+  try {
+    await expect(createReport(uploadClient, input, [{ uri: 'file:///foto.jpg', name: 'foto.jpg', type: 'image/jpeg' }])).resolves.toMatchObject({ id: 1 });
+  } finally { global.FormData = originalFormData; uploadMock.restore(); }
+});
 test('histórico preserva motivo e setor e rejeita respostas inválidas', async () => {
   const entry = { id: 1, tipo: 'moderacao', statusAnterior: 'pendente', statusNovo: 'rejeitada', motivo: 'Informe o número da rua', responsavel: null, createdAt: '2026-10-10T12:00:00Z' };
   mock.onGet('denuncia/1/historico').replyOnce(200, [entry]).onGet('denuncia/1/historico').reply(200, {});

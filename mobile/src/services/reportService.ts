@@ -1,10 +1,11 @@
 import type { AxiosInstance } from 'axios';
 import { ApiError } from '../utils/ApiError';
+import type { ReportPhoto } from './photoService';
 
 export const categories = ['Buraco e pavimentação', 'Iluminação pública', 'Limpeza urbana', 'Saneamento',
   'Água e esgoto', 'Trânsito e sinalização', 'Árvore e área verde', 'Outros'] as const;
 export type ReportInput = { titulo: string; descricao: string; localizacao: string; bairro: string; categoria: string };
-export type Report = ReportInput & { id: number; status: string; resolucaoStatus: string; motivoRejeicao?: string | null; setorResponsavel?: string | null; createdAt?: string; User?: { username: string } };
+export type Report = ReportInput & { id: number; status: string; resolucaoStatus: string; imageUrl?: string | null; imageUrls?: string[]; motivoRejeicao?: string | null; setorResponsavel?: string | null; createdAt?: string; User?: { username: string } };
 export type HistoryEntry = { id: number; tipo: string; statusAnterior: string | null; statusNovo: string; motivo?: string | null; responsavel?: string | null; createdAt: string; User?: { username: string } };
 export async function getReportHistory(client: AxiosInstance, id: number, signal?: AbortSignal): Promise<HistoryEntry[]> {
   const { data } = await client.get(`denuncia/${id}/historico`, { signal });
@@ -41,7 +42,13 @@ export async function listMyReports(client: AxiosInstance, userId: number, page:
   const reports = data.map(parseReport).filter((report) => report.titulo.toLocaleLowerCase('pt-BR').includes(title.trim().toLocaleLowerCase('pt-BR')));
   return { data: reports.slice((page - 1) * 12, page * 12), total: reports.length, page, totalPages: Math.ceil(reports.length / 12) };
 }
-export async function createReport(client: AxiosInstance, input: ReportInput): Promise<Report> {
-  const { data } = await client.post('denuncia', Object.fromEntries(Object.entries(input).map(([key, value]) => [key, value.trim()])));
+export async function createReport(client: AxiosInstance, input: ReportInput, photos: ReportPhoto[] = []): Promise<Report> {
+  if (photos.length > 4) throw new ApiError('Você pode anexar até quatro fotos.', 'IMAGE_LIMIT');
+  const fields = Object.fromEntries(Object.entries(input).map(([key, value]) => [key, value.trim()]));
+  const form = new FormData();
+  for (const [key, value] of Object.entries(fields)) form.append(key, value);
+  for (const photo of photos) form.append('imagens', { uri: photo.uri, name: photo.name, type: photo.type } as unknown as Blob);
+  // Axios/React Native define o boundary; não fixar Content-Type manualmente.
+  const { data } = await client.post('denuncia', photos.length ? form : fields);
   return parseReport(data?.denuncia);
 }

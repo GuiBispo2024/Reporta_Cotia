@@ -9,6 +9,7 @@ import { ApiError } from '../src/utils/ApiError';
 import type { RootStackParamList } from '../src/navigation/types';
 
 jest.mock('../src/context/AuthContext', () => ({ useAuth: jest.fn() }));
+jest.mock('../src/services/photoService', () => ({ selectPhotos: jest.fn() }));
 jest.mock('../src/services/authService', () => ({ register: jest.fn() }));
 jest.mock('../src/services/reportService', () => ({
   ...jest.requireActual('../src/services/reportService'), createReport: jest.fn(),
