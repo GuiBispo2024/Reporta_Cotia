@@ -1,0 +1,33 @@
+import type { AxiosInstance } from 'axios';
+import { ApiError } from '../utils/ApiError';
+
+export const categories = ['Buraco e pavimentação', 'Iluminação pública', 'Limpeza urbana', 'Saneamento',
+  'Água e esgoto', 'Trânsito e sinalização', 'Árvore e área verde', 'Outros'] as const;
+export type ReportInput = { titulo: string; descricao: string; localizacao: string; bairro: string; categoria: string };
+export type Report = ReportInput & { id: number; status: string; resolucaoStatus: string; createdAt?: string; User?: { username: string } };
+export type ReportPage = { data: Report[]; page: number; totalPages: number; total: number };
+export function parseReport(data: unknown): Report {
+  const value = data as Partial<Report> | null;
+  if (!value || !Number.isInteger(value.id) || typeof value.titulo !== 'string'
+    || typeof value.descricao !== 'string' || typeof value.localizacao !== 'string'
+    || typeof value.status !== 'string' || typeof value.resolucaoStatus !== 'string') {
+    throw new ApiError('Resposta de denúncia inválida. Tente novamente.', 'INVALID_RESPONSE');
+  }
+  return { ...value, bairro: value.bairro ?? '', categoria: value.categoria ?? 'Outros' } as Report;
+}
+export async function listReports(client: AxiosInstance, page: number, title: string, signal?: AbortSignal): Promise<ReportPage> {
+  const { data } = await client.get('denuncia', { params: { page, limit: 12, titulo: title.trim() }, signal });
+  if (!data || !Array.isArray(data.data) || !Number.isInteger(data.totalPages)
+    || !Number.isInteger(data.total) || !Number.isInteger(data.page)) {
+    throw new ApiError('Lista de denúncias inválida. Tente novamente.', 'INVALID_RESPONSE');
+  }
+  return { ...data, data: data.data.map(parseReport) };
+}
+export async function getReport(client: AxiosInstance, id: number, signal?: AbortSignal): Promise<Report> {
+  const { data } = await client.get(`denuncia/${id}`, { signal });
+  return parseReport(data);
+}
+export async function createReport(client: AxiosInstance, input: ReportInput): Promise<Report> {
+  const { data } = await client.post('denuncia', Object.fromEntries(Object.entries(input).map(([key, value]) => [key, value.trim()])));
+  return parseReport(data?.denuncia);
+}

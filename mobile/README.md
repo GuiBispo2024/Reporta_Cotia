@@ -1,10 +1,10 @@
 # Reporta Cotia Mobile — REP-27
 
-Base Android/iOS em React Native 0.83, React 19.2, Expo SDK 55 e TypeScript estrito. React Navigation Native Stack, Axios e os tokens de cor da versão web. Não inclui autenticação, cadastro ou fluxos de denúncias: essas funcionalidades ficam para as próximas tarefas do epic REP-5.
+Aplicativo Android/iOS em React Native 0.86, React 19.2, Expo SDK 57 e TypeScript estrito. A primeira versão funcional inclui cadastro, login, sessão segura, lista pública paginada com busca, detalhes e envio de denúncias de texto para moderação.
 
 ## Execução rápida
 
-Requisitos: Node.js >= 20.19.4, npm e a API do backend em execução. Use `npm ci` para reproduzir as versões do lockfile.
+Requisitos: Node.js >= 22.13.0, npm e a API do backend em execução. Use `npm ci` para reproduzir as versões do lockfile.
 
 ```powershell
 cd C:\Users\Marcos\Desktop\Reporta_Cotia-main\Reporta_Cotia-main\mobile
@@ -14,7 +14,7 @@ npm run smoke:api
 npm start
 ```
 
-O Metro mostra o QR code e as opções de abrir Android/iOS. Use uma versão do Expo Go compatível com SDK 55 (consulte https://expo.dev/go) ou um build nativo. Não é necessário alterar o frontend web nem o backend.
+O Metro mostra o QR code e as opções de abrir Android/iOS. Use uma versão do Expo Go compatível com SDK 57 (consulte https://expo.dev/go) ou um build nativo. Não é necessário alterar o frontend web nem o backend.
 
 - Emulador Android padrão: `localhost` e `127.0.0.1` na URL de development são convertidos para `10.0.2.2` no app.
 - Simulador iOS no mesmo Mac da API: `localhost` funciona sem conversão.
@@ -23,9 +23,17 @@ O Metro mostra o QR code e as opções de abrir Android/iOS. Use uma versão do 
 
 ## Estrutura e limites entre camadas
 
+### Acesso pelo celular na rede local
+
+Inicie a API com `npm start` na pasta `backend`. Confira `PORT` em `backend/.env` e crie `mobile/.env.development.local` com `API_BASE_URL=http://IP_DO_COMPUTADOR:PORTA_DA_API`. O arquivo local não é versionado. Use `ipconfig` para consultar o IPv4 do Wi-Fi; atualize a URL se o IP mudar.
+
+Na pasta `mobile`, execute `npm run start:lan`. O Expo usa a porta 8082 para não conflitar com o backend local na porta 8081. Com o celular no mesmo Wi-Fi, abra `exp://IP_DO_COMPUTADOR:8082` no Expo Go compatível com SDK 57 ou leia o QR code exibido no terminal. Para Android, obtenha a versão compatível em https://expo.dev/go?platform=android&device=true&sdkVersion=57. Consulte https://docs.expo.dev/troubleshooting/expo-go-version-mismatch/ para as opções de instalação em outros dispositivos.
+
+Para verificar a rede, abra `http://IP_DO_COMPUTADOR:PORTA_DA_API/` no navegador do celular; deve retornar `status: ok` e `database: connected`. Mantenha os terminais da API e do Expo abertos. Se o Windows solicitar acesso à rede, permita na rede privada.
+
 ```text
 mobile/
-  App.tsx                       composição dos providers e do Error Boundary
+  App.tsx                       providers de sessão, safe area e Error Boundary
   index.ts                      registro do componente raiz
   app.config.js                 configuração nativa e extra público
   eas.json                      perfis de build
@@ -33,9 +41,10 @@ mobile/
   scripts/                      execução multiplataforma e smoke test
   src/
     components/                 Button, Screen, ErrorBoundary
-    screens/                    HomeScreen, AboutScreen
+    context/                    sessão e armazenamento seguro
+    screens/                    lista, login/cadastro, envio, detalhes e sobre
     navigation/                 Stack e parâmetros tipados
-    services/                   cliente HTTP e contrato de saúde
+    services/                   cliente HTTP, contas, denúncias e saúde
     theme/                      cores, tipografia, espaçamentos, raios
     config/                     configuração de runtime e host Android
     utils/                      ApiError e normalização de erros
@@ -45,6 +54,20 @@ mobile/
 Telas não chamam Axios diretamente. Serviços validam contratos antes de devolver dados às telas. O cliente centraliza timeout e normalização de erros; cancelamentos permanecem cancelamentos. Não há retry automático de operações que possam gravar dados. A tela de início cancela a consulta ao desmontar e oferece tentativa manual após uma falha.
 
 O Error Boundary protege a renderização da árvore React e pode remontá-la. Ele não captura crashes nativos, falhas de inicialização de módulos ou exceções de handlers assíncronos; estas últimas devem ser tratadas na chamada do serviço, como na HomeScreen. O callback `onError` permite integrar observabilidade no futuro sem enviar dados externamente nesta base.
+
+## Fluxos disponíveis no mobile
+
+- Visitantes podem consultar denúncias aprovadas, buscar pelo título, navegar entre páginas e abrir detalhes.
+- O cadastro exige nome de usuário, e-mail e senha com pelo menos 6 caracteres, com confirmação. Após criar a conta, faça login.
+- A sessão fica no `expo-secure-store` e é validada em `GET /users/me` ao reabrir o app. Uma resposta 401 encerra a sessão e solicita novo login. O token não é reutilizado se a URL da API mudar. A senha não é armazenada.
+- Contas com `denuncia.create` podem enviar título, descrição, endereço, bairro opcional e categoria. A tela preserva o formulário após falhas e confirma o protocolo somente após resposta da API. A denúncia enviada fica pendente de moderação; o autor pode abrir seus detalhes na confirmação, e a lista pública a exibirá após aprovação.
+- O logout revoga a sessão no backend quando a rede está disponível e remove o armazenamento local.
+
+Fotos, localização por GPS, recuperação de senha, edição de perfil, curtidas, comentários e telas administrativas ficam para próximas etapas.
+
+Para verificar manualmente: abra a lista como visitante, crie uma conta, entre, envie uma denúncia, abra o protocolo, feche e reabra o app para conferir a restauração da sessão e saia da conta. Use uma denúncia real ou um banco de desenvolvimento para testar o envio. `npm run smoke:api` consulta apenas saúde e lista pública; não cria contas ou denúncias.
+
+Validação da versão mínima (10/10/2026): TypeScript, 5 testes de ambiente, 32 testes Jest, 2 testes de integração de leitura com a API local, Expo Doctor 21/21 e exportação Hermes Android/iOS aprovados. Execução e conferência visual no celular ainda precisam ser confirmadas.
 
 ## Ambientes
 
@@ -62,14 +85,14 @@ Precedência: variáveis do processo/CI/EAS > `.env.<ambiente>.local` > `.env.<a
 
 ```powershell
 npm run config
-npm run expo -- production config --type public
+npm run expo:env -- production config --type public
 npm run start:production
 ```
 
 Para homologação, configure a URL HTTPS real em `.env.staging.local`, ou no processo/EAS como `API_BASE_URL`, antes de executar:
 
 ```powershell
-npm run expo -- staging config --type public
+npm run expo:env -- staging config --type public
 npm run start:staging
 ```
 
@@ -90,7 +113,7 @@ Nomes, schemes e identificadores Android/iOS têm sufixos em development/staging
 
 Os diretórios `android/` e `ios/` são gerados por Expo Prebuild (Continuous Native Generation) e não são fonte versionada. Edite `app.config.js` e plugins, não os arquivos gerados. A geração Android foi executada nesta entrega; o diretório está ignorado pelo Git.
 
-Android local exige Android Studio, Android SDK/Build Tools da versão requerida pelo Expo SDK 55, JDK 17 e emulador/aparelho com ADB. iOS local exige macOS, Xcode e CocoaPods.
+Android local exige Android Studio, Android SDK/Build Tools e JDK da versão requerida pelo Expo SDK 57 e emulador/aparelho com ADB. iOS local exige macOS, Xcode e CocoaPods.
 
 ```powershell
 npm run android
@@ -106,17 +129,17 @@ npm run ios
 Ao trocar o ambiente de um build nativo, regenere antes de compilar para atualizar identificadores e políticas de rede. `--clean` substitui somente os projetos nativos gerados; não mantenha customizações manuais neles. Exemplo para production:
 
 ```sh
-npm run expo -- production prebuild --clean
-npm run expo -- production run:android --variant release
+npm run expo:env -- production prebuild --clean
+npm run expo:env -- production run:android --variant release
 # Alternativa no macOS:
-npm run expo -- production run:ios --configuration Release
+npm run expo:env -- production run:ios --configuration Release
 ```
 
 Exportação de JavaScript/Hermes para ambas as plataformas (não gera APK/AAB/IPA):
 
 ```sh
 npm run export
-npm run expo -- production export --platform all --output-dir dist/production
+npm run expo:env -- production export --platform all --output-dir dist/production
 ```
 
 Build remoto opcional via EAS, sem precisar de Xcode local:
@@ -130,7 +153,15 @@ npx eas-cli build --platform ios --profile development
 
 `eas init` associa o projeto à sua conta. Como a configuração é dinâmica, se a ferramenta não conseguir editá-la, acrescente `eas: { projectId: ID_REAL }` à propriedade `extra` retornada por `app.config.js`, usando como string o ID fornecido pelo EAS. Esse identificador é público e pode ser versionado. Não há ID fictício no código. O perfil development gera APK Android e build de simulador iOS; não é um development client. O perfil staging gera distribuição interna e production gera AAB/artefato para loja. Builds iOS para aparelhos/distribuição exigem credenciais Apple adequadas. Para staging, configure `API_BASE_URL` no ambiente EAS `preview` antes do build; para development em aparelho físico, configure a URL alcançável pelo aparelho no ambiente EAS `development`. Arquivos `.local` não são enviados ao EAS. Não foi feito login, upload de código, publicação ou consumo de builds remotos nesta tarefa.
 
-## Validação desta entrega (02/10/2026)
+## Atualização para SDK 57 (10/10/2026)
+
+Expo 57.0.27, React Native 0.86.3, React 19.2.3 e TypeScript 6. Os módulos Expo, safe-area, screens e jest-expo foram alinhados com as versões recomendadas pelo SDK. A configuração inclui o plugin `expo-status-bar`. O script de seleção de ambiente agora se chama `expo:env`, evitando conflito com o executável do Expo.
+
+Validação: Expo Doctor 21/21, TypeScript, 5 testes de ambiente, 17 testes Jest, integração com API/PostgreSQL local e exportação Hermes Android/iOS aprovados. O teste de integração usa o adaptador HTTP do Node para fazer uma requisição real, pois os adaptadores nativos são simulados pelo preset Jest. Builds nativos APK/AAB/IPA e execução no aparelho ainda precisam de validação; exportar bundles não substitui essas etapas.
+
+O inventário em `delivery/README.md` é um snapshot histórico do SDK 55. As versões atuais estão em `package.json` e `package-lock.json`.
+
+## Validação original da entrega (02/10/2026, SDK 55)
 
 - TypeScript: aprovado.
 - 5 testes de configuração e 17 testes Jest: aprovados.
@@ -143,7 +174,7 @@ npx eas-cli build --platform ios --profile development
 
 ## Referências técnicas
 
-- https://docs.expo.dev/versions/v55.0.0/
+- https://docs.expo.dev/versions/v57.0.0/
 - https://docs.expo.dev/workflow/configuration/
 - https://docs.expo.dev/guides/environment-variables/
 - https://docs.expo.dev/build-reference/variants/

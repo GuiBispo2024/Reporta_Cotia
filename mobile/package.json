@@ -4,15 +4,16 @@
   "private": true,
   "main": "index.ts",
   "engines": {
-    "node": ">=20.19.4"
+    "node": ">=22.13.0"
   },
   "scripts": {
     "start": "node scripts/expo.cjs development start",
+    "start:lan": "node scripts/expo.cjs development start --go --lan --port 8082",
     "start:staging": "node scripts/expo.cjs staging start --clear",
     "start:production": "node scripts/expo.cjs production start --clear",
     "android": "node scripts/expo.cjs development run:android",
     "ios": "node scripts/expo.cjs development run:ios",
-    "expo": "node scripts/expo.cjs",
+    "expo:env": "node scripts/expo.cjs",
     "config": "node scripts/expo.cjs development config --type public",
     "typecheck": "tsc --noEmit",
     "test": "jest --runInBand",
@@ -26,15 +27,16 @@
     "@react-navigation/native-stack": "^7.20.0",
     "axios": "^1.13.0",
     "dotenv": "^17.2.3",
-    "expo": "~55.0.31",
-    "expo-build-properties": "~55.0.18",
-    "expo-constants": "~55.0.17",
-    "expo-status-bar": "~55.0.6",
-    "expo-system-ui": "~55.0.22",
-    "react": "19.2.0",
-    "react-native": "0.83.10",
-    "react-native-safe-area-context": "~5.6.2",
-    "react-native-screens": "~4.23.0"
+    "expo": "~57.0.27",
+    "expo-build-properties": "~57.0.22",
+    "expo-constants": "~57.0.21",
+    "expo-secure-store": "~57.0.4",
+    "expo-status-bar": "~57.0.1",
+    "expo-system-ui": "~57.0.4",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0"
   },
   "devDependencies": {
     "@testing-library/react-native": "^13.3.3",
@@ -42,8 +44,8 @@
     "@types/react": "~19.2.2",
     "axios-mock-adapter": "^2.1.0",
     "jest": "^29.7.0",
-    "jest-expo": "~55.0.22",
-    "react-test-renderer": "19.2.0",
-    "typescript": "~5.9.2"
+    "jest-expo": "~57.0.5",
+    "react-test-renderer": "19.2.3",
+    "typescript": "~6.0.3"
   }
 }

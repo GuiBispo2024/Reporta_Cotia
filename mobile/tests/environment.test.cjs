@@ -1,9 +1,25 @@
-const { test } = require('node:test');
+const { test, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { loadEnvironment } = require('../config/environment.cjs');
+const { loadEnvironment: resolveEnvironment } = require('../config/environment.cjs');
+
+// Não carregar overrides da máquina do desenvolvedor nos testes de configuração.
+const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'reporta-env-defaults-'));
+const defaults = {
+  development: 'API_BASE_URL=http://localhost:5000\nAPI_TIMEOUT_MS=15000',
+  staging: 'API_BASE_URL=\nAPI_TIMEOUT_MS=15000',
+  production: 'API_BASE_URL=https://reporta-cotia.onrender.com\nAPI_TIMEOUT_MS=15000',
+};
+for (const [environment, content] of Object.entries(defaults)) {
+  fs.writeFileSync(path.join(fixtureRoot, `.env.${environment}`), content);
+}
+after(() => {
+  for (const environment of Object.keys(defaults)) fs.unlinkSync(path.join(fixtureRoot, `.env.${environment}`));
+  fs.rmdirSync(fixtureRoot);
+});
+const loadEnvironment = (variables, root = fixtureRoot) => resolveEnvironment(variables, root);
 
 test('development carrega a API local', () => {
   assert.equal(loadEnvironment({}).apiBaseUrl, 'http://localhost:5000');

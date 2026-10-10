@@ -24,7 +24,7 @@ module.exports = () => {
       },
     },
     android: { package: `br.com.reportacotia.app${suffix}` },
-    plugins: [['expo-build-properties', { android: { usesCleartextTraffic: isDevelopment } }]],
+    plugins: ['expo-status-bar', 'expo-secure-store', ['expo-build-properties', { android: { usesCleartextTraffic: isDevelopment } }]],
     extra: environment,
   };
 };
