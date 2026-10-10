@@ -1,5 +1,6 @@
 export type RootStackParamList = {
   Reports: undefined;
+  MyReports: undefined;
   Login: undefined;
   Register: undefined;
   CreateReport: undefined;

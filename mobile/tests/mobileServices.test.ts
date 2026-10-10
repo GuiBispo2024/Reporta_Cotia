@@ -1,7 +1,7 @@
 import MockAdapter from 'axios-mock-adapter';
 import { createHttpClient } from '../src/services/httpClient';
 import { login, register, getMe } from '../src/services/authService';
-import { listReports, createReport, getReport } from '../src/services/reportService';
+import { listReports, listMyReports, createReport, getReport } from '../src/services/reportService';
 
 const client = createHttpClient({ appEnv: 'development', apiBaseUrl: 'http://localhost:5000', apiTimeoutMs: 15000 });
 const mock = new MockAdapter(client);
@@ -10,6 +10,11 @@ const input = { titulo: 'Buraco', descricao: 'Descrição', localizacao: 'Rua A'
 const report = { ...input, id: 1, status: 'aprovada', resolucaoStatus: 'aberta' };
 afterEach(() => mock.reset());
 afterAll(() => mock.restore());
+test('minhas denúncias preserva registros privados e pagina a busca', async () => {
+  mock.onGet('denuncia/user/7').reply(200, Array.from({ length: 13 }, (_, index) => ({ ...report, id: index + 1, status: 'pendente' })));
+  await expect(listMyReports(client, 7, 2, 'Buraco')).resolves.toMatchObject({ total: 13, totalPages: 2, data: [{ id: 13, status: 'pendente' }] });
+  await expect(listMyReports(client, 7, 1, 'Iluminação')).resolves.toMatchObject({ total: 0, data: [] });
+});
 test('login normaliza e-mail e rejeita uma sessão sem token', async () => {
   mock.onPost('users/login', { email: 'ana@example.org', password: '123456' }).reply(200, { token: 'jwt', user });
   await expect(login(client, ' ANA@example.org ', '123456')).resolves.toEqual({ token: 'jwt', user });

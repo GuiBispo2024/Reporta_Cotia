@@ -27,6 +27,12 @@ export async function getReport(client: AxiosInstance, id: number, signal?: Abor
   const { data } = await client.get(`denuncia/${id}`, { signal });
   return parseReport(data);
 }
+export async function listMyReports(client: AxiosInstance, userId: number, page: number, title: string, signal?: AbortSignal): Promise<ReportPage> {
+  const { data } = await client.get(`denuncia/user/${userId}`, { signal });
+  if (!Array.isArray(data)) throw new ApiError('Lista de denúncias inválida.', 'INVALID_RESPONSE');
+  const reports = data.map(parseReport).filter((report) => report.titulo.toLocaleLowerCase('pt-BR').includes(title.trim().toLocaleLowerCase('pt-BR')));
+  return { data: reports.slice((page - 1) * 12, page * 12), total: reports.length, page, totalPages: Math.ceil(reports.length / 12) };
+}
 export async function createReport(client: AxiosInstance, input: ReportInput): Promise<Report> {
   const { data } = await client.post('denuncia', Object.fromEntries(Object.entries(input).map(([key, value]) => [key, value.trim()])));
   return parseReport(data?.denuncia);

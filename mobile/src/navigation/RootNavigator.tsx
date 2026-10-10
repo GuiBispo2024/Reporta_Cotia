@@ -23,7 +23,10 @@ export function RootNavigator() {
         {!user ? <>
           <Stack.Screen name="Login" component={AccountScreen} options={{ title: 'Entrar' }} />
           <Stack.Screen name="Register" component={AccountScreen} options={{ title: 'Criar conta' }} />
-        </> : <Stack.Screen name="CreateReport" component={CreateReportScreen} options={{ title: 'Nova denúncia' }} />}
+        </> : <>
+          <Stack.Screen name="CreateReport" component={CreateReportScreen} options={{ title: 'Nova denúncia' }} />
+          <Stack.Screen name="MyReports" component={ReportsScreen} options={{ title: 'Minhas denúncias' }} />
+        </>}
         <Stack.Screen name="ReportDetail" component={ReportDetailScreen} options={{ title: 'Detalhes da denúncia' }} />
         <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Reporta Cotia' }} />
         <Stack.Screen name="About" component={AboutScreen} options={{ title: 'Sobre o aplicativo' }} />

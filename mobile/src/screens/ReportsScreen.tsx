@@ -7,12 +7,13 @@ import { Button } from '../components/Button';
 import { Field } from '../components/Field';
 import { useAuth } from '../context/AuthContext';
 import type { RootStackParamList } from '../navigation/types';
-import { listReports, type ReportPage } from '../services/reportService';
+import { listReports, listMyReports, type ReportPage } from '../services/reportService';
 import { toApiError } from '../utils/ApiError';
 import { theme } from '../theme';
 
 export const resolutionLabels: Record<string, string> = { aberta: 'Aberta', em_andamento: 'Em andamento', resolvida: 'Resolvida' };
-export function ReportsScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'Reports'>) {
+export function ReportsScreen({ navigation, route }: NativeStackScreenProps<RootStackParamList, 'Reports' | 'MyReports'>) {
+  const isMine = route.name === 'MyReports';
   const { client, user, notice, signOut } = useAuth();
   const [result, setResult] = useState<ReportPage | null>(null);
   const [page, setPage] = useState(1);
@@ -26,12 +27,13 @@ export function ReportsScreen({ navigation }: NativeStackScreenProps<RootStackPa
   useFocusEffect(useCallback(() => {
     const controller = new AbortController();
     setBusy(true); setError(''); setResult(null);
-    void listReports(client, page, query, controller.signal).then(
+    const request = isMine && user ? listMyReports(client, user.id, page, query, controller.signal) : listReports(client, page, query, controller.signal);
+    void request.then(
       (data) => { if (!controller.signal.aborted) setResult(data); },
       (reason: unknown) => { if (!controller.signal.aborted) setError(toApiError(reason).message); },
     ).finally(() => { if (!controller.signal.aborted) setBusy(false); });
     return () => controller.abort();
-  }, [client, page, query, attempt]));
+  }, [client, page, query, attempt, isMine, user]));
   const retry = () => setAttempt((value) => value + 1);
   async function leave() {
     setLeaving(true); setAccountError('');
@@ -43,12 +45,13 @@ export function ReportsScreen({ navigation }: NativeStackScreenProps<RootStackPa
       keyboardShouldPersistTaps="handled" ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
       refreshing={busy} onRefresh={retry}
       ListHeaderComponent={<View style={styles.header}>
-        <Text accessibilityRole="header" style={styles.title}>Cotia, com a sua voz</Text>
-        <Text style={styles.body}>Acompanhe as denúncias da cidade e ajude a cuidar do seu bairro.</Text>
+        <Text accessibilityRole="header" style={styles.title}>{isMine ? 'Minhas denúncias' : 'Cotia, com a sua voz'}</Text>
+        <Text style={styles.body}>{isMine ? 'Acompanhe também registros pendentes e rejeitados.' : 'Acompanhe as denúncias da cidade e ajude a cuidar do seu bairro.'}</Text>
         {!!notice && <Text accessibilityRole="alert" style={styles.body}>{notice}</Text>}
         {user ? <>
           <Text style={styles.body}>Olá, {user.username}</Text>
           <Button title="Nova denúncia" disabled={!user.permissions.includes('denuncia.create')} onPress={() => navigation.navigate('CreateReport')} />
+          {!isMine && <Button title="Minhas denúncias" onPress={() => navigation.navigate('MyReports')} />}
           <Button title="Sair da conta" loading={leaving} onPress={() => void leave()} />
         </> : <>
           <Button title="Entrar para publicar" onPress={() => navigation.navigate('Login')} />
@@ -58,15 +61,16 @@ export function ReportsScreen({ navigation }: NativeStackScreenProps<RootStackPa
         <Field label="Buscar pelo título" value={search} onChangeText={setSearch} maxLength={120} returnKeyType="search"
           onSubmitEditing={() => { setPage(1); setQuery(search); retry(); }} />
         <Button title="Buscar" loading={busy} onPress={() => { setPage(1); setQuery(search); retry(); }} />
-        <Text accessibilityRole="header" style={styles.heading}>Denúncias publicadas</Text>
+        <Text accessibilityRole="header" style={styles.heading}>{isMine ? 'Seus registros' : 'Denúncias publicadas'}</Text>
         {result && <Text style={styles.body}>{result.total} denúncias encontradas</Text>}
       </View>}
       ListEmptyComponent={busy ? <ActivityIndicator accessibilityLabel="Carregando denúncias" color={theme.colors.primary} />
         : error ? <View style={styles.header}><Text accessibilityRole="alert" style={styles.error}>{error}</Text><Button title="Tentar novamente" onPress={retry} /></View>
-          : <Text style={styles.body}>Nenhuma denúncia encontrada. Denúncias pendentes só aparecem aqui após aprovação.</Text>}
+          : <Text style={styles.body}>{isMine ? 'Você ainda não tem denúncias para esta busca.' : 'Nenhuma denúncia encontrada. Denúncias pendentes só aparecem aqui após aprovação.'}</Text>}
       renderItem={({ item }) => <Pressable accessibilityRole="button" accessibilityLabel={`Ver denúncia: ${item.titulo}`}
         onPress={() => navigation.navigate('ReportDetail', { id: item.id })} style={styles.card}>
         <Text style={styles.tag}>{item.categoria} · {resolutionLabels[item.resolucaoStatus] ?? item.resolucaoStatus}</Text>
+        {isMine && <Text style={styles.tag}>{item.status === 'pendente' ? 'Aguardando moderação' : item.status === 'rejeitada' ? 'Rejeitada' : 'Aprovada'}</Text>}
         <Text style={styles.heading}>{item.titulo}</Text>
         <Text numberOfLines={3} style={styles.body}>{item.descricao}</Text>
         <Text style={styles.body}>{item.localizacao}{item.bairro ? ` · ${item.bairro}` : ''}</Text>
