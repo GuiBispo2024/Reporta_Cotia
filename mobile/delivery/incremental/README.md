@@ -6,7 +6,7 @@ Cada etapa tem seu commit e instruções de teste. As implementações seguem em
 | --- | --- | --- |
 | 1 | Development build e perfis de distribuição | Configuração, Expo Doctor e Prebuild Android aprovados; APK pendente |
 | 2 | Rascunhos persistentes com fotos | Implementada; testar fechamento e reabertura no Android |
-| 3 | Idempotência no backend | Planejada |
+| 3 | Idempotência no backend | Implementada; executar migration antes do envio mobile |
 | 4 | Envio mobile com prevenção de duplicidade | Planejada |
 | 5 | Verificações mobile no CI | Planejada |
 | 6 | Ajustes após testes em aparelhos | Depende dos testes reais |
@@ -75,3 +75,9 @@ A configuração e as verificações locais devem passar; o APK deve ser gerado,
 5. Se faltar espaço ou uma foto ficar indisponível, confira o aviso; não trate o aviso como confirmação de envio.
 
 Há um rascunho por conta/API no aparelho. Ele contém textos, coordenadas e fotos no armazenamento privado do aplicativo, sem senha ou token. Desinstalar o aplicativo ou limpar seus dados remove os rascunhos. Dependências nativas adicionadas: expo-file-system e expo-crypto; gere novo development build quando já tiver a conta EAS.
+
+## Etapa 3 — backend
+
+Na pasta backend: `npm run db:migrate` e reinicie a API. `npm test -- --runInBand` verifica repetição, conflito de conteúdo, isolamento por autor e rollback. `node scripts/smokeReportSubmissions.js` verifica concorrência no PostgreSQL local de desenvolvimento usando uma conta temporária removida ao terminar.
+
+POST /denuncia aceita o header opcional Idempotency-Key (UUID v4). Repetir chave e conteúdo retorna o mesmo protocolo; mudar conteúdo retorna 409. GET /denuncia/submissions/:key consulta o comprovante somente para o autor autenticado. Clientes existentes podem continuar enviando sem a chave. Os comprovantes persistem até a exclusão da conta; remover a denúncia não permite recriá-la com a mesma chave. A fila usa bloqueio da conta no banco durante o upload para impedir duplicações entre instâncias da API.

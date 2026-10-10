@@ -5,6 +5,7 @@ const requirePermission = require('../middlewares/requirePermission');
 const optionalAuth = require('../middlewares/optionalAuth');
 const AppError = require('../utils/AppError');
 const DenunciaService = require('../services/DenunciaService');
+const ReportSubmissionService = require('../services/ReportSubmissionService');
 const { upload, storeImages, deleteImage } = require('../utils/upload');
 const { PERMISSIONS } = require('../constants/accessControl');
 const { validateDenuncia } = require('../utils/validateDenuncia');
@@ -59,12 +60,14 @@ function pagination(req) {
  *       403: { description: Usuário sem `denuncia.create` }
  */
 router.post('/', auth, requirePermission(PERMISSIONS.DENUNCIA_CREATE), upload.array('imagens', 4), async (req, res, next) => {
-  let imageUrls = [];
   try {
-    validateDenuncia(req.body);
-    imageUrls = await storeImages(req.files || []);
-    res.status(201).json(await DenunciaService.create({ ...req.body, imageUrls, imageUrl: imageUrls[0] || null }, req.user, { uploadedImages: true }));
-  } catch (error) { await Promise.all(imageUrls.map(url => deleteImage(url).catch(() => {}))); next(error); }
+    res.status(201).json(await ReportSubmissionService.create(req.body, req.files || [], req.user, req.get('Idempotency-Key')));
+  } catch (error) { next(error); }
+});
+
+router.get('/submissions/:key', auth, async (req, res, next) => {
+  try { res.json(await ReportSubmissionService.get(req.user.id, req.params.key)); }
+  catch (error) { next(error); }
 });
 
 /**

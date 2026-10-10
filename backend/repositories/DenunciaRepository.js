@@ -33,8 +33,8 @@ class DenunciaRepository {
     };
   }
 
-  static async create(data) {
-    return Denuncia.create(data);
+  static async create(data, transaction = null) {
+    return Denuncia.create(data, transaction ? { transaction } : {});
   }
 
   static async findById(id, transaction = null) {

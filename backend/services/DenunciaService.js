@@ -22,7 +22,7 @@ function protectCensorshipSources(result, requester) {
 }
 
 class DenunciaService {
-  static async create(data, user, { uploadedImages = false } = {}) {
+  static async create(data, user, { uploadedImages = false, transaction = null } = {}) {
     if (!uploadedImages && (data.imageUrl || data.imageUrls?.length)) throw new AppError('Use o upload de imagens.', 400, 'INVALID_IMAGE_REFERENCE');
     validateDenuncia(data);
     const { titulo, descricao, localizacao, bairro, categoria = 'Outros', latitude, longitude, imageUrl, imageUrls = [] } = data;
@@ -49,7 +49,7 @@ class DenunciaService {
       userId,
       status: 'pendente',
       resolucaoStatus: 'aberta'
-    });
+    }, transaction);
 
     const hasBadWord = hasBadWordTitulo || hasBadWordDescricao;
     return {
