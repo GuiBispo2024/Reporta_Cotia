@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://reporta-cotia.onrender.com/:path*" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}

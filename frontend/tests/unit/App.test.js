@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import App from '../../src/App'
+jest.mock('../../src/components/SessionTimer', () => () => null)
 
 jest.mock('../../src/context/authContext', () => ({
   AuthProvider: ({ children }) => children

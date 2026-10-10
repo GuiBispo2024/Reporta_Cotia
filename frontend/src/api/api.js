@@ -1,21 +1,28 @@
 import axios from "axios";
-import { logoutOnExpire } from "../utils/logout";
+import { API_BASE_URL, clearSession, ensureAccessToken, getSession } from '../services/sessionManager';
 
 const api = axios.create({
-    baseURL: process.env.REACT_APP_API_URL,
+    baseURL: API_BASE_URL,
+    withCredentials: true,
+    headers: { 'X-Session-Client': 'web' },
 })
 
 // Interceptor de requisição → adiciona token JWT no header
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+api.interceptors.request.use(async (config) => {
+  const token = config.url === '/users/login' ? null : await ensureAccessToken();
   if (token) config.headers.Authorization = `Bearer ${token}`
+  else delete config.headers.Authorization;
+  config.sessionId = getSession()?.sessionId;
   return config
 })
 
 // Interceptor de resposta → detecta token expirado (401)
 api.interceptors.response.use(
-  (response) => response,
-  (error) => {
+  (response) => {
+    if (response.config.sessionId && response.config.sessionId !== getSession()?.sessionId) return Promise.reject(new Error('A sessão mudou durante a requisição.'));
+    return response;
+  },
+  async (error) => {
     const originalRequest = error.config;
 
     const isLoginRequest = originalRequest?.url?.includes("/login");
@@ -44,7 +51,12 @@ api.interceptors.response.use(
 
     // Se der 401 em qualquer outra rota → sessão expirada
     if (error.response?.status === 401 && !isLoginRequest) {
-      logoutOnExpire();
+      if (originalRequest?.sessionId && originalRequest.sessionId !== getSession()?.sessionId) return Promise.reject(error);
+      if (error.response.data?.code === 'SESSION_EXPIRED' && !originalRequest?.retried && getSession()) {
+        try { await ensureAccessToken(true); return api({ ...originalRequest, retried: true }); }
+        catch (refreshError) { return Promise.reject(refreshError); }
+      }
+      clearSession('expired');
     }
     return Promise.reject(error);
   }

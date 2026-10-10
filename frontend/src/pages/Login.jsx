@@ -15,7 +15,8 @@ export default function Login() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (localStorage.getItem("sessionExpired")) setError("Sua sessão expirou. Faça login novamente.");
+    const reason = localStorage.getItem('sessionExpired');
+    if (reason) setError(reason === 'inactivity' ? 'Sua sessão foi encerrada após 15 minutos de inatividade. Entre novamente.' : 'Sua sessão expirou ou foi encerrada. Entre novamente.');
     localStorage.removeItem("sessionExpired");
   }, []);
 

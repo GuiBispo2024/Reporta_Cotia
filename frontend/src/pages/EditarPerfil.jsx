@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { acceptSession } from '../services/sessionManager';
 import { useState, useContext } from "react";
 import { AuthContext } from "../context/authContext";
 import Navbar from "../components/Navbar";
@@ -68,7 +69,7 @@ export default function EditarPerfil() {
       setError("");
       const profileResult = await userService.update(form);
       let updatedUser = profileResult.user;
-      if (profileResult.token) setToken(profileResult.token);
+      if (profileResult.token) { acceptSession(profileResult); setToken(profileResult.token); }
       if (avatar) {
         const avatarResult = await userService.updateAvatar(avatar);
         updatedUser = { ...updatedUser, ...avatarResult.user };
@@ -106,7 +107,7 @@ export default function EditarPerfil() {
               <div className="col-md-6"><label htmlFor={`${accessibilityId}-field-1`} className="form-label fw-semibold">Nome de usuário</label><input id={`${accessibilityId}-field-1`} className="form-control form-control-lg" name="username" value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} required /></div>
               <div className="col-md-6"><label htmlFor={`${accessibilityId}-field-2`} className="form-label fw-semibold">E-mail</label><input id={`${accessibilityId}-field-2`} type="email" className="form-control form-control-lg" name="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required /></div>
             </div>
-            <div className="rc-password-section"><h5><i aria-hidden="true" className="bi bi-shield-lock me-2" />Alterar senha <small>(opcional)</small></h5><p>Preencha os dois campos somente se quiser trocar sua senha.</p>
+              <div className="rc-password-section"><h5><i aria-hidden="true" className="bi bi-shield-lock me-2" />Confirmar alterações de acesso</h5><p>Para alterar e-mail ou senha, informe a senha atual. Preencha a nova senha somente se quiser trocá-la.</p>
               <div className="row g-3"><div className="col-md-6"><label htmlFor={`${accessibilityId}-field-3`} className="form-label fw-semibold">Senha atual</label><input id={`${accessibilityId}-field-3`} type="password" className="form-control" value={form.senhaAtual} onChange={e => setForm({ ...form, senhaAtual: e.target.value })} /></div><div className="col-md-6"><label htmlFor={`${accessibilityId}-field-4`} className="form-label fw-semibold">Nova senha</label><input id={`${accessibilityId}-field-4`} type="password" className="form-control" value={form.novaSenha} onChange={e => setForm({ ...form, novaSenha: e.target.value })} /></div></div>
             </div>
             <div className="d-flex justify-content-end gap-2 mt-4"><button type="button" className="btn btn-outline-secondary" onClick={() => navigate("/perfil")}>Cancelar</button><button className="btn btn-primary px-4" disabled={loading}>{loading ? "Salvando..." : "Salvar alterações"}</button></div>

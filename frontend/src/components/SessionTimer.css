@@ -1,0 +1,6 @@
+.rc-session-timer { position:fixed; inset:0 0 auto; height:44px; z-index:1100; display:flex; align-items:center; justify-content:center; gap:12px; padding:4px 12px; background:#e9f4ee; color:#183028; font-size:13px; box-shadow:0 1px 4px #0002; }
+.rc-session-timer.is-warning { background:#fff0ce; color:#533700; }
+.rc-session-timer button { border:1px solid currentColor; border-radius:6px; padding:4px 8px; background:transparent; color:inherit; font-weight:600; }
+body.rc-session-active { padding-top:44px; }
+body.rc-session-active .sticky-top { top:44px; }
+@media(max-width:540px) { .rc-session-timer { font-size:11px; gap:6px; } }

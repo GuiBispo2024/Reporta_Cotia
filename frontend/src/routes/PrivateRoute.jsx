@@ -6,7 +6,8 @@ import Footer from '../components/Footer';
 import { hasPermission } from '../utils/accessControl';
 
 const PrivateRoute = ({ children, permission }) => {
-  const { isAuthenticated, user } = useContext(AuthContext);
+  const { isAuthenticated, user, loading } = useContext(AuthContext);
+  if (loading) return <p role="status">Verificando sessão…</p>;
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (permission && !hasPermission(user, permission)) {
