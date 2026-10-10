@@ -10,6 +10,7 @@ import { categories, createReport, type ReportInput } from '../services/reportSe
 import { toApiError } from '../utils/ApiError';
 import { theme } from '../theme';
 import { selectPhotos, type ReportPhoto } from '../services/photoService';
+import { getCurrentLocation, parseCoordinates } from '../services/locationService';
 
 export function CreateReportScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'CreateReport'>) {
   const { client, user } = useAuth();
@@ -21,8 +22,24 @@ export function CreateReportScreen({ navigation }: NativeStackScreenProps<RootSt
   const [photos, setPhotos] = useState<ReportPhoto[]>([]);
   const [selecting, setSelecting] = useState(false);
   const picking = useRef(false);
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
+  const [locating, setLocating] = useState(false);
+  const [locationNotice, setLocationNotice] = useState('');
+  const locatingRef = useRef(false);
+  async function locate() {
+    if (locatingRef.current || busy || picking.current) return;
+    locatingRef.current = true; setLocating(true); setError(''); setLocationNotice('');
+    try {
+      const position = await getCurrentLocation();
+      setLatitude(String(position.latitude)); setLongitude(String(position.longitude));
+      setInput((current) => ({ ...current, localizacao: current.localizacao || position.address.slice(0, 255), bairro: current.bairro || position.neighborhood.slice(0, 120) }));
+      setLocationNotice(`Localização obtida${position.accuracy != null ? ` (precisão aproximada de ${Math.round(position.accuracy)} m)` : ''}. Confira o endereço e ajuste as coordenadas se necessário.`);
+    } catch (reason) { setError(toApiError(reason).message); }
+    finally { locatingRef.current = false; setLocating(false); }
+  }
   async function pick(source: 'camera' | 'library') {
-    if (picking.current || busy) return;
+    if (picking.current || busy || locatingRef.current) return;
     picking.current = true; setSelecting(true); setError('');
     try { const added = await selectPhotos(source, 4 - photos.length); setPhotos((current) => [...current, ...added].slice(0, 4)); }
     catch (reason) { setError(toApiError(reason).message); }
@@ -31,12 +48,12 @@ export function CreateReportScreen({ navigation }: NativeStackScreenProps<RootSt
   const field = (name: keyof ReportInput) => (value: string) => setInput((current) => ({ ...current, [name]: value }));
   const canCreate = !!user?.permissions.includes('denuncia.create');
   async function submit() {
-    if (submitting.current || picking.current || !canCreate) return;
+    if (submitting.current || picking.current || locatingRef.current || !canCreate) return;
     if (![input.titulo, input.descricao, input.localizacao].every((value) => value.trim())) {
       setError('Preencha título, descrição e endereço.'); return;
     }
     submitting.current = true; setBusy(true); setError('');
-    try { const report = await createReport(client, input, photos); setReportId(report.id); }
+    try { const report = await createReport(client, { ...input, ...parseCoordinates(latitude, longitude) }, photos); setReportId(report.id); }
     catch (reason) { setError(toApiError(reason).message); }
     finally { submitting.current = false; setBusy(false); }
   }
@@ -53,6 +70,11 @@ export function CreateReportScreen({ navigation }: NativeStackScreenProps<RootSt
     <Field label="Descrição" value={input.descricao} onChangeText={field('descricao')} maxLength={2000} multiline editable={!busy} />
     <Field label="Endereço / localização" value={input.localizacao} onChangeText={field('localizacao')} maxLength={255} editable={!busy} />
     <Field label="Bairro (opcional)" value={input.bairro} onChangeText={field('bairro')} maxLength={120} editable={!busy} />
+    <Button title="Usar minha localização" loading={locating} disabled={busy || selecting} onPress={() => void locate()} />
+    {!!locationNotice && <Text accessibilityRole="alert" style={styles.body}>{locationNotice}</Text>}
+    <Field label="Latitude (opcional)" value={latitude} onChangeText={setLatitude} maxLength={24} editable={!busy && !locating} autoCapitalize="none" />
+    <Field label="Longitude (opcional)" value={longitude} onChangeText={setLongitude} maxLength={24} editable={!busy && !locating} autoCapitalize="none" />
+    <Button title="Remover coordenadas" disabled={busy || locating || (!latitude && !longitude)} onPress={() => { setLatitude(''); setLongitude(''); setLocationNotice(''); }} />
     <Text style={styles.body}>Categoria</Text>
     <View style={styles.categories}>{categories.map((category) => <Pressable key={category} accessibilityRole="radio"
       accessibilityLabel={category} accessibilityState={{ selected: input.categoria === category, disabled: busy }}
@@ -60,15 +82,15 @@ export function CreateReportScreen({ navigation }: NativeStackScreenProps<RootSt
       <Text style={{ color: input.categoria === category ? theme.colors.onPrimary : theme.colors.text }}>{category}</Text>
     </Pressable>)}</View>
     <Text style={styles.body}>Fotos (opcional): {photos.length}/4</Text>
-    <Button title="Tirar foto" disabled={busy || selecting || photos.length >= 4} onPress={() => void pick('camera')} />
-    <Button title="Escolher da galeria" loading={selecting} disabled={busy || photos.length >= 4} onPress={() => void pick('library')} />
+    <Button title="Tirar foto" disabled={busy || locating || selecting || photos.length >= 4} onPress={() => void pick('camera')} />
+    <Button title="Escolher da galeria" loading={selecting} disabled={busy || locating || photos.length >= 4} onPress={() => void pick('library')} />
     {photos.map((photo, index) => <View key={photo.uri} style={{ gap: 8 }}>
       <Image source={{ uri: photo.uri }} accessibilityLabel={`Anexo ${index + 1}`} style={{ width: '100%', height: 180, borderRadius: 8 }} />
       <Button title={`Remover foto ${index + 1}`} disabled={busy || selecting} onPress={() => setPhotos((current) => current.filter((item) => item.uri !== photo.uri))} />
     </View>)}
     {!canCreate && <Text accessibilityRole="alert">Sua conta não tem permissão para publicar denúncias.</Text>}
     {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
-    <Button title="Enviar denúncia" loading={busy} disabled={!canCreate || selecting} onPress={() => void submit()} />
+    <Button title="Enviar denúncia" loading={busy} disabled={!canCreate || selecting || locating} onPress={() => void submit()} />
   </Screen>;
 }
 const styles = StyleSheet.create({

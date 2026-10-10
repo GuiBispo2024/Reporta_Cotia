@@ -17,6 +17,10 @@ const input = { titulo: 'Buraco', descricao: 'Descrição', localizacao: 'Rua A'
 const report = { ...input, id: 1, status: 'aprovada', resolucaoStatus: 'aberta' };
 afterEach(() => mock.reset());
 afterAll(() => mock.restore());
+test('criação transmite coordenadas numéricas sem convertê-las para texto no JSON', async () => {
+  mock.onPost('denuncia', { ...input, latitude: -23.6, longitude: -46.9 }).reply(201, { denuncia: report });
+  await expect(createReport(client, { ...input, latitude: -23.6, longitude: -46.9 })).resolves.toMatchObject({ id: 1 });
+});
 test('upload envia anexos como multipart no campo imagens', async () => {
   const originalFormData = global.FormData;
   global.FormData = require('react-native/Libraries/Network/FormData').default;

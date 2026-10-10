@@ -5,11 +5,13 @@ import { CreateReportScreen } from '../src/screens/CreateReportScreen';
 import { useAuth } from '../src/context/AuthContext';
 import { register } from '../src/services/authService';
 import { createReport } from '../src/services/reportService';
+import { getCurrentLocation } from '../src/services/locationService';
 import { ApiError } from '../src/utils/ApiError';
 import type { RootStackParamList } from '../src/navigation/types';
 
 jest.mock('../src/context/AuthContext', () => ({ useAuth: jest.fn() }));
 jest.mock('../src/services/photoService', () => ({ selectPhotos: jest.fn() }));
+jest.mock('../src/services/locationService', () => ({ ...jest.requireActual('../src/services/locationService'), getCurrentLocation: jest.fn() }));
 jest.mock('../src/services/authService', () => ({ register: jest.fn() }));
 jest.mock('../src/services/reportService', () => ({
   ...jest.requireActual('../src/services/reportService'), createReport: jest.fn(),
@@ -71,4 +73,15 @@ test('conta sem permissão não pode enviar denúncias', () => {
   render(<CreateReportScreen {...createProps} />);
   fireEvent.press(screen.getByRole('button', { name: 'Enviar denúncia' }));
   expect(createReport).not.toHaveBeenCalled();
+});
+test('GPS preenche coordenadas sem sobrescrever o endereço informado', async () => {
+  jest.mocked(getCurrentLocation).mockResolvedValue({ latitude: -23.6, longitude: -46.9, address: 'Endereço sugerido', neighborhood: 'Centro', accuracy: 10 });
+  render(<CreateReportScreen {...createProps} />);
+  fireEvent.changeText(screen.getByLabelText('Endereço / localização'), 'Endereço confirmado');
+  fireEvent.press(screen.getByRole('button', { name: 'Usar minha localização' }));
+  await screen.findByText(/Localização obtida/);
+  expect(screen.getByLabelText('Endereço / localização').props.value).toBe('Endereço confirmado');
+  expect(screen.getByLabelText('Latitude (opcional)').props.value).toBe('-23.6');
+  fireEvent.press(screen.getByRole('button', { name: 'Remover coordenadas' }));
+  expect(screen.getByLabelText('Latitude (opcional)').props.value).toBe('');
 });

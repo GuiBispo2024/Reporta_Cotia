@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Button } from '../components/Button';
 import { Screen } from '../components/Screen';
@@ -19,6 +19,7 @@ export function ReportDetailScreen({ route }: NativeStackScreenProps<RootStackPa
   const [history, setHistory] = useState<HistoryEntry[] | null>(null);
   const [historyError, setHistoryError] = useState('');
   const [historyAttempt, setHistoryAttempt] = useState(0);
+  const [mapError, setMapError] = useState('');
   const labels: Record<string, string> = { ...resolutionLabels, pendente: 'Pendente', aprovada: 'Aprovada', rejeitada: 'Rejeitada' };
   useEffect(() => {
     if (!report) return;
@@ -49,6 +50,11 @@ export function ReportDetailScreen({ route }: NativeStackScreenProps<RootStackPa
     <Text selectable style={theme.typography.body}>{report.descricao}</Text>
     <ReportImages report={report} />
     <Text selectable style={theme.typography.body}>{report.localizacao}{report.bairro ? ` · ${report.bairro}` : ''}</Text>
+    {report.latitude != null && report.longitude != null && Number.isFinite(Number(report.latitude)) && Number.isFinite(Number(report.longitude)) && <>
+      <Text>Coordenadas: {report.latitude}, {report.longitude}</Text>
+      <Button title="Ver localização no mapa" onPress={() => { setMapError(''); void Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${report.latitude},${report.longitude}`)}`).catch(() => setMapError('Não foi possível abrir o mapa.')); }} />
+      {!!mapError && <Text accessibilityRole="alert">{mapError}</Text>}
+    </>}
     {!!report.User?.username && <Text style={theme.typography.body}>Publicado por {report.User.username}</Text>}
     {!!report.createdAt && <Text style={theme.typography.caption}>{new Date(report.createdAt).toLocaleDateString('pt-BR')}</Text>}
     <Text accessibilityRole="header" style={theme.typography.heading}>Histórico de acompanhamento</Text>
