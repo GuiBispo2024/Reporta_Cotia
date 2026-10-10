@@ -12,7 +12,7 @@ Cada etapa tem seu commit e instruções de teste. As implementações seguem em
 | 6 | Diagnóstico e validação em aparelhos | Diagnóstico implementado; testes físicos e ajustes dependem dos resultados |
 | 7 | Navegação por abas | Implementada |
 | 8 | Recuperação de senha | Implementada; entrega de e-mail depende do provedor no backend |
-| 9 | Gerenciamento e exclusão da conta | Planejada |
+| 9 | Gerenciamento e exclusão da conta | Implementada |
 | 10 | Edição e reenvio de denúncias rejeitadas | Planejada |
 
 ## Etapa 1 — o que muda
@@ -125,3 +125,11 @@ Em Entrar, use Esqueci minha senha. Solicite as instruções, copie o link do e-
 O mesmo e-mail permite redefinir pelo site; o app extrai somente o token, sem abrir ou requisitar a URL colada. O development build aceita `reportacotia-development://redefinir-senha?token=...` (produção: reportacotia), mas o e-mail atual continua com o link web. Custom scheme exige app instalado; o fluxo de copiar/colar também funciona no Expo Go. Não há associação de Universal/App Links nesta etapa.
 
 O backend já usa token de 30 minutos, hash no banco e uso único. Configure RESEND_API_KEY, RESET_EMAIL_FROM e FRONTEND_URL corretos no backend para receber o e-mail, inclusive em desenvolvimento. Sem provedor, a resposta permanece genérica e a falha fica no histórico administrativo, sem imprimir link/token no console. O envio real de e-mail depende dessa configuração e ainda precisa ser conferido; nos testes isolados o token é fornecido apenas em NODE_ENV=test.
+
+## Etapa 9 — conta
+
+Na aba Conta, altere o nome e salve. Confira saudação e persistência após novo login. Para mudar e-mail/senha, informe a senha atual: teste senha incorreta, e-mail já usado e confirmação divergente. Após alteração sensível, a sessão atual recebe novas credenciais e as antigas são revogadas; teste o login com os dados novos. Nada de senha é salvo em rascunho.
+
+Crie uma conta descartável para testar exclusão. Sem senha atual, a exclusão deve ser impedida. Cancele a confirmação e confira que a conta existe. Depois confirme: deve voltar ao visitante, não permitir login antigo e remover denúncias/fotos/interações dessa conta. Rascunhos de outras contas devem permanecer. O último administrador não pode ser excluído, conforme proteção existente no backend. Sem conexão, a tela deve mostrar erro e manter a conta.
+
+A limpeza local é feita após a confirmação da API. O gerenciamento desta etapa cobre nome, e-mail, senha e exclusão; edição de avatar e notificações ficam fora desse escopo.

@@ -24,7 +24,7 @@ const accountProps = (name: 'Login' | 'Register') => ({ navigation, route: { key
 const createProps = { navigation, route: { key: 'create', name: 'CreateReport' } } as unknown as NativeStackScreenProps<RootStackParamList, 'CreateReport'>;
 beforeEach(() => {
   jest.resetAllMocks();
-  jest.mocked(useAuth).mockReturnValue({ client: {} as ReturnType<typeof useAuth>['client'], user: { id: 1, username: 'Ana', email: 'ana@example.org', permissions: ['denuncia.create'] }, restoring: false, notice: '', signIn, signOut: jest.fn() });
+  jest.mocked(useAuth).mockReturnValue({ client: {} as ReturnType<typeof useAuth>['client'], user: { id: 1, username: 'Ana', email: 'ana@example.org', permissions: ['denuncia.create'] }, restoring: false, notice: '', signIn, signOut: jest.fn(), updateAccount: jest.fn() });
 });
 test('login mantém os campos após falha e permite tentar novamente', async () => {
   signIn.mockRejectedValueOnce(new ApiError('Senha incorreta.', 'HTTP_401', 401)).mockResolvedValueOnce(undefined);

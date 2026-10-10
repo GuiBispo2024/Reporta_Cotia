@@ -4,10 +4,11 @@ import type { ReportInput } from './reportService';
 import type { ReportPhoto } from './photoService';
 
 export type Draft = { version: 1; id: string; revision: number; input: ReportInput;
-  latitude: string; longitude: string; photos: ReportPhoto[]; updatedAt: string; submissionKey?: string };
+  latitude: string; longitude: string; photos: ReportPhoto[]; updatedAt: string; submissionKey?: string; ownerKey?: string };
 export type DraftContent = Pick<Draft, 'input' | 'latitude' | 'longitude' | 'photos' | 'submissionKey'>;
 const queues = new Map<string, Promise<unknown>>();
 export async function openDraftStore(api: string, userId: number, scope = 'new') {
+  const ownerKey = await digestStringAsync(CryptoDigestAlgorithm.SHA256, `${api}|${userId}`);
   const key = await digestStringAsync(CryptoDigestAlgorithm.SHA256, `${api}|${userId}|${scope}`);
   const directory = new Directory(Paths.document, 'report-drafts', key);
   const prefix = `${directory.uri.replace(/\/+$/, '')}/`;
@@ -49,7 +50,7 @@ export async function openDraftStore(api: string, userId: number, scope = 'new')
         new File(photo.uri).copy(destination);
         return { ...photo, uri: destination.uri };
       });
-      const draft: Draft = { ...content, photos, version: 1, id: previous?.id ?? randomUUID(),
+      const draft: Draft = { ...content, photos, version: 1, ownerKey, id: previous?.id ?? randomUUID(),
         revision: (previous?.revision ?? 0) + 1, updatedAt: new Date().toISOString() };
       slots[draft.revision % 2]!.write(JSON.stringify(draft));
       // Preserve both snapshots, including their photos, for recovery from an interrupted write.
@@ -59,4 +60,19 @@ export async function openDraftStore(api: string, userId: number, scope = 'new')
     }),
     discard: () => serialized(async () => { if (directory.exists) directory.delete(); }),
   };
+}
+export async function clearAccountDrafts(api: string, userId: number) {
+  await (await openDraftStore(api, userId)).discard();
+  const ownerKey = await digestStringAsync(CryptoDigestAlgorithm.SHA256, `${api}|${userId}`);
+  const root = new Directory(Paths.document, 'report-drafts');
+  if (!root.exists) return;
+  for (const directory of root.list()) {
+    if (!(directory instanceof Directory)) continue;
+    for (const slot of ['0.json', '1.json']) {
+      try {
+        const file = new File(directory, slot);
+        if (file.exists && (await file.json()).ownerKey === ownerKey) { directory.delete(); break; }
+      } catch { /* Other accounts or invalid files are never removed. */ }
+    }
+  }
 }

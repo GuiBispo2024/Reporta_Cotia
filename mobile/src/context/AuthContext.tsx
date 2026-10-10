@@ -4,13 +4,14 @@ import type { AxiosInstance } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { getEnvironment } from '../config/environment';
 import { createHttpClient } from '../services/httpClient';
-import { login, parseSession, type Session, type User } from '../services/authService';
+import { login, parseSession, parseUser, type Session, type User, type AccountUpdate } from '../services/authService';
 import { ApiError, toApiError } from '../utils/ApiError';
 import { SessionActivityContext } from './SessionActivityContext';
 
 const IDLE_MS = 15 * 60 * 1000;
 type Auth = { user: User | null; client: AxiosInstance; restoring: boolean; notice: string;
-  signIn: (email: string, password: string) => Promise<void>; signOut: () => Promise<void> };
+  signIn: (email: string, password: string) => Promise<void>; signOut: () => Promise<void>;
+  updateAccount: (input: AccountUpdate) => Promise<void> };
 const Context = createContext<Auth | null>(null);
 export function AuthProvider({ children }: PropsWithChildren) {
   const environment = useMemo(getEnvironment, []);
@@ -27,6 +28,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const storage = useRef<Promise<unknown>>(Promise.resolve());
   const dirty = useRef(false), lastSent = useRef(0), warned = useRef(false), sending = useRef(false);
   const lastInteractionAt = useRef(0);
+  const accountChange = useRef<Promise<void> | null>(null);
 
   function writeStorage(action: () => Promise<unknown>) {
     const pending = storage.current.then(action, action); storage.current = pending.catch(() => {}); return pending;
@@ -79,13 +81,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return refreshing.current;
   }
   async function access(force = false) {
+    if (accountChange.current) await accountChange.current;
     checkDeadline();
     if (!current.current) return null;
     if (force || Date.parse(current.current.expiresAt) <= Date.now() + 30000) await refresh();
     return current.current?.token ?? null;
   }
   async function flush(force = false) {
-    if (!current.current || !dirty.current || sending.current || (!force && Date.now() - lastSent.current < 30000)) return;
+    if (accountChange.current || !current.current || !dirty.current || sending.current || (!force && Date.now() - lastSent.current < 30000)) return;
     sending.current = true;
     const originalEpoch = epoch.current, originalDeadline = deadline.current;
     try {
@@ -193,7 +196,32 @@ export function AuthProvider({ children }: PropsWithChildren) {
     if (originalEpoch !== epoch.current) throw new ApiError('Login cancelado.', 'SESSION_REVOKED');
     commit(next); setNotice('');
   }
-  return <Context.Provider value={{ user: session?.user ?? null, client, restoring, notice, signIn, signOut: () => end() }}>
+  async function updateAccount(input: AccountUpdate) {
+    if (accountChange.current) throw new ApiError('Atualização em andamento.', 'ACCOUNT_BUSY');
+    const token = await access();
+    if (!token || !current.current) throw new ApiError('Entre novamente.', 'SESSION_REVOKED', 401);
+    const original = current.current;
+    const sensitive = !!input.novaSenha || input.email.trim().toLowerCase() !== original.user.email;
+    const originalEpoch = ++epoch.current;
+    const pending = (async () => {
+      try {
+        const { data } = await raw.put('users/update', input, { headers: { Authorization: `Bearer ${token}` } });
+        if (originalEpoch !== epoch.current) throw new ApiError('Sessão encerrada.', 'SESSION_REVOKED', 401);
+        const next = data.refreshToken ? parseSession(data) : { ...current.current!, user: parseUser(data.user) };
+        if (next.user.id !== original.user.id) throw new ApiError('Conta inválida.', 'INVALID_RESPONSE');
+        await save(next);
+        if (originalEpoch !== epoch.current) throw new ApiError('Sessão encerrada.', 'SESSION_REVOKED', 401);
+        commit(next);
+      } catch (reason) {
+        const failure = toApiError(reason);
+        if (originalEpoch === epoch.current && (failure.status === 401 || (sensitive && (!failure.status || failure.status >= 500)))) clear('Não foi possível confirmar a atualização da sessão. Entre novamente.');
+        throw reason;
+      }
+    })();
+    accountChange.current = pending;
+    try { await pending; } finally { if (accountChange.current === pending) accountChange.current = null; }
+  }
+  return <Context.Provider value={{ user: session?.user ?? null, client, restoring, notice, signIn, signOut: () => end(), updateAccount }}>
     <SessionActivityContext.Provider value={markActivity}><View style={{ flex: 1 }} onTouchStart={markActivity} onTouchMove={markActivity}>{children}</View></SessionActivityContext.Provider>
   </Context.Provider>;
 }

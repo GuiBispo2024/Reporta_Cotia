@@ -2,6 +2,10 @@ import type { AxiosInstance } from 'axios';
 import { ApiError } from '../utils/ApiError';
 
 export type User = { id: number; username: string; email: string; permissions: string[] };
+export type AccountUpdate = { username: string; email: string; senhaAtual?: string; novaSenha?: string };
+export async function deleteAccount(client: AxiosInstance, senhaAtual: string) {
+  await client.delete('users/delete', { data: { senhaAtual } });
+}
 export type Session = { token: string; refreshToken: string; user: User; sessionId: string; expiresAt: string; idleExpiresAt: string; sessionExpiresAt: string };
 export function parseUser(data: unknown): User {
   const value = data as Partial<User> | null;
