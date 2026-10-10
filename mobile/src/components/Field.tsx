@@ -1,11 +1,14 @@
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { theme } from '../theme';
+import { useContext } from 'react';
+import { SessionActivityContext } from '../context/SessionActivityContext';
 
 export function Field({ label, ...props }: TextInputProps & { label: string }) {
+  const markActivity = useContext(SessionActivityContext);
   return <View style={styles.container}>
     <Text style={styles.label}>{label}</Text>
     <TextInput accessibilityLabel={label} placeholderTextColor={theme.colors.muted}
-      style={[styles.input, props.multiline && styles.multiline]} {...props} />
+      style={[styles.input, props.multiline && styles.multiline]} {...props} onChangeText={(value) => { markActivity(); props.onChangeText?.(value); }} />
   </View>;
 }
 const styles = StyleSheet.create({

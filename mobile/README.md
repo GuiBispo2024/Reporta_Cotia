@@ -59,7 +59,8 @@ O Error Boundary protege a renderização da árvore React e pode remontá-la. E
 
 - Visitantes podem consultar denúncias aprovadas, buscar pelo título, navegar entre páginas e abrir detalhes.
 - O cadastro exige nome de usuário, e-mail e senha com pelo menos 6 caracteres, com confirmação. Após criar a conta, faça login.
-- A sessão fica no `expo-secure-store` e é validada em `GET /users/me` ao reabrir o app. Uma resposta 401 encerra a sessão e solicita novo login. O token não é reutilizado se a URL da API mudar. A senha não é armazenada.
+- O refresh token rotativo e seus prazos ficam no `expo-secure-store`; access JWT e perfil ficam somente na memória. Ao reabrir, a renovação valida a sessão no servidor. O token não é reutilizado se a URL da API mudar; credenciais do formato antigo são descartadas. A senha não é armazenada.
+- A sessão termina após 15 minutos sem interação, inclusive em segundo plano, com aviso no último minuto. Toques e digitação confirmam atividade; consultas e refresh automáticos não mantêm a sessão viva. O access JWT dura 5 minutos e é renovado sob demanda com uma única renovação simultânea. O limite total é 8 horas. Expiração/revogação devolve o acesso a visitante e pede novo login.
 - Contas com `denuncia.create` podem enviar título, descrição, endereço, bairro opcional e categoria. A tela preserva o formulário após falhas e confirma o protocolo somente após resposta da API. A denúncia enviada fica pendente de moderação; o autor pode abrir seus detalhes na confirmação, e a lista pública a exibirá após aprovação.
 - O logout revoga a sessão no backend quando a rede está disponível e remove o armazenamento local.
 - “Minhas denúncias” mostra também registros pendentes e rejeitados. O endpoint privado retorna todos os registros da conta; busca e paginação dessa lista são feitas no app.

@@ -47,8 +47,9 @@ test('minhas denúncias preserva registros privados e pagina a busca', async () 
   await expect(listMyReports(client, 7, 1, 'Iluminação')).resolves.toMatchObject({ total: 0, data: [] });
 });
 test('login normaliza e-mail e rejeita uma sessão sem token', async () => {
-  mock.onPost('users/login', { email: 'ana@example.org', password: '123456' }).reply(200, { token: 'jwt', user });
-  await expect(login(client, ' ANA@example.org ', '123456')).resolves.toEqual({ token: 'jwt', user });
+  const session = { token: 'jwt', user, refreshToken: 'a'.repeat(64), sessionId: 'sid', expiresAt: new Date(Date.now() + 300000).toISOString(), idleExpiresAt: new Date(Date.now() + 900000).toISOString(), sessionExpiresAt: new Date(Date.now() + 28800000).toISOString() };
+  mock.onPost('users/login', { email: 'ana@example.org', password: '123456' }).reply(200, session);
+  await expect(login(client, ' ANA@example.org ', '123456')).resolves.toEqual(session);
   mock.resetHandlers();
   mock.onPost('users/login').reply(200, { user });
   await expect(login(client, 'ana@example.org', '123456')).rejects.toMatchObject({ code: 'INVALID_RESPONSE' });

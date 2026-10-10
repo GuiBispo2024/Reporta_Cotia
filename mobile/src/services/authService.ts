@@ -2,7 +2,7 @@ import type { AxiosInstance } from 'axios';
 import { ApiError } from '../utils/ApiError';
 
 export type User = { id: number; username: string; email: string; permissions: string[] };
-export type Session = { token: string; user: User };
+export type Session = { token: string; refreshToken: string; user: User; sessionId: string; expiresAt: string; idleExpiresAt: string; sessionExpiresAt: string };
 export function parseUser(data: unknown): User {
   const value = data as Partial<User> | null;
   if (!value || !Number.isInteger(value.id) || typeof value.username !== 'string'
@@ -14,10 +14,11 @@ export function parseUser(data: unknown): User {
 }
 export function parseSession(data: unknown): Session {
   const value = data as Partial<Session> | null;
-  if (!value || typeof value.token !== 'string' || !value.token) {
+  if (!value || typeof value.token !== 'string' || !value.token || typeof value.refreshToken !== 'string' || !/^[a-f0-9]{64}$/.test(value.refreshToken)
+    || typeof value.sessionId !== 'string' || !['expiresAt', 'idleExpiresAt', 'sessionExpiresAt'].every((key) => Number.isFinite(Date.parse((value as Record<string, unknown>)[key] as string)))) {
     throw new ApiError('Resposta de login inválida. Tente novamente.', 'INVALID_RESPONSE');
   }
-  return { token: value.token, user: parseUser(value.user) };
+  return { ...value, user: parseUser(value.user) } as Session;
 }
 export async function login(client: AxiosInstance, email: string, password: string): Promise<Session> {
   const { data } = await client.post('users/login', { email: email.trim().toLowerCase(), password });

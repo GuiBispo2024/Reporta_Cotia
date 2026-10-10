@@ -1,6 +1,7 @@
-import axios from 'axios';
+import axios, { type AxiosRequestConfig } from 'axios';
 
 export class ApiError extends Error {
+  request?: AxiosRequestConfig & { retried?: boolean; sessionEpoch?: number };
   constructor(message: string, public readonly code: string, public readonly status?: number) {
     super(message);
     this.name = 'ApiError';
