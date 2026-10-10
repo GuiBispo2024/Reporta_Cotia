@@ -9,6 +9,7 @@
   "scripts": {
     "start": "node scripts/expo.cjs development start",
     "start:lan": "node scripts/expo.cjs development start --go --lan --port 8082",
+    "start:dev-client": "node scripts/expo.cjs development start --dev-client --lan --port 8082",
     "start:staging": "node scripts/expo.cjs staging start --clear",
     "start:production": "node scripts/expo.cjs production start --clear",
     "android": "node scripts/expo.cjs development run:android",
@@ -30,6 +31,7 @@
     "expo": "~57.0.27",
     "expo-build-properties": "~57.0.22",
     "expo-constants": "~57.0.21",
+    "expo-dev-client": "~57.0.19",
     "expo-image-manipulator": "~57.0.21",
     "expo-image-picker": "~57.0.20",
     "expo-location": "~57.0.20",

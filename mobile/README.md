@@ -4,6 +4,8 @@ Aplicativo Android/iOS em React Native 0.86, React 19.2, Expo SDK 57 e TypeScrip
 
 ## Execução rápida
 
+As próximas entregas serão verificadas uma de cada vez. Veja o [roteiro incremental e teste da etapa 1](delivery/incremental/README.md). A configuração do development build está pronta; gerar e instalar o APK ainda depende da conta Expo/EAS e da validação no aparelho.
+
 Requisitos: Node.js >= 22.13.0, npm e a API do backend em execução. Use `npm ci` para reproduzir as versões do lockfile.
 
 ```powershell
@@ -161,7 +163,7 @@ npx eas-cli build --platform android --profile development
 npx eas-cli build --platform ios --profile development
 ```
 
-`eas init` associa o projeto à sua conta. Como a configuração é dinâmica, se a ferramenta não conseguir editá-la, acrescente `eas: { projectId: ID_REAL }` à propriedade `extra` retornada por `app.config.js`, usando como string o ID fornecido pelo EAS. Esse identificador é público e pode ser versionado. Não há ID fictício no código. O perfil development gera APK Android e build de simulador iOS; não é um development client. O perfil staging gera distribuição interna e production gera AAB/artefato para loja. Builds iOS para aparelhos/distribuição exigem credenciais Apple adequadas. Para staging, configure `API_BASE_URL` no ambiente EAS `preview` antes do build; para development em aparelho físico, configure a URL alcançável pelo aparelho no ambiente EAS `development`. Arquivos `.local` não são enviados ao EAS. Não foi feito login, upload de código, publicação ou consumo de builds remotos nesta tarefa.
+`eas init` associa o projeto à sua conta. Como a configuração é dinâmica, se a ferramenta não conseguir editá-la, acrescente `eas: { projectId: ID_REAL }` à propriedade `extra` retornada por `app.config.js`, usando como string o ID fornecido pelo EAS. Esse identificador é público e pode ser versionado. Não há ID fictício no código. O perfil `development` gera um development client para celular Android/iOS; `development-simulator` atende o simulador iOS. Use `npm run start:dev-client` após instalar o APK. O comando `npm run start:lan` continua abrindo o Expo Go. Staging gera distribuição interna com bundle embarcado e production gera AAB/artefato para loja, ambos sem development client e com incremento remoto de versão do build. Builds iOS para aparelhos/distribuição exigem credenciais Apple adequadas. Para staging, configure `API_BASE_URL` no ambiente EAS `preview` antes do build; para development em aparelho físico, configure a URL alcançável pelo aparelho no ambiente EAS `development`. Arquivos `.local` não são enviados ao EAS. Nenhum build remoto foi iniciado nesta etapa.
 
 ## Atualização para SDK 57 (10/10/2026)
 
