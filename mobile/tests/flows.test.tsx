@@ -10,6 +10,7 @@ import { ApiError } from '../src/utils/ApiError';
 import type { RootStackParamList } from '../src/navigation/types';
 
 jest.mock('../src/context/AuthContext', () => ({ useAuth: jest.fn() }));
+jest.mock('../src/services/useReportDraft', () => ({ useReportDraft: () => ({ ready: true, notice: '', flush: async () => {}, discard: async () => {} }) }));
 jest.mock('../src/services/photoService', () => ({ selectPhotos: jest.fn() }));
 jest.mock('../src/services/locationService', () => ({ ...jest.requireActual('../src/services/locationService'), getCurrentLocation: jest.fn() }));
 jest.mock('../src/services/authService', () => ({ register: jest.fn() }));

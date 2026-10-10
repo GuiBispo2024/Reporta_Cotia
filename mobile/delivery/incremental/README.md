@@ -5,7 +5,7 @@ Cada etapa tem seu commit e instruções de teste. As implementações seguem em
 | Etapa | Entrega | Estado |
 | --- | --- | --- |
 | 1 | Development build e perfis de distribuição | Configuração, Expo Doctor e Prebuild Android aprovados; APK pendente |
-| 2 | Rascunhos persistentes com fotos | Planejada |
+| 2 | Rascunhos persistentes com fotos | Implementada; testar fechamento e reabertura no Android |
 | 3 | Idempotência no backend | Planejada |
 | 4 | Envio mobile com prevenção de duplicidade | Planejada |
 | 5 | Verificações mobile no CI | Planejada |
@@ -65,3 +65,13 @@ Se ainda não tiver o APK, use `npm run start:lan` e abra `exp://IP_DO_COMPUTADO
 ## Critério para concluir a etapa 1
 
 A configuração e as verificações locais devem passar; o APK deve ser gerado, instalado e abrir o app no aparelho real. Configurar perfis ou exportar bundles não comprova compilação nativa. iOS físico exige assinatura Apple; a validação inicial deste roteiro é Android.
+
+## Etapa 2 — rascunhos
+
+1. Entre, abra nova denúncia, preencha textos e coordenadas, adicione uma foto e espere "Rascunho salvo".
+2. Volte à lista e reabra a criação. Depois feche o app pelo Android e reabra: confira todos os campos e a foto.
+3. Saia da conta e entre em outra: o rascunho anterior não deve aparecer. Retorne à primeira conta para recuperá-lo.
+4. Use "Descartar rascunho", confirme e confira os campos vazios. Envie uma denúncia válida: após confirmação do protocolo, o rascunho deve ser removido.
+5. Se faltar espaço ou uma foto ficar indisponível, confira o aviso; não trate o aviso como confirmação de envio.
+
+Há um rascunho por conta/API no aparelho. Ele contém textos, coordenadas e fotos no armazenamento privado do aplicativo, sem senha ou token. Desinstalar o aplicativo ou limpar seus dados remove os rascunhos. Dependências nativas adicionadas: expo-file-system e expo-crypto; gere novo development build quando já tiver a conta EAS.

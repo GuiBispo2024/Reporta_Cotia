@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Button } from '../components/Button';
 import { Field } from '../components/Field';
@@ -11,6 +11,7 @@ import { toApiError } from '../utils/ApiError';
 import { theme } from '../theme';
 import { selectPhotos, type ReportPhoto } from '../services/photoService';
 import { getCurrentLocation, parseCoordinates } from '../services/locationService';
+import { useReportDraft } from '../services/useReportDraft';
 
 export function CreateReportScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'CreateReport'>) {
   const { client, user } = useAuth();
@@ -27,6 +28,10 @@ export function CreateReportScreen({ navigation }: NativeStackScreenProps<RootSt
   const [locating, setLocating] = useState(false);
   const [locationNotice, setLocationNotice] = useState('');
   const locatingRef = useRef(false);
+  const draft = useReportDraft(client.defaults?.baseURL ?? '', user?.id ?? 0, { input, photos, latitude, longitude }, (saved) => {
+    setInput(saved.input); setPhotos(saved.photos); setLatitude(saved.latitude); setLongitude(saved.longitude);
+  });
+  const locked = busy || !draft.ready;
   async function locate() {
     if (locatingRef.current || busy || picking.current) return;
     locatingRef.current = true; setLocating(true); setError(''); setLocationNotice('');
@@ -48,12 +53,12 @@ export function CreateReportScreen({ navigation }: NativeStackScreenProps<RootSt
   const field = (name: keyof ReportInput) => (value: string) => setInput((current) => ({ ...current, [name]: value }));
   const canCreate = !!user?.permissions.includes('denuncia.create');
   async function submit() {
-    if (submitting.current || picking.current || locatingRef.current || !canCreate) return;
+    if (!draft.ready || submitting.current || picking.current || locatingRef.current || !canCreate) return;
     if (![input.titulo, input.descricao, input.localizacao].every((value) => value.trim())) {
       setError('Preencha título, descrição e endereço.'); return;
     }
     submitting.current = true; setBusy(true); setError('');
-    try { const report = await createReport(client, { ...input, ...parseCoordinates(latitude, longitude) }, photos); setReportId(report.id); }
+    try { await draft.flush(); const report = await createReport(client, { ...input, ...parseCoordinates(latitude, longitude) }, photos); setReportId(report.id); await draft.discard(true); }
     catch (reason) { setError(toApiError(reason).message); }
     finally { submitting.current = false; setBusy(false); }
   }
@@ -65,32 +70,36 @@ export function CreateReportScreen({ navigation }: NativeStackScreenProps<RootSt
   </Screen>;
   return <Screen>
     <Text style={styles.title}>O que precisa de atenção?</Text>
+    <Text accessibilityLiveRegion="polite" style={styles.body}>{draft.notice}</Text>
+    <Button title="Descartar rascunho" disabled={locked || selecting || locating} onPress={() => Alert.alert('Descartar rascunho?', 'Os textos e fotos salvos neste aparelho serão removidos.', [
+      { text: 'Cancelar', style: 'cancel' }, { text: 'Descartar', style: 'destructive', onPress: () => { void draft.discard().then(() => { setInput({ titulo: '', descricao: '', localizacao: '', bairro: '', categoria: 'Outros' }); setPhotos([]); setLatitude(''); setLongitude(''); }); } },
+    ])} />
     <Text style={styles.body}>Informe o problema e o endereço em Cotia. Sua denúncia será analisada antes da publicação.</Text>
-    <Field label="Título" value={input.titulo} onChangeText={field('titulo')} maxLength={120} editable={!busy} />
-    <Field label="Descrição" value={input.descricao} onChangeText={field('descricao')} maxLength={2000} multiline editable={!busy} />
-    <Field label="Endereço / localização" value={input.localizacao} onChangeText={field('localizacao')} maxLength={255} editable={!busy} />
-    <Field label="Bairro (opcional)" value={input.bairro} onChangeText={field('bairro')} maxLength={120} editable={!busy} />
-    <Button title="Usar minha localização" loading={locating} disabled={busy || selecting} onPress={() => void locate()} />
+    <Field label="Título" value={input.titulo} onChangeText={field('titulo')} maxLength={120} editable={!locked} />
+    <Field label="Descrição" value={input.descricao} onChangeText={field('descricao')} maxLength={2000} multiline editable={!locked} />
+    <Field label="Endereço / localização" value={input.localizacao} onChangeText={field('localizacao')} maxLength={255} editable={!locked} />
+    <Field label="Bairro (opcional)" value={input.bairro} onChangeText={field('bairro')} maxLength={120} editable={!locked} />
+    <Button title="Usar minha localização" loading={locating} disabled={locked || selecting} onPress={() => void locate()} />
     {!!locationNotice && <Text accessibilityRole="alert" style={styles.body}>{locationNotice}</Text>}
-    <Field label="Latitude (opcional)" value={latitude} onChangeText={setLatitude} maxLength={24} editable={!busy && !locating} autoCapitalize="none" />
-    <Field label="Longitude (opcional)" value={longitude} onChangeText={setLongitude} maxLength={24} editable={!busy && !locating} autoCapitalize="none" />
-    <Button title="Remover coordenadas" disabled={busy || locating || (!latitude && !longitude)} onPress={() => { setLatitude(''); setLongitude(''); setLocationNotice(''); }} />
+    <Field label="Latitude (opcional)" value={latitude} onChangeText={setLatitude} maxLength={24} editable={!locked && !locating} autoCapitalize="none" />
+    <Field label="Longitude (opcional)" value={longitude} onChangeText={setLongitude} maxLength={24} editable={!locked && !locating} autoCapitalize="none" />
+    <Button title="Remover coordenadas" disabled={locked || locating || (!latitude && !longitude)} onPress={() => { setLatitude(''); setLongitude(''); setLocationNotice(''); }} />
     <Text style={styles.body}>Categoria</Text>
     <View style={styles.categories}>{categories.map((category) => <Pressable key={category} accessibilityRole="radio"
       accessibilityLabel={category} accessibilityState={{ selected: input.categoria === category, disabled: busy }}
-      disabled={busy} onPress={() => field('categoria')(category)} style={[styles.category, input.categoria === category && styles.selected]}>
+      disabled={locked} onPress={() => field('categoria')(category)} style={[styles.category, input.categoria === category && styles.selected]}>
       <Text style={{ color: input.categoria === category ? theme.colors.onPrimary : theme.colors.text }}>{category}</Text>
     </Pressable>)}</View>
     <Text style={styles.body}>Fotos (opcional): {photos.length}/4</Text>
-    <Button title="Tirar foto" disabled={busy || locating || selecting || photos.length >= 4} onPress={() => void pick('camera')} />
-    <Button title="Escolher da galeria" loading={selecting} disabled={busy || locating || photos.length >= 4} onPress={() => void pick('library')} />
+    <Button title="Tirar foto" disabled={locked || locating || selecting || photos.length >= 4} onPress={() => void pick('camera')} />
+    <Button title="Escolher da galeria" loading={selecting} disabled={locked || locating || photos.length >= 4} onPress={() => void pick('library')} />
     {photos.map((photo, index) => <View key={photo.uri} style={{ gap: 8 }}>
       <Image source={{ uri: photo.uri }} accessibilityLabel={`Anexo ${index + 1}`} style={{ width: '100%', height: 180, borderRadius: 8 }} />
-      <Button title={`Remover foto ${index + 1}`} disabled={busy || selecting} onPress={() => setPhotos((current) => current.filter((item) => item.uri !== photo.uri))} />
+      <Button title={`Remover foto ${index + 1}`} disabled={locked || selecting} onPress={() => setPhotos((current) => current.filter((item) => item.uri !== photo.uri))} />
     </View>)}
     {!canCreate && <Text accessibilityRole="alert">Sua conta não tem permissão para publicar denúncias.</Text>}
     {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
-    <Button title="Enviar denúncia" loading={busy} disabled={!canCreate || selecting || locating} onPress={() => void submit()} />
+    <Button title="Enviar denúncia" loading={busy} disabled={locked || !canCreate || selecting || locating} onPress={() => void submit()} />
   </Screen>;
 }
 const styles = StyleSheet.create({
