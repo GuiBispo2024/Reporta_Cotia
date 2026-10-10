@@ -1,7 +1,7 @@
 import MockAdapter from 'axios-mock-adapter';
 import { createHttpClient } from '../src/services/httpClient';
 import { login, register, getMe } from '../src/services/authService';
-import { listReports, listMyReports, createReport, getReport } from '../src/services/reportService';
+import { listReports, listMyReports, createReport, getReport, getReportHistory } from '../src/services/reportService';
 
 const client = createHttpClient({ appEnv: 'development', apiBaseUrl: 'http://localhost:5000', apiTimeoutMs: 15000 });
 const mock = new MockAdapter(client);
@@ -10,6 +10,12 @@ const input = { titulo: 'Buraco', descricao: 'Descrição', localizacao: 'Rua A'
 const report = { ...input, id: 1, status: 'aprovada', resolucaoStatus: 'aberta' };
 afterEach(() => mock.reset());
 afterAll(() => mock.restore());
+test('histórico preserva motivo e setor e rejeita respostas inválidas', async () => {
+  const entry = { id: 1, tipo: 'moderacao', statusAnterior: 'pendente', statusNovo: 'rejeitada', motivo: 'Informe o número da rua', responsavel: null, createdAt: '2026-10-10T12:00:00Z' };
+  mock.onGet('denuncia/1/historico').replyOnce(200, [entry]).onGet('denuncia/1/historico').reply(200, {});
+  await expect(getReportHistory(client, 1)).resolves.toEqual([entry]);
+  await expect(getReportHistory(client, 1)).rejects.toMatchObject({ code: 'INVALID_RESPONSE' });
+});
 test('minhas denúncias preserva registros privados e pagina a busca', async () => {
   mock.onGet('denuncia/user/7').reply(200, Array.from({ length: 13 }, (_, index) => ({ ...report, id: index + 1, status: 'pendente' })));
   await expect(listMyReports(client, 7, 2, 'Buraco')).resolves.toMatchObject({ total: 13, totalPages: 2, data: [{ id: 13, status: 'pendente' }] });

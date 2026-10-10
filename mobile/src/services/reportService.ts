@@ -4,7 +4,15 @@ import { ApiError } from '../utils/ApiError';
 export const categories = ['Buraco e pavimentação', 'Iluminação pública', 'Limpeza urbana', 'Saneamento',
   'Água e esgoto', 'Trânsito e sinalização', 'Árvore e área verde', 'Outros'] as const;
 export type ReportInput = { titulo: string; descricao: string; localizacao: string; bairro: string; categoria: string };
-export type Report = ReportInput & { id: number; status: string; resolucaoStatus: string; createdAt?: string; User?: { username: string } };
+export type Report = ReportInput & { id: number; status: string; resolucaoStatus: string; motivoRejeicao?: string | null; setorResponsavel?: string | null; createdAt?: string; User?: { username: string } };
+export type HistoryEntry = { id: number; tipo: string; statusAnterior: string | null; statusNovo: string; motivo?: string | null; responsavel?: string | null; createdAt: string; User?: { username: string } };
+export async function getReportHistory(client: AxiosInstance, id: number, signal?: AbortSignal): Promise<HistoryEntry[]> {
+  const { data } = await client.get(`denuncia/${id}/historico`, { signal });
+  if (!Array.isArray(data) || !data.every((item) => item && Number.isInteger(item.id) && typeof item.tipo === 'string' && typeof item.statusNovo === 'string' && typeof item.createdAt === 'string')) {
+    throw new ApiError('Histórico de denúncia inválido.', 'INVALID_RESPONSE');
+  }
+  return data;
+}
 export type ReportPage = { data: Report[]; page: number; totalPages: number; total: number };
 export function parseReport(data: unknown): Report {
   const value = data as Partial<Report> | null;
