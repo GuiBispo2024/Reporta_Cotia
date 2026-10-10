@@ -1,6 +1,6 @@
 # Reporta Cotia Mobile — REP-27
 
-Aplicativo Android/iOS em React Native 0.86, React 19.2, Expo SDK 57 e TypeScript estrito. A primeira versão funcional inclui cadastro, login, sessão segura, lista pública paginada com busca, detalhes e envio de denúncias de texto para moderação.
+Aplicativo Android/iOS em React Native 0.86, React 19.2, Expo SDK 57 e TypeScript estrito. Inclui cadastro, login, sessão segura, listas pública e pessoal com busca, acompanhamento e histórico, fotos e localização GPS com ajuste manual.
 
 ## Execução rápida
 
@@ -62,12 +62,18 @@ O Error Boundary protege a renderização da árvore React e pode remontá-la. E
 - A sessão fica no `expo-secure-store` e é validada em `GET /users/me` ao reabrir o app. Uma resposta 401 encerra a sessão e solicita novo login. O token não é reutilizado se a URL da API mudar. A senha não é armazenada.
 - Contas com `denuncia.create` podem enviar título, descrição, endereço, bairro opcional e categoria. A tela preserva o formulário após falhas e confirma o protocolo somente após resposta da API. A denúncia enviada fica pendente de moderação; o autor pode abrir seus detalhes na confirmação, e a lista pública a exibirá após aprovação.
 - O logout revoga a sessão no backend quando a rede está disponível e remove o armazenamento local.
+- “Minhas denúncias” mostra também registros pendentes e rejeitados. O endpoint privado retorna todos os registros da conta; busca e paginação dessa lista são feitas no app.
+- Os detalhes exibem situação, setor responsável, motivo de rejeição e histórico, respeitando o acesso autorizado pelo backend.
+- Anexe até quatro fotos da câmera ou galeria, confira a prévia e remova anexos antes do envio. As imagens são convertidas para JPEG com dimensão máxima de 2048 pixels; o backend mantém o limite de 5 MB por arquivo. Os detalhes permitem ampliar imagens, inclusive denúncias antigas com `imageUrl`.
+- “Usar minha localização” solicita apenas acesso enquanto o app está em uso. O GPS preenche coordenadas e tenta sugerir endereço/bairro sem sobrescrever texto digitado. Revise os dados; é possível editar ou remover coordenadas e enviar apenas o endereço. Permissão negada, GPS desligado ou falha de consulta não impedem o preenchimento manual. Os detalhes abrem as coordenadas no mapa externo.
 
-Fotos, localização por GPS, recuperação de senha, edição de perfil, curtidas, comentários e telas administrativas ficam para próximas etapas.
+Recuperação de senha, edição de denúncias/perfil, curtidas, comentários, mapa interativo dentro do app e telas administrativas ficam para próximas etapas.
 
 Para verificar manualmente: abra a lista como visitante, crie uma conta, entre, envie uma denúncia, abra o protocolo, feche e reabra o app para conferir a restauração da sessão e saia da conta. Use uma denúncia real ou um banco de desenvolvimento para testar o envio. `npm run smoke:api` consulta apenas saúde e lista pública; não cria contas ou denúncias.
 
 Validação da versão mínima (10/10/2026): TypeScript, 5 testes de ambiente, 32 testes Jest, 2 testes de integração de leitura com a API local, Expo Doctor 21/21 e exportação Hermes Android/iOS aprovados. Execução e conferência visual no celular ainda precisam ser confirmadas.
+
+Validação da etapa de fotos, GPS e acompanhamento (10/10/2026): TypeScript, 5 testes de ambiente, 47 testes Jest, 2 testes de integração de leitura (saúde, lista, detalhes e histórico), Expo Doctor 21/21 e exportação Hermes de produção Android/iOS aprovados. Câmera, galeria, permissões e GPS foram verificados com mocks; a conferência desses recursos no Android/iOS real ainda é necessária. As novas permissões também exigem gerar um novo build se estiver usando APK/IPA próprio; no Expo Go use a versão compatível com SDK 57.
 
 ## Ambientes
 
@@ -104,10 +110,13 @@ Nomes, schemes e identificadores Android/iOS têm sufixos em development/staging
 
 1. Inicie o backend e o banco conforme o README principal; não execute o seed novamente se quiser preservar os dados existentes.
 2. Execute `npm run smoke:api`. Ele usa o mesmo cliente Axios e serviço de saúde do app para fazer uma requisição real `GET /` e exigir `status=ok` e `database=connected`.
-3. Abra o app: a tela inicial deve exibir “Tudo pronto. O serviço está disponível.”.
+3. Abra o app: a tela inicial deve mostrar a lista pública, com busca e acesso aos detalhes.
 4. Abra “Sobre o aplicativo” e volte pelo cabeçalho/gesto. Em development/staging, confira o ambiente e a URL efetiva. Esses detalhes não aparecem em production.
-5. Interrompa a API e toque em “Verificar conexão”: deve aparecer uma mensagem amigável; restaure a API e toque em “Tentar novamente”.
+5. Interrompa a API e atualize a lista: deve aparecer uma mensagem amigável; restaure a API e toque em “Tentar novamente”.
 6. Execute `npm run check` para TypeScript, ambientes e testes de timeout, HTTP 4xx/5xx, resposta inválida, cancelamento, recuperação e navegação solicitada pela HomeScreen. O teste de rede real é separado para a suíte normal funcionar offline.
+7. Entre na conta e abra “Minhas denúncias”. Teste câmera/galeria com permissão aceita, negada e seleção cancelada; remova anexos e confira o limite de quatro fotos.
+8. Teste GPS aceito, negado e desativado; confira endereço e coordenadas, ajuste manualmente e remova as coordenadas para testar envio apenas com endereço.
+9. Em banco de desenvolvimento, envie uma denúncia com foto e localização. Abra o protocolo, confira a imagem ampliada e o mapa externo. Verifique em “Minhas denúncias” o status pendente; após moderação pelo web, atualize e confira situação, setor, motivo e histórico. A execução em aparelho permanece uma etapa manual; bundles não a substituem.
 
 ## Builds Android e iOS
 

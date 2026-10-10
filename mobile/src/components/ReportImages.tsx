@@ -10,6 +10,7 @@ export function ReportImages({ report }: { report: Report }) {
   const environment = getEnvironment();
   const [selected, setSelected] = useState<string | null>(null);
   const [failed, setFailed] = useState<string[]>([]);
+  const [retry, setRetry] = useState(0);
   const urls = [...new Set([...(report.imageUrls ?? []), ...(report.imageUrl ? [report.imageUrl] : [])])]
     .map((url) => resolveImageUrl(url, environment.apiBaseUrl, environment.appEnv === 'development')).filter((url): url is string => !!url);
   if (!urls.length) return null;
@@ -23,7 +24,14 @@ export function ReportImages({ report }: { report: Report }) {
     <Modal visible={selected !== null} onRequestClose={() => setSelected(null)} animationType="fade">
       <View style={{ flex: 1, backgroundColor: theme.colors.background, padding: 24, paddingTop: 56, gap: 16 }}>
         <Button title="Fechar foto" onPress={() => setSelected(null)} />
-        {selected && <Image source={{ uri: selected }} accessibilityLabel="Foto ampliada da denúncia" resizeMode="contain" style={{ flex: 1 }} />}
+        {selected && <>
+          {failed.includes(selected) && <>
+            <Text accessibilityRole="alert">Não foi possível carregar esta foto.</Text>
+            <Button title="Tentar carregar foto" onPress={() => { setFailed((current) => current.filter((uri) => uri !== selected)); setRetry((value) => value + 1); }} />
+          </>}
+          <Image key={`${selected}-${retry}`} source={{ uri: selected }} accessibilityLabel="Foto ampliada da denúncia" resizeMode="contain" style={{ flex: 1 }}
+            onError={() => setFailed((current) => current.includes(selected) ? current : [...current, selected])} />
+        </>}
       </View>
     </Modal>
   </View>;

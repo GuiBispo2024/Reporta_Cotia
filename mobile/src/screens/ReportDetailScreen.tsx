@@ -31,7 +31,7 @@ export function ReportDetailScreen({ route }: NativeStackScreenProps<RootStackPa
     return () => controller.abort();
   }, [client, route.params.id, report, historyAttempt]);
   useEffect(() => {
-    const controller = new AbortController(); setError(''); setReport(null);
+    const controller = new AbortController(); setError(''); setReport(null); setHistory(null); setHistoryError(''); setMapError('');
     void getReport(client, route.params.id, controller.signal).then(
       (data) => { if (!controller.signal.aborted) setReport(data); },
       (reason: unknown) => { if (!controller.signal.aborted) setError(toApiError(reason).message); },

@@ -19,7 +19,9 @@ export function parseReport(data: unknown): Report {
   const value = data as Partial<Report> | null;
   if (!value || !Number.isInteger(value.id) || typeof value.titulo !== 'string'
     || typeof value.descricao !== 'string' || typeof value.localizacao !== 'string'
-    || typeof value.status !== 'string' || typeof value.resolucaoStatus !== 'string') {
+    || typeof value.status !== 'string' || typeof value.resolucaoStatus !== 'string'
+    || (value.imageUrls != null && (!Array.isArray(value.imageUrls) || !value.imageUrls.every((url) => typeof url === 'string')))
+    || (value.imageUrl != null && typeof value.imageUrl !== 'string')) {
     throw new ApiError('Resposta de denúncia inválida. Tente novamente.', 'INVALID_RESPONSE');
   }
   return { ...value, bairro: value.bairro ?? '', categoria: value.categoria ?? 'Outros' } as Report;

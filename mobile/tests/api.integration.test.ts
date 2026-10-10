@@ -4,7 +4,7 @@
  */
 import { createHttpClient } from '../src/services/httpClient';
 import { getApiHealth } from '../src/services/healthService';
-import { listReports } from '../src/services/reportService';
+import { listReports, getReport, getReportHistory } from '../src/services/reportService';
 
 const liveTest = process.env.REPORTA_API_SMOKE === '1' ? test : test.skip;
 
@@ -27,4 +27,10 @@ liveTest('mobile lê a lista pública paginada da API real sem alterar dados', a
   expect(page.page).toBe(1);
   expect(page.total).toBeGreaterThanOrEqual(0);
   expect(page.data.every((report) => report.status === 'aprovada')).toBe(true);
+  if (page.data[0]) {
+    const report = await getReport(client, page.data[0].id);
+    expect(report.id).toBe(page.data[0].id);
+    const history = await getReportHistory(client, report.id);
+    expect(Array.isArray(history)).toBe(true);
+  }
 }, 125000);
