@@ -5,7 +5,7 @@ import type { ReportPhoto } from './photoService';
 export const categories = ['Buraco e pavimentação', 'Iluminação pública', 'Limpeza urbana', 'Saneamento',
   'Água e esgoto', 'Trânsito e sinalização', 'Árvore e área verde', 'Outros'] as const;
 export type ReportInput = { titulo: string; descricao: string; localizacao: string; bairro: string; categoria: string; latitude?: number; longitude?: number };
-export type Report = ReportInput & { id: number; status: string; resolucaoStatus: string; imageUrl?: string | null; imageUrls?: string[]; motivoRejeicao?: string | null; setorResponsavel?: string | null; createdAt?: string; User?: { username: string } };
+export type Report = ReportInput & { id: number; userId?: number; status: string; resolucaoStatus: string; imageUrl?: string | null; imageUrls?: string[]; motivoRejeicao?: string | null; setorResponsavel?: string | null; createdAt?: string; User?: { username: string } };
 export type HistoryEntry = { id: number; tipo: string; statusAnterior: string | null; statusNovo: string; motivo?: string | null; responsavel?: string | null; createdAt: string; User?: { username: string } };
 export async function getReportHistory(client: AxiosInstance, id: number, signal?: AbortSignal): Promise<HistoryEntry[]> {
   const { data } = await client.get(`denuncia/${id}/historico`, { signal });
@@ -46,6 +46,15 @@ export async function listMyReports(client: AxiosInstance, userId: number, page:
 }
 export async function getSubmission(client: AxiosInstance, key: string): Promise<Report> {
   const { data } = await client.get(`denuncia/submissions/${key}`);
+  return parseReport(data?.denuncia);
+}
+export async function updateReport(client: AxiosInstance, id: number, input: ReportInput, photos: ReportPhoto[] = [], removeImages = false): Promise<Report> {
+  if (photos.length > 4) throw new ApiError('Você pode anexar até quatro fotos.', 'IMAGE_LIMIT');
+  const fields = { ...input, latitude: input.latitude ?? null, longitude: input.longitude ?? null, ...(removeImages ? { removeImages: true } : {}) };
+  const form = new FormData();
+  for (const [key, value] of Object.entries(fields)) form.append(key, value === null ? '' : String(typeof value === 'string' ? value.trim() : value));
+  for (const photo of photos) form.append('imagens', { uri: photo.uri, name: photo.name, type: photo.type } as unknown as Blob);
+  const { data } = await client.put(`denuncia/${id}`, photos.length ? form : fields);
   return parseReport(data?.denuncia);
 }
 export async function createReport(client: AxiosInstance, input: ReportInput, photos: ReportPhoto[] = [], key?: string): Promise<Report> {

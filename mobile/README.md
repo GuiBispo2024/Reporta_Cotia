@@ -169,7 +169,7 @@ npx eas-cli build --platform ios --profile development
 
 Expo 57.0.27, React Native 0.86.3, React 19.2.3 e TypeScript 6. Os módulos Expo, safe-area, screens e jest-expo foram alinhados com as versões recomendadas pelo SDK. A configuração inclui o plugin `expo-status-bar`. O script de seleção de ambiente agora se chama `expo:env`, evitando conflito com o executável do Expo.
 
-Validação: Expo Doctor 21/21, TypeScript, 5 testes de ambiente, 17 testes Jest, integração com API/PostgreSQL local e exportação Hermes Android/iOS aprovados. O teste de integração usa o adaptador HTTP do Node para fazer uma requisição real, pois os adaptadores nativos são simulados pelo preset Jest. Builds nativos APK/AAB/IPA e execução no aparelho ainda precisam de validação; exportar bundles não substitui essas etapas.
+Validação atual: Expo Doctor 21/21, TypeScript, 5 testes de ambiente, 63 testes Jest, 2 testes de leitura com API/PostgreSQL local e exportação Hermes Android/iOS aprovados. O teste de integração usa o adaptador HTTP do Node para fazer uma requisição real, pois os adaptadores nativos são simulados pelo preset Jest. Builds nativos APK/AAB/IPA e execução no aparelho ainda precisam de validação; exportar bundles não substitui essas etapas. Os [dez roteiros incrementais](delivery/incremental/README.md) descrevem rascunhos, confirmação de envio, abas, recuperação de senha, conta e correção de rejeitadas.
 
 O inventário em `delivery/README.md` é um snapshot histórico do SDK 55. As versões atuais estão em `package.json` e `package-lock.json`.
 

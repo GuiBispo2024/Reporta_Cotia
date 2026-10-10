@@ -2,7 +2,7 @@ import MockAdapter from 'axios-mock-adapter';
 import axios from 'axios';
 import { createHttpClient } from '../src/services/httpClient';
 import { login, register, getMe } from '../src/services/authService';
-import { listReports, listMyReports, createReport, getReport, getReportHistory, getSubmission } from '../src/services/reportService';
+import { listReports, listMyReports, createReport, getReport, getReportHistory, getSubmission, updateReport } from '../src/services/reportService';
 
 // Axios captura o construtor FormData ao importar: usar o polyfill nativo desde o início.
 jest.mock('axios', () => {
@@ -17,6 +17,10 @@ const input = { titulo: 'Buraco', descricao: 'Descrição', localizacao: 'Rua A'
 const report = { ...input, id: 1, status: 'aprovada', resolucaoStatus: 'aberta' };
 afterEach(() => mock.reset());
 afterAll(() => mock.restore());
+test('correção usa PUT no protocolo original e envia null para remover coordenadas', async () => {
+  mock.onPut('denuncia/1', { ...input, latitude: null, longitude: null, removeImages: true }).reply(200, { denuncia: { ...report, status: 'pendente' } });
+  await expect(updateReport(client, 1, input, [], true)).resolves.toMatchObject({ id: 1, status: 'pendente' });
+});
 test('resposta perdida permite consultar protocolo e repete a mesma chave', async () => {
   const key = 'f1768e55-b65c-4faf-a5cc-51ac3b095676';
   mock.onPost('denuncia').networkErrorOnce();

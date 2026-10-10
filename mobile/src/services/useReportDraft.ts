@@ -3,7 +3,7 @@ import { AppState } from 'react-native';
 import { randomUUID } from 'expo-crypto';
 import { openDraftStore, type DraftContent } from './draftService';
 
-export function useReportDraft(api: string, userId: number, content: DraftContent, restore: (value: DraftContent) => void) {
+export function useReportDraft(api: string, userId: number, content: DraftContent, restore: (value: DraftContent) => void, scope = 'new') {
   const [ready, setReady] = useState(false);
   const [notice, setNotice] = useState('Carregando rascunho…');
   const [submissionKey, setSubmissionKey] = useState<string | undefined>();
@@ -23,7 +23,7 @@ export function useReportDraft(api: string, userId: number, content: DraftConten
   }
   useEffect(() => {
     active.current = true;
-    void openDraftStore(api, userId).then(async (value) => {
+    void openDraftStore(api, userId, scope).then(async (value) => {
       store.current = value;
       const loaded = await value.load();
       if (!active.current) return;
@@ -35,12 +35,12 @@ export function useReportDraft(api: string, userId: number, content: DraftConten
     return () => { active.current = false; subscription.remove(); void save(); };
     // The screen is remounted when the authenticated owner changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [api, userId]);
+  }, [api, userId, scope]);
   useEffect(() => {
     if (!ready) return;
     const timer = setTimeout(() => void save(), 500);
     return () => clearTimeout(timer);
-  }, [content.input, content.photos, content.latitude, content.longitude, ready]);
+  }, [content.input, content.photos, content.latitude, content.longitude, content.removeImages, ready]);
   async function discard(completed = false) {
     stopped.current = completed;
     await store.current?.discard();

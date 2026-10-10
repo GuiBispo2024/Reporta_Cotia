@@ -4,8 +4,8 @@ import type { ReportInput } from './reportService';
 import type { ReportPhoto } from './photoService';
 
 export type Draft = { version: 1; id: string; revision: number; input: ReportInput;
-  latitude: string; longitude: string; photos: ReportPhoto[]; updatedAt: string; submissionKey?: string; ownerKey?: string };
-export type DraftContent = Pick<Draft, 'input' | 'latitude' | 'longitude' | 'photos' | 'submissionKey'>;
+  latitude: string; longitude: string; photos: ReportPhoto[]; updatedAt: string; submissionKey?: string; ownerKey?: string; removeImages?: boolean };
+export type DraftContent = Pick<Draft, 'input' | 'latitude' | 'longitude' | 'photos' | 'submissionKey' | 'removeImages'>;
 const queues = new Map<string, Promise<unknown>>();
 export async function openDraftStore(api: string, userId: number, scope = 'new') {
   const ownerKey = await digestStringAsync(CryptoDigestAlgorithm.SHA256, `${api}|${userId}`);

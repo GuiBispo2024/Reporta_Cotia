@@ -4,7 +4,7 @@ import { AccountScreen } from '../src/screens/AccountScreen';
 import { CreateReportScreen } from '../src/screens/CreateReportScreen';
 import { useAuth } from '../src/context/AuthContext';
 import { register } from '../src/services/authService';
-import { createReport } from '../src/services/reportService';
+import { createReport, updateReport } from '../src/services/reportService';
 import { getCurrentLocation } from '../src/services/locationService';
 import { ApiError } from '../src/utils/ApiError';
 import type { RootStackParamList } from '../src/navigation/types';
@@ -12,10 +12,11 @@ import type { RootStackParamList } from '../src/navigation/types';
 jest.mock('../src/context/AuthContext', () => ({ useAuth: jest.fn() }));
 jest.mock('../src/services/useReportDraft', () => ({ useReportDraft: (_api: string, _user: number, content: unknown) => ({ ready: true, notice: '', flush: async () => {}, discard: async () => {}, prepareSubmission: async () => ({ ...(content as object), submissionKey: 'key' }), releaseSubmission: async () => {} }) }));
 jest.mock('../src/services/photoService', () => ({ selectPhotos: jest.fn() }));
+jest.mock('../src/components/ReportImages', () => ({ ReportImages: () => null }));
 jest.mock('../src/services/locationService', () => ({ ...jest.requireActual('../src/services/locationService'), getCurrentLocation: jest.fn() }));
 jest.mock('../src/services/authService', () => ({ register: jest.fn() }));
 jest.mock('../src/services/reportService', () => ({
-  ...jest.requireActual('../src/services/reportService'), createReport: jest.fn(),
+  ...jest.requireActual('../src/services/reportService'), createReport: jest.fn(), updateReport: jest.fn(),
 }));
 jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default);
 const signIn = jest.fn();
@@ -85,4 +86,19 @@ test('GPS preenche coordenadas sem sobrescrever o endereço informado', async ()
   expect(screen.getByLabelText('Latitude (opcional)').props.value).toBe('-23.6');
   fireEvent.press(screen.getByRole('button', { name: 'Remover coordenadas' }));
   expect(screen.getByLabelText('Latitude (opcional)').props.value).toBe('');
+});
+test('correção preserva protocolo e permite remover imagens e coordenadas', async () => {
+  const context = jest.mocked(useAuth)();
+  jest.mocked(useAuth).mockReturnValue({ ...context, user: { ...context.user!, permissions: ['denuncia.update_own'] } });
+  const report = { id: 9, userId: 1, titulo: 'Buraco', descricao: 'Na rua', localizacao: 'Rua', bairro: 'Centro', categoria: 'Outros', latitude: -23.6, longitude: -46.9, status: 'rejeitada', resolucaoStatus: 'aberta', motivoRejeicao: 'Informe número' };
+  jest.mocked(updateReport).mockResolvedValue({ ...report, status: 'pendente' });
+  render(<CreateReportScreen {...createProps} initialReport={report} />);
+  expect(screen.getByLabelText('Título').props.value).toBe('Buraco');
+  fireEvent.changeText(screen.getByLabelText('Endereço / localização'), 'Rua, 10');
+  fireEvent.press(screen.getByRole('button', { name: 'Remover coordenadas' }));
+  fireEvent.press(screen.getByRole('button', { name: 'Remover todas as fotos atuais' }));
+  fireEvent.press(screen.getByRole('button', { name: 'Reenviar para moderação' }));
+  await screen.findByText(/Protocolo #9/);
+  expect(createReport).not.toHaveBeenCalled();
+  expect(updateReport).toHaveBeenCalledWith(context.client, 9, { titulo: 'Buraco', descricao: 'Na rua', localizacao: 'Rua, 10', bairro: 'Centro', categoria: 'Outros' }, [], true);
 });

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { ActivityIndicator, Linking, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Button } from '../components/Button';
@@ -11,8 +12,8 @@ import { theme } from '../theme';
 import { resolutionLabels } from './ReportsScreen';
 import { ReportImages } from '../components/ReportImages';
 
-export function ReportDetailScreen({ route }: NativeStackScreenProps<RootStackParamList, 'ReportDetail'>) {
-  const { client } = useAuth();
+export function ReportDetailScreen({ route, navigation }: NativeStackScreenProps<RootStackParamList, 'ReportDetail'>) {
+  const { client, user } = useAuth();
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
@@ -30,14 +31,14 @@ export function ReportDetailScreen({ route }: NativeStackScreenProps<RootStackPa
     );
     return () => controller.abort();
   }, [client, route.params.id, report, historyAttempt]);
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     const controller = new AbortController(); setError(''); setReport(null); setHistory(null); setHistoryError(''); setMapError('');
     void getReport(client, route.params.id, controller.signal).then(
       (data) => { if (!controller.signal.aborted) setReport(data); },
       (reason: unknown) => { if (!controller.signal.aborted) setError(toApiError(reason).message); },
     );
     return () => controller.abort();
-  }, [client, route.params.id, attempt]);
+  }, [client, route.params.id, attempt]));
   return <Screen>{error ? <>
     <Text accessibilityRole="alert" style={{ color: theme.colors.danger }}>{error}</Text>
     <Button title="Tentar novamente" onPress={() => setAttempt((value) => value + 1)} />
@@ -47,6 +48,7 @@ export function ReportDetailScreen({ route }: NativeStackScreenProps<RootStackPa
     <Text style={theme.typography.body}>{report.status === 'pendente' ? 'Aguardando moderação' : report.status === 'rejeitada' ? 'Rejeitada na moderação' : resolutionLabels[report.resolucaoStatus] ?? report.resolucaoStatus}</Text>
     <Text style={theme.typography.body}>Setor responsável: {report.setorResponsavel || 'Ainda não definido'}</Text>
     {!!report.motivoRejeicao && <Text accessibilityRole="alert" style={{ ...theme.typography.body, color: theme.colors.danger }}>Motivo da rejeição: {report.motivoRejeicao}</Text>}
+    {report.status === 'rejeitada' && report.userId === user?.id && user?.permissions.includes('denuncia.update_own') && <Button title="Corrigir e reenviar" onPress={() => navigation.navigate('EditReport', { id: report.id })} />}
     <Text selectable style={theme.typography.body}>{report.descricao}</Text>
     <ReportImages report={report} />
     <Text selectable style={theme.typography.body}>{report.localizacao}{report.bairro ? ` · ${report.bairro}` : ''}</Text>

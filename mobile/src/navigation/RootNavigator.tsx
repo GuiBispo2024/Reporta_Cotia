@@ -12,6 +12,7 @@ import { ReportDetailScreen } from '../screens/ReportDetailScreen';
 import { MainTabs } from './MainTabs';
 import { PasswordScreen } from '../screens/PasswordScreen';
 import Constants from 'expo-constants';
+import { EditReportScreen } from '../screens/EditReportScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -30,6 +31,7 @@ export function RootNavigator() {
           <Stack.Screen name="Register" component={AccountScreen} options={{ title: 'Criar conta' }} />
         </> : <>
           <Stack.Screen name="CreateReport" component={CreateReportScreen} options={{ title: 'Nova denúncia' }} />
+          <Stack.Screen name="EditReport" component={EditReportScreen} options={{ title: 'Corrigir denúncia' }} />
         </>}
         <Stack.Screen name="ReportDetail" component={ReportDetailScreen} options={{ title: 'Detalhes da denúncia' }} />
         <Stack.Screen name="ForgotPassword" component={PasswordScreen} options={{ title: 'Recuperar senha' }} />

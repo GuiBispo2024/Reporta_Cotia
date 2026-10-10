@@ -199,6 +199,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   async function updateAccount(input: AccountUpdate) {
     if (accountChange.current) throw new ApiError('Atualização em andamento.', 'ACCOUNT_BUSY');
     const token = await access();
+    if (accountChange.current) throw new ApiError('Atualização em andamento.', 'ACCOUNT_BUSY');
     if (!token || !current.current) throw new ApiError('Entre novamente.', 'SESSION_REVOKED', 401);
     const original = current.current;
     const sensitive = !!input.novaSenha || input.email.trim().toLowerCase() !== original.user.email;
