@@ -9,7 +9,7 @@ Cada etapa tem seu commit e instruções de teste. As implementações seguem em
 | 3 | Idempotência no backend | Implementada; executar migration antes do envio mobile |
 | 4 | Envio mobile com prevenção de duplicidade | Implementada; testar perda de resposta no Android |
 | 5 | Verificações mobile no CI | Implementada; execução remota ocorre ao enviar a branch |
-| 6 | Ajustes após testes em aparelhos | Depende dos testes reais |
+| 6 | Diagnóstico e validação em aparelhos | Diagnóstico implementado; testes físicos e ajustes dependem dos resultados |
 | 7 | Navegação por abas | Planejada |
 | 8 | Recuperação de senha | Planejada |
 | 9 | Gerenciamento e exclusão da conta | Planejada |
@@ -97,3 +97,19 @@ O identificador e as fotos são gravados antes da requisição. Não desinstale 
 Na pasta mobile, execute `npm ci` e `npm run check`. O workflow validate.yml faz esses checks, Expo Doctor e exportação dos bundles Android/iOS em configuração production, e guarda os bundles por 7 dias. A URL de API no CI é um domínio reservado inválido para que os testes não enviem dados a produção; o artefato é de verificação e não deve ser distribuído como app.
 
 Depois de enviar a branch ao GitHub, confira o job mobile na aba Actions. O CI não gera APK, não faz deploy e não precisa de credencial Expo. Testes que exigem API local estão separados e não são ativados nesse job. A execução remota ainda não ocorreu nesta entrega local.
+
+## Etapa 6 — aparelho Android
+
+Em Sobre o aplicativo, no ambiente development/staging, use "Verificar conexão e permissões". Essa consulta não solicita permissões e não exibe credenciais. Registre versão Android, tipo de instalação (Expo Go/APK), resultado e passo que falhou.
+
+| Cenário | Resultado esperado | Resultado físico |
+| --- | --- | --- |
+| Teclado aberto, fonte grande, rolagem | Campos e botões acessíveis | Pendente |
+| Câmera, galeria e GPS: permitir/recusar | Ação ou mensagem recuperável, sem travamento | Pendente |
+| App encerrado após salvar rascunho | Textos e fotos recuperados | Pendente |
+| Rede perdida durante envio | Confirmação com único protocolo | Pendente |
+| 15 minutos em segundo plano | Sessão encerrada; novo login necessário; rascunho preservado | Pendente |
+| Voltar do Android / alternar telas | Navegação previsível, sem telas privadas após sair | Pendente |
+| Trocar de conta | Rascunhos e dados privados isolados | Pendente |
+
+Não há aparelho Android conectado nem APK gerado nesta máquina. Portanto, esses itens não foram aprovados fisicamente; correções específicas serão feitas a partir dos resultados. Os testes automatizados e bundles não substituem esta tabela.
