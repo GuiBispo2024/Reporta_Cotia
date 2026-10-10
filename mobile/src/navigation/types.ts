@@ -1,6 +1,7 @@
+import type { NavigatorScreenParams } from '@react-navigation/native';
+export type MainTabParamList = { Reports: undefined; MyReports: undefined; Account: undefined };
 export type RootStackParamList = {
-  Reports: undefined;
-  MyReports: undefined;
+  Main: NavigatorScreenParams<MainTabParamList> | undefined;
   Login: undefined;
   Register: undefined;
   CreateReport: undefined;

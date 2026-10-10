@@ -10,7 +10,7 @@ Cada etapa tem seu commit e instruções de teste. As implementações seguem em
 | 4 | Envio mobile com prevenção de duplicidade | Implementada; testar perda de resposta no Android |
 | 5 | Verificações mobile no CI | Implementada; execução remota ocorre ao enviar a branch |
 | 6 | Diagnóstico e validação em aparelhos | Diagnóstico implementado; testes físicos e ajustes dependem dos resultados |
-| 7 | Navegação por abas | Planejada |
+| 7 | Navegação por abas | Implementada |
 | 8 | Recuperação de senha | Planejada |
 | 9 | Gerenciamento e exclusão da conta | Planejada |
 | 10 | Edição e reenvio de denúncias rejeitadas | Planejada |
@@ -113,3 +113,7 @@ Em Sobre o aplicativo, no ambiente development/staging, use "Verificar conexão 
 | Trocar de conta | Rascunhos e dados privados isolados | Pendente |
 
 Não há aparelho Android conectado nem APK gerado nesta máquina. Portanto, esses itens não foram aprovados fisicamente; correções específicas serão feitas a partir dos resultados. Os testes automatizados e bundles não substituem esta tabela.
+
+## Etapa 7 — abas
+
+Confira Início e Conta sem login. Entre: Minhas deve aparecer e listar somente seus registros. Abra detalhes e nova denúncia: Voltar deve retornar à aba de origem. Alterne abas com busca/paginação preenchidas; confira fonte grande e leitor de tela. Saia pela aba Conta: Minhas e as telas privadas devem desaparecer, inclusive ao pressionar Voltar do Android. A criação continua acessível pelo botão Nova denúncia na lista.

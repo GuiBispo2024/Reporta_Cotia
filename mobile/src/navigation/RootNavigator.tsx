@@ -6,10 +6,10 @@ import { navigationTheme, theme } from '../theme';
 import type { RootStackParamList } from './types';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { ReportsScreen } from '../screens/ReportsScreen';
 import { AccountScreen } from '../screens/AccountScreen';
 import { CreateReportScreen } from '../screens/CreateReportScreen';
 import { ReportDetailScreen } from '../screens/ReportDetailScreen';
+import { MainTabs } from './MainTabs';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -19,13 +19,12 @@ export function RootNavigator() {
   return (
     <NavigationContainer theme={navigationTheme}>
       <Stack.Navigator key={user ? `user-${user.id}` : 'guest'} screenOptions={{ headerTintColor: theme.colors.primary, headerTitleStyle: theme.typography.heading }}>
-        <Stack.Screen name="Reports" component={ReportsScreen} options={{ title: 'Reporta Cotia' }} />
+        <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
         {!user ? <>
           <Stack.Screen name="Login" component={AccountScreen} options={{ title: 'Entrar' }} />
           <Stack.Screen name="Register" component={AccountScreen} options={{ title: 'Criar conta' }} />
         </> : <>
           <Stack.Screen name="CreateReport" component={CreateReportScreen} options={{ title: 'Nova denúncia' }} />
-          <Stack.Screen name="MyReports" component={ReportsScreen} options={{ title: 'Minhas denúncias' }} />
         </>}
         <Stack.Screen name="ReportDetail" component={ReportDetailScreen} options={{ title: 'Detalhes da denúncia' }} />
         <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Reporta Cotia' }} />

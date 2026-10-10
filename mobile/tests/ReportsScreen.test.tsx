@@ -14,7 +14,7 @@ jest.mock('@react-navigation/native', () => ({
 }));
 jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default);
 const navigate = jest.fn();
-const props = { navigation: { navigate }, route: { key: 'reports', name: 'Reports' } } as unknown as NativeStackScreenProps<RootStackParamList, 'Reports'>;
+const props = { navigation: { navigate }, route: { name: 'Reports' as const } };
 const first = { id: 1, titulo: 'Buraco', descricao: 'Descrição', localizacao: 'Rua A', bairro: '', categoria: 'Outros', status: 'aprovada', resolucaoStatus: 'aberta' };
 beforeEach(() => {
   jest.useFakeTimers();
@@ -50,7 +50,7 @@ test('minhas denúncias consulta a conta atual e mostra registros ainda privados
   const context = jest.mocked(useAuth)();
   jest.mocked(useAuth).mockReturnValue({ ...context, user: { id: 7, username: 'Ana', email: 'ana@example.org', permissions: ['denuncia.create'] } });
   jest.mocked(listMyReports).mockResolvedValue({ data: [{ ...first, status: 'pendente' }], page: 1, total: 1, totalPages: 1 });
-  const myProps = { ...props, route: { key: 'mine', name: 'MyReports' } } as NativeStackScreenProps<RootStackParamList, 'MyReports'>;
+  const myProps = { ...props, route: { name: 'MyReports' as const } };
   render(<ReportsScreen {...myProps} />);
   await screen.findByText('Aguardando moderação');
   expect(listMyReports).toHaveBeenCalledWith(context.client, 7, 1, '', expect.anything());

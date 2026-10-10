@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Button } from '../components/Button';
 import { Field } from '../components/Field';
 import { useAuth } from '../context/AuthContext';
@@ -12,9 +12,9 @@ import { toApiError } from '../utils/ApiError';
 import { theme } from '../theme';
 
 export const resolutionLabels: Record<string, string> = { aberta: 'Aberta', em_andamento: 'Em andamento', resolvida: 'Resolvida' };
-export function ReportsScreen({ navigation, route }: NativeStackScreenProps<RootStackParamList, 'Reports' | 'MyReports'>) {
+export function ReportsScreen({ navigation, route }: { navigation: Pick<NativeStackNavigationProp<RootStackParamList>, 'navigate'>; route: { name: 'Reports' | 'MyReports' } }) {
   const isMine = route.name === 'MyReports';
-  const { client, user, notice, signOut } = useAuth();
+  const { client, user, notice } = useAuth();
   const [result, setResult] = useState<ReportPage | null>(null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -22,8 +22,6 @@ export function ReportsScreen({ navigation, route }: NativeStackScreenProps<Root
   const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
-  const [accountError, setAccountError] = useState('');
-  const [leaving, setLeaving] = useState(false);
   useFocusEffect(useCallback(() => {
     const controller = new AbortController();
     setBusy(true); setError(''); setResult(null);
@@ -35,11 +33,6 @@ export function ReportsScreen({ navigation, route }: NativeStackScreenProps<Root
     return () => controller.abort();
   }, [client, page, query, attempt, isMine, user]));
   const retry = () => setAttempt((value) => value + 1);
-  async function leave() {
-    setLeaving(true); setAccountError('');
-    try { await signOut(); } catch (reason) { setAccountError(toApiError(reason).message); }
-    finally { setLeaving(false); }
-  }
   return <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
     <FlatList data={result?.data ?? []} keyExtractor={(item) => String(item.id)} contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled" ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
@@ -51,13 +44,10 @@ export function ReportsScreen({ navigation, route }: NativeStackScreenProps<Root
         {user ? <>
           <Text style={styles.body}>Olá, {user.username}</Text>
           <Button title="Nova denúncia" disabled={!user.permissions.includes('denuncia.create')} onPress={() => navigation.navigate('CreateReport')} />
-          {!isMine && <Button title="Minhas denúncias" onPress={() => navigation.navigate('MyReports')} />}
-          <Button title="Sair da conta" loading={leaving} onPress={() => void leave()} />
         </> : <>
           <Button title="Entrar para publicar" onPress={() => navigation.navigate('Login')} />
           <Button title="Criar conta" onPress={() => navigation.navigate('Register')} />
         </>}
-        {!!accountError && <Text accessibilityRole="alert" style={styles.error}>{accountError}</Text>}
         <Field label="Buscar pelo título" value={search} onChangeText={setSearch} maxLength={120} returnKeyType="search"
           onSubmitEditing={() => { setPage(1); setQuery(search); retry(); }} />
         <Button title="Buscar" loading={busy} onPress={() => { setPage(1); setQuery(search); retry(); }} />
