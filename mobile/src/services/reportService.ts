@@ -6,7 +6,7 @@ import type { ReportPhoto } from './photoService';
 export const categories = ['Buraco e pavimentação', 'Iluminação pública', 'Limpeza urbana', 'Saneamento',
   'Água e esgoto', 'Trânsito e sinalização', 'Árvore e área verde', 'Outros'] as const;
 export type ReportInput = { titulo: string; descricao: string; localizacao: string; bairro: string; categoria: string; latitude?: number; longitude?: number };
-export type Report = ReportInput & { id: number; userId?: number; status: string; resolucaoStatus: string; imageUrl?: string | null; imageUrls?: string[]; motivoRejeicao?: string | null; setorResponsavel?: string | null; createdAt?: string; User?: { username: string } };
+export type Report = ReportInput & { id: number; userId?: number; status: string; resolucaoStatus: string; imageUrl?: string | null; imageUrls?: string[]; motivoRejeicao?: string | null; setorResponsavel?: string | null; createdAt?: string; User?: { username: string }; likesCount?: number; sharesCount?: number; likedByMe?: boolean };
 export type HistoryEntry = { id: number; tipo: string; statusAnterior: string | null; statusNovo: string; motivo?: string | null; responsavel?: string | null; createdAt: string; User?: { username: string } };
 export async function getReportHistory(client: AxiosInstance, id: number, signal?: AbortSignal): Promise<HistoryEntry[]> {
   const { data } = await client.get(`denuncia/${id}/historico`, { signal });
@@ -23,7 +23,9 @@ export function parseReport(data: unknown): Report {
     || typeof value.descricao !== 'string' || typeof value.localizacao !== 'string'
     || typeof value.status !== 'string' || typeof value.resolucaoStatus !== 'string'
     || (value.imageUrls != null && (!Array.isArray(value.imageUrls) || !value.imageUrls.every((url) => typeof url === 'string')))
-    || (value.imageUrl != null && typeof value.imageUrl !== 'string')) {
+    || (value.imageUrl != null && typeof value.imageUrl !== 'string')
+    || [value.likesCount, value.sharesCount].some((count) => count != null && (!Number.isSafeInteger(count) || count < 0))
+    || (value.likedByMe != null && typeof value.likedByMe !== 'boolean')) {
     throw new ApiError('Resposta de denúncia inválida. Tente novamente.', 'INVALID_RESPONSE');
   }
   return { ...value, bairro: value.bairro ?? '', categoria: value.categoria ?? 'Outros' } as Report;
