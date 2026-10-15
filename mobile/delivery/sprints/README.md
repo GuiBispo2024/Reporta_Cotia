@@ -23,6 +23,8 @@ A entrega seguinte aproxima o layout do mobile da Web: [18 — Layout e ícones]
 
 [19 — Conta em duas páginas](19-conta/README.md): perfil e foto na aba Conta; e-mail, senha e exclusão em Segurança da conta.
 
+[20 — Detalhes mais visuais](20-detalhes/README.md): situação e etapas em destaque, cards de descrição, fotos e localização e histórico compacto com expansão.
+
 ## Situação dos critérios de aceite
 
 | Sprint | Implementação | Pendência para aceite final |
@@ -45,6 +47,6 @@ Não há site público no momento, conforme informado. O texto compartilhado con
 
 ## Verificação automatizada
 
-TypeScript, 6 testes de configuração e 78 testes Jest mobile. Backend: 208 testes. Dois testes de leitura contra API/PostgreSQL local. Confirmações simultâneas de compartilhamento verificadas no PostgreSQL com uma conta temporária própria, removida ao terminar. Expo Doctor 21/21, Prebuild Android e exportação Hermes Android/iOS.
+TypeScript, 6 testes de configuração e 82 testes Jest mobile. Backend: 208 testes. Dois testes de leitura contra API/PostgreSQL local. Confirmações simultâneas de compartilhamento verificadas no PostgreSQL com uma conta temporária própria, removida ao terminar. Expo Doctor 21/21, Prebuild Android e exportação Hermes Android/iOS.
 
 O script backend/scripts/smokeShareRegistration.js permite repetir a verificação de concorrência somente em PostgreSQL local de desenvolvimento. O CI já executa os checks mobile existentes; a execução remota depende de enviar os commits ao GitHub. APK/IPA não foram compilados nem instalados fisicamente. Prebuild e bundles não substituem essa etapa.
