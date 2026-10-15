@@ -24,9 +24,11 @@ module.exports = () => {
       },
     },
     android: { package: `br.com.reportacotia.app${suffix}` },
-    plugins: [['expo-dev-client', { launchMode: 'launcher' }], 'expo-status-bar', 'expo-secure-store', ['expo-image-picker', {
+    plugins: [['expo-dev-client', { launchMode: 'launcher' }], ['react-native-maps', {
+      ...(process.env.GOOGLE_MAPS_ANDROID_API_KEY ? { androidGoogleMapsApiKey: process.env.GOOGLE_MAPS_ANDROID_API_KEY } : {}),
+    }], 'expo-status-bar', 'expo-secure-store', ['expo-image-picker', {
       photosPermission: 'Selecionar fotos para anexar à denúncia.', cameraPermission: 'Fotografar problemas urbanos para a denúncia.', microphonePermission: false,
     }], ['expo-location', { locationWhenInUsePermission: 'Usar sua localização para indicar onde está o problema urbano.' }], ['expo-build-properties', { android: { usesCleartextTraffic: isDevelopment } }]],
-    extra: environment,
+    extra: { ...environment, mapsAndroidConfigured: !!process.env.GOOGLE_MAPS_ANDROID_API_KEY },
   };
 };

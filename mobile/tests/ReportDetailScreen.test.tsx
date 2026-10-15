@@ -29,6 +29,7 @@ test('outro autor não recebe ação de correção', async () => {
   expect(screen.queryByRole('button', { name: 'Corrigir e reenviar' })).toBeNull();
 });
 jest.mock('../src/components/ReportImages', () => ({ ReportImages: () => null }));
+jest.mock('../src/components/ReportMap', () => ({ ReportMap: () => null }));
 jest.mock('../src/services/reportService', () => ({ getReport: jest.fn(), getReportHistory: jest.fn() }));
 jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default);
 const props = { navigation: {}, route: { key: 'details', name: 'ReportDetail', params: { id: 9 } } } as unknown as NativeStackScreenProps<RootStackParamList, 'ReportDetail'>;

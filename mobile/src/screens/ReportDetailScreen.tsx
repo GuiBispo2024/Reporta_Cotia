@@ -11,6 +11,7 @@ import { toApiError } from '../utils/ApiError';
 import { theme } from '../theme';
 import { resolutionLabels } from './ReportsScreen';
 import { ReportImages } from '../components/ReportImages';
+import { ReportMap } from '../components/ReportMap';
 
 export function ReportDetailScreen({ route, navigation }: NativeStackScreenProps<RootStackParamList, 'ReportDetail'>) {
   const { client, user } = useAuth();
@@ -51,6 +52,7 @@ export function ReportDetailScreen({ route, navigation }: NativeStackScreenProps
     {report.status === 'rejeitada' && report.userId === user?.id && user?.permissions.includes('denuncia.update_own') && <Button title="Corrigir e reenviar" onPress={() => navigation.navigate('EditReport', { id: report.id })} />}
     <Text selectable style={theme.typography.body}>{report.descricao}</Text>
     <ReportImages report={report} />
+    <ReportMap report={report} />
     <Text selectable style={theme.typography.body}>{report.localizacao}{report.bairro ? ` · ${report.bairro}` : ''}</Text>
     {report.latitude != null && report.longitude != null && Number.isFinite(Number(report.latitude)) && Number.isFinite(Number(report.longitude)) && <>
       <Text>Coordenadas: {report.latitude}, {report.longitude}</Text>
