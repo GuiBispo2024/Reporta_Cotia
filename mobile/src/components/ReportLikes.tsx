@@ -20,7 +20,7 @@ export function ReportLikes({ report }: { report: Report }) {
   return <View style={{ gap: 8 }}>
     <Text accessibilityLiveRegion="polite">{current.likesCount ?? 0} curtidas</Text>
     {current.status === 'aprovada' ? <>
-      <Button title={current.likedByMe ? 'Descurtir' : 'Curtir'} loading={busy} disabled={!user} onPress={() => void toggle()} />
+      <Button title={current.likedByMe ? 'Descurtir' : 'Curtir'} icon={current.likedByMe ? 'heart-fill' : 'heart'} loading={busy} disabled={!user} onPress={() => void toggle()} />
       {!user && <Text>Entre na aba Conta para curtir.</Text>}
     </> : <Text>Esta denúncia não está mais publicada.</Text>}
     {!!error && <><Text accessibilityRole="alert">{error}</Text><Button title="Atualizar curtidas" disabled={busy} onPress={() => void toggle(true)} /></>}

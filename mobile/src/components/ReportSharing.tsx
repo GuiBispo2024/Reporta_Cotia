@@ -38,7 +38,7 @@ export function ReportSharing({ report }: { report: Report }) {
   }
   return <View style={{ gap: 8 }}>
     <Text accessibilityLiveRegion="polite">{count} compartilhamentos</Text>
-    <Button title="Compartilhar denúncia" loading={busy} disabled={confirm || !!pending} onPress={() => void open()} />
+    <Button title="Compartilhar denúncia" icon="share" loading={busy} disabled={confirm || !!pending} onPress={() => void open()} />
     {!user && <Text>Você pode compartilhar como visitante. O contador registra somente compartilhamentos de contas autenticadas.</Text>}
     {confirm && <>
       <Text>Você concluiu o compartilhamento no outro aplicativo? Confirme para registrá-lo no contador.</Text>

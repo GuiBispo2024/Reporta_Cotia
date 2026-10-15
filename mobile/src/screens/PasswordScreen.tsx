@@ -9,6 +9,8 @@ import type { RootStackParamList } from '../navigation/types';
 import { requestPasswordReset, resetPassword } from '../services/passwordService';
 import { toApiError } from '../utils/ApiError';
 import { theme } from '../theme';
+import { Hero } from '../components/Hero';
+import { Surface } from '../components/Surface';
 export function PasswordScreen({ route, navigation }: NativeStackScreenProps<RootStackParamList, 'ForgotPassword' | 'ResetPassword'>) {
   const resetting = route.name === 'ResetPassword';
   const { client, signOut } = useAuth();
@@ -38,19 +40,21 @@ export function PasswordScreen({ route, navigation }: NativeStackScreenProps<Roo
     finally { submitting.current = false; setBusy(false); }
   }
   return <Screen>
-    <Text accessibilityRole="header" style={{ ...theme.typography.title, color: theme.colors.text }}>{resetting ? 'Redefinir senha' : 'Recuperar senha'}</Text>
+    <Hero title={resetting ? 'Redefinir senha' : 'Recuperar senha'} description="Recupere o acesso à sua conta com segurança." icon="shield-check" />
+    <Surface>
     {!message || !resetting ? <>
       {resetting ? <>
         <Text>Copie o link recebido por e-mail e cole abaixo. Ele expira em 30 minutos e pode ser usado uma vez.</Text>
         <Field label="Link de redefinição" value={link} onChangeText={setLink} autoCapitalize="none" autoCorrect={false} secureTextEntry editable={!busy} />
-        <Field label="Nova senha" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" editable={!busy} />
+        <Field icon="lock" label="Nova senha" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" editable={!busy} />
         <Field label="Confirmar nova senha" value={confirmation} onChangeText={setConfirmation} secureTextEntry autoCapitalize="none" editable={!busy} />
-      </> : <Field label="E-mail" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} editable={!busy} />}
-      <Button title={resetting ? 'Salvar nova senha' : 'Enviar instruções'} loading={busy} onPress={() => void submit()} />
+      </> : <Field icon="envelope" label="E-mail" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} editable={!busy} />}
+      <Button title={resetting ? 'Salvar nova senha' : 'Enviar instruções'} icon="send" variant="primary" loading={busy} onPress={() => void submit()} />
     </> : null}
     {!!error && <Text accessibilityRole="alert" style={{ color: theme.colors.danger }}>{error}</Text>}
     {!!message && <Text accessibilityRole="alert">{message}</Text>}
     {!resetting && <Button title="Já recebi o link" disabled={busy} onPress={() => navigation.navigate('ResetPassword')} />}
     <Button title="Voltar" disabled={busy} onPress={() => navigation.goBack()} />
+    </Surface>
   </Screen>;
 }

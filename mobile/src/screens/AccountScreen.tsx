@@ -9,6 +9,8 @@ import type { RootStackParamList } from '../navigation/types';
 import { register } from '../services/authService';
 import { toApiError } from '../utils/ApiError';
 import { theme } from '../theme';
+import { Hero } from '../components/Hero';
+import { Surface } from '../components/Surface';
 
 export function AccountScreen({ route, navigation }: NativeStackScreenProps<RootStackParamList, 'Login' | 'Register'>) {
   const isRegister = route.name === 'Register';
@@ -36,19 +38,21 @@ export function AccountScreen({ route, navigation }: NativeStackScreenProps<Root
     finally { submitting.current = false; setBusy(false); }
   }
   return <Screen>
-    <Text style={{ ...theme.typography.title, color: theme.colors.text }}>{isRegister ? 'Crie sua conta' : 'Bem-vindo de volta'}</Text>
+    <Hero title={isRegister ? 'Crie sua conta' : 'Bem-vindo de volta'} description="Sua voz ajuda a transformar a cidade. Participe e acompanhe suas denúncias." icon="person-circle" />
+    <Surface>
     {created ? <>
       <Text accessibilityRole="alert">Conta criada. Entre para enviar sua primeira denúncia.</Text>
       <Button title="Entrar na conta" onPress={() => navigation.replace('Login')} />
     </> : <>
-      {isRegister && <Field label="Nome de usuário" value={username} onChangeText={setUsername} maxLength={255} autoCapitalize="none" editable={!busy} />}
-      <Field label="E-mail" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} maxLength={255} editable={!busy} />
-      <Field label="Senha" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoCorrect={false} editable={!busy} />
+      {isRegister && <Field icon="person" label="Nome de usuário" value={username} onChangeText={setUsername} maxLength={255} autoCapitalize="none" editable={!busy} />}
+      <Field icon="envelope" label="E-mail" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} maxLength={255} editable={!busy} />
+      <Field icon="lock" label="Senha" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoCorrect={false} editable={!busy} />
       {isRegister && <Field label="Confirmar senha" value={confirmation} onChangeText={setConfirmation} secureTextEntry autoCapitalize="none" editable={!busy} />}
       {!!error && <Text accessibilityRole="alert" style={{ color: theme.colors.danger }}>{error}</Text>}
-      <Button title={isRegister ? 'Criar conta' : 'Entrar'} loading={busy} onPress={() => void submit()} />
-      {!isRegister && <Button title="Esqueci minha senha" disabled={busy} onPress={() => navigation.navigate('ForgotPassword')} />}
+      <Button title={isRegister ? 'Criar conta' : 'Entrar'} icon="arrow-right" variant="primary" loading={busy} onPress={() => void submit()} />
+      {!isRegister && <Button variant="ghost" title="Esqueci minha senha" disabled={busy} onPress={() => navigation.navigate('ForgotPassword')} />}
       <Button title={isRegister ? 'Já tenho conta' : 'Criar uma conta'} disabled={busy} onPress={() => navigation.replace(isRegister ? 'Login' : 'Register')} />
     </>}
+    </Surface>
   </Screen>;
 }

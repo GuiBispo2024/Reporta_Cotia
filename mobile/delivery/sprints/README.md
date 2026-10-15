@@ -11,9 +11,13 @@ Sequência complementar na branch mrcatt, com commits locais e um roteiro por fu
 | Comentários e respostas | e413264 | [15 — Comentários](15-comentarios/README.md) |
 | Curtir e descurtir | 1b82cb9 | [16 — Curtidas](16-curtidas/README.md) |
 | Compatibilidade de build e correções SDK 57 | a126f30 | Complemento do roteiro 14 |
-| Compartilhamento nativo e confirmação idempotente | Commit desta entrega | [17 — Compartilhamento](17-compartilhamento/README.md) |
+| Compartilhamento nativo e confirmação idempotente | 14796bf | [17 — Compartilhamento](17-compartilhamento/README.md) |
 
-Use git log --oneline -8 para consultar o hash da última entrega. Há oito commits porque a integração revelou um ajuste de configuração do mapa, registrado separadamente.
+Essa sequência tem oito commits porque a integração revelou um ajuste de configuração do mapa, registrado separadamente.
+
+## Identidade visual da Web
+
+A entrega seguinte aproxima o layout do mobile da Web: [18 — Layout e ícones](18-layout/README.md). O commit c4e0c06 contém marca, ícones Bootstrap, tema, componentes e navegação; o commit seguinte aplica os cards, cabeçalhos e formulários. Use git log --oneline -2 para consultar a entrega visual. A validação de aparência no aparelho permanece pendente.
 
 ## Situação dos critérios de aceite
 

@@ -15,6 +15,8 @@ import { useReportDraft } from '../services/useReportDraft';
 import { ReportImages } from '../components/ReportImages';
 import { UploadProgress } from '../components/UploadProgress';
 import type { ReportTransfer } from '../services/reportService';
+import { Hero } from '../components/Hero';
+import { Surface } from '../components/Surface';
 
 export function CreateReportScreen({ navigation, initialReport }: { navigation: Pick<NativeStackNavigationProp<RootStackParamList>, 'replace' | 'popToTop'>; initialReport?: Report }) {
   const { client, user } = useAuth();
@@ -104,19 +106,19 @@ export function CreateReportScreen({ navigation, initialReport }: { navigation: 
     <Button title="Voltar à lista" onPress={() => navigation.popToTop()} />
   </Screen>;
   return <Screen>
-    <Text style={styles.title}>{initialReport ? `Corrigir denúncia #${initialReport.id}` : 'O que precisa de atenção?'}</Text>
+    <Hero title={initialReport ? `Corrigir denúncia #${initialReport.id}` : 'O que precisa de atenção?'} description="Informe o problema e o endereço em Cotia. Sua denúncia será analisada antes da publicação." icon="pencil-square" />
+    <Surface>
     {!!initialReport?.motivoRejeicao && <Text accessibilityRole="alert" style={styles.error}>Motivo da rejeição: {initialReport.motivoRejeicao}</Text>}
     <Text accessibilityLiveRegion="polite" style={styles.body}>{draft.notice}</Text>
     {!!draft.submissionKey && <Text accessibilityRole="alert" style={styles.body}>Envio aguardando confirmação. Os dados estão preservados; use o botão abaixo para consultar o protocolo e, se necessário, repetir o mesmo envio.</Text>}
     <Button title="Descartar rascunho" disabled={locked || selecting || locating} onPress={() => Alert.alert('Descartar rascunho?', 'Os textos e fotos salvos neste aparelho serão removidos.', [
       { text: 'Cancelar', style: 'cancel' }, { text: 'Descartar', style: 'destructive', onPress: () => { void draft.discard().then(() => { setInput(initialInput); setPhotos([]); setLatitude(initialReport?.latitude != null ? String(initialReport.latitude) : ''); setLongitude(initialReport?.longitude != null ? String(initialReport.longitude) : ''); setRemoveImages(false); }); } },
     ])} />
-    <Text style={styles.body}>Informe o problema e o endereço em Cotia. Sua denúncia será analisada antes da publicação.</Text>
-    <Field label="Título" value={input.titulo} onChangeText={field('titulo')} maxLength={120} editable={!locked} />
+    <Field icon="pencil-square" label="Título" value={input.titulo} onChangeText={field('titulo')} maxLength={120} editable={!locked} />
     <Field label="Descrição" value={input.descricao} onChangeText={field('descricao')} maxLength={2000} multiline editable={!locked} />
-    <Field label="Endereço / localização" value={input.localizacao} onChangeText={field('localizacao')} maxLength={255} editable={!locked} />
+    <Field icon="geo-alt-fill" label="Endereço / localização" value={input.localizacao} onChangeText={field('localizacao')} maxLength={255} editable={!locked} />
     <Field label="Bairro (opcional)" value={input.bairro} onChangeText={field('bairro')} maxLength={120} editable={!locked} />
-    <Button title="Usar minha localização" loading={locating} disabled={locked || selecting} onPress={() => void locate()} />
+    <Button icon="geo-alt-fill" title="Usar minha localização" loading={locating} disabled={locked || selecting} onPress={() => void locate()} />
     {!!locationNotice && <Text accessibilityRole="alert" style={styles.body}>{locationNotice}</Text>}
     <Field label="Latitude (opcional)" value={latitude} onChangeText={setLatitude} maxLength={24} editable={!locked && !locating} autoCapitalize="none" />
     <Field label="Longitude (opcional)" value={longitude} onChangeText={setLongitude} maxLength={24} editable={!locked && !locating} autoCapitalize="none" />
@@ -133,8 +135,8 @@ export function CreateReportScreen({ navigation, initialReport }: { navigation: 
       <Button title={removeImages ? 'Manter fotos atuais' : 'Remover todas as fotos atuais'} disabled={locked || !!photos.length || selecting} onPress={() => setRemoveImages((value) => !value)} />
     </>}
     <Text style={styles.body}>Fotos (opcional): {photos.length}/4</Text>
-    <Button title="Tirar foto" disabled={locked || locating || selecting || photos.length >= 4} onPress={() => void pick('camera')} />
-    <Button title="Escolher da galeria" loading={selecting} disabled={locked || locating || photos.length >= 4} onPress={() => void pick('library')} />
+    <Button icon="camera" title="Tirar foto" disabled={locked || locating || selecting || photos.length >= 4} onPress={() => void pick('camera')} />
+    <Button icon="images" title="Escolher da galeria" loading={selecting} disabled={locked || locating || photos.length >= 4} onPress={() => void pick('library')} />
     {photos.map((photo, index) => <View key={photo.uri} style={{ gap: 8 }}>
       <Image source={{ uri: photo.uri }} accessibilityLabel={`Anexo ${index + 1}`} style={{ width: '100%', height: 180, borderRadius: 8 }} />
       <Button title={`Remover foto ${index + 1}`} disabled={locked || selecting} onPress={() => setPhotos((current) => current.filter((item) => item.uri !== photo.uri))} />
@@ -142,7 +144,8 @@ export function CreateReportScreen({ navigation, initialReport }: { navigation: 
     {!canCreate && <Text accessibilityRole="alert">Sua conta não tem permissão para publicar denúncias.</Text>}
     {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
     {busy && <UploadProgress phase={phase} percent={percent} />}
-    <Button title={draft.submissionKey ? 'Confirmar envio pendente' : initialReport ? 'Reenviar para moderação' : 'Enviar denúncia'} loading={busy} disabled={busy || !draft.ready || !canCreate || selecting || locating} onPress={() => void submit()} />
+    <Button title={draft.submissionKey ? 'Confirmar envio pendente' : initialReport ? 'Reenviar para moderação' : 'Enviar denúncia'} icon="send" variant="primary" loading={busy} disabled={busy || !draft.ready || !canCreate || selecting || locating} onPress={() => void submit()} />
+    </Surface>
   </Screen>;
 }
 const styles = StyleSheet.create({

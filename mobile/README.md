@@ -173,6 +173,8 @@ Validação atual: Expo Doctor 21/21, TypeScript, 6 testes de configuração, 78
 
 O inventário em `delivery/README.md` é um snapshot histórico do SDK 55. As versões atuais estão em `package.json` e `package-lock.json`.
 
+O [layout alinhado à Web](delivery/sprints/18-layout/README.md) reutiliza a logo, Bootstrap Icons e ilustrações do projeto, com cabeçalhos verdes, cards e formulários adaptados ao celular. Execute `npm run assets:sync` para atualizar os assets compartilhados. SVG e gradiente estão disponíveis no Expo Go SDK 57; um development build anterior precisa ser recriado para incluir essas dependências nativas.
+
 ## Validação original da entrega (02/10/2026, SDK 55)
 
 - TypeScript: aprovado.

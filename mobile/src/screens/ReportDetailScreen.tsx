@@ -15,6 +15,9 @@ import { ReportMap } from '../components/ReportMap';
 import { ReportComments } from '../components/ReportComments';
 import { ReportLikes } from '../components/ReportLikes';
 import { ReportSharing } from '../components/ReportSharing';
+import { Hero } from '../components/Hero';
+import { Surface } from '../components/Surface';
+import { ReportStatus } from '../components/ReportStatus';
 
 export function ReportDetailScreen({ route, navigation }: NativeStackScreenProps<RootStackParamList, 'ReportDetail'>) {
   const { client, user } = useAuth();
@@ -47,8 +50,9 @@ export function ReportDetailScreen({ route, navigation }: NativeStackScreenProps
     <Text accessibilityRole="alert" style={{ color: theme.colors.danger }}>{error}</Text>
     <Button title="Tentar novamente" onPress={() => setAttempt((value) => value + 1)} />
   </> : report ? <>
-    <Text accessibilityRole="header" style={{ ...theme.typography.title, color: theme.colors.text }}>{report.titulo}</Text>
-    <Text style={theme.typography.body}>Protocolo #{report.id} · {report.categoria}</Text>
+    <Hero title={report.titulo} description={`Protocolo #${report.id} · ${report.categoria}`} icon="clipboard2-check" />
+    <Surface>
+    <ReportStatus status={report.status} resolution={report.resolucaoStatus} />
     <Text style={theme.typography.body}>{report.status === 'pendente' ? 'Aguardando moderação' : report.status === 'rejeitada' ? 'Rejeitada na moderação' : resolutionLabels[report.resolucaoStatus] ?? report.resolucaoStatus}</Text>
     <Text style={theme.typography.body}>Setor responsável: {report.setorResponsavel || 'Ainda não definido'}</Text>
     {!!report.motivoRejeicao && <Text accessibilityRole="alert" style={{ ...theme.typography.body, color: theme.colors.danger }}>Motivo da rejeição: {report.motivoRejeicao}</Text>}
@@ -64,11 +68,17 @@ export function ReportDetailScreen({ route, navigation }: NativeStackScreenProps
     </>}
     {!!report.User?.username && <Text style={theme.typography.body}>Publicado por {report.User.username}</Text>}
     {!!report.createdAt && <Text style={theme.typography.caption}>{new Date(report.createdAt).toLocaleDateString('pt-BR')}</Text>}
+    </Surface>
     {report.status === 'aprovada' && <>
+      <Surface>
       <ReportLikes key={`likes-${report.id}`} report={report} />
       <ReportSharing key={`shares-${report.id}`} report={report} />
+      </Surface>
+      <Surface>
       <ReportComments key={report.id} reportId={report.id} />
+      </Surface>
     </>}
+    <Surface>
     <Text accessibilityRole="header" style={theme.typography.heading}>Histórico de acompanhamento</Text>
     {historyError ? <>
       <Text accessibilityRole="alert">{historyError}</Text>
@@ -82,5 +92,6 @@ export function ReportDetailScreen({ route, navigation }: NativeStackScreenProps
           {!!entry.responsavel && <Text>Setor: {entry.responsavel}</Text>}
           <Text>{new Date(entry.createdAt).toLocaleString('pt-BR')}</Text>
         </View>)}
+    </Surface>
   </> : <ActivityIndicator accessibilityLabel="Carregando denúncia" color={theme.colors.primary} />}</Screen>;
 }

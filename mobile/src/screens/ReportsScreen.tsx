@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -11,6 +11,10 @@ import { categories, listReports, listMyReports, type ReportFilters, type Report
 import { Choices } from '../components/Choices';
 import { toApiError } from '../utils/ApiError';
 import { theme } from '../theme';
+import { Hero } from '../components/Hero';
+import { Surface } from '../components/Surface';
+import { ReportCard } from '../components/ReportCard';
+import { Icon } from '../components/Icon';
 
 export const resolutionLabels: Record<string, string> = { aberta: 'Aberta', em_andamento: 'Em andamento', resolvida: 'Resolvida' };
 export function ReportsScreen({ navigation, route }: { navigation: Pick<NativeStackNavigationProp<RootStackParamList>, 'navigate'>; route: { name: 'Reports' | 'MyReports' } }) {
@@ -44,57 +48,50 @@ export function ReportsScreen({ navigation, route }: { navigation: Pick<NativeSt
       keyboardShouldPersistTaps="handled" ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
       refreshing={busy} onRefresh={retry}
       ListHeaderComponent={<View style={styles.header}>
-        <Text accessibilityRole="header" style={styles.title}>{isMine ? 'Minhas denúncias' : 'Cotia, com a sua voz'}</Text>
-        <Text style={styles.body}>{isMine ? 'Acompanhe também registros pendentes e rejeitados.' : 'Acompanhe as denúncias da cidade e ajude a cuidar do seu bairro.'}</Text>
-        {!!notice && <Text accessibilityRole="alert" style={styles.body}>{notice}</Text>}
+        <Hero title={isMine ? 'Minhas denúncias' : user ? `Olá, ${user.username}!` : 'Ajude a melhorar Cotia.'} icon={isMine ? 'clipboard2-check' : 'geo-alt-fill'}
+          description={isMine ? 'Acompanhe também registros pendentes e rejeitados.' : 'Registre problemas urbanos e acompanhe as mudanças no seu bairro.'}>
+        {!!notice && <Text accessibilityRole="alert" style={[styles.body, { color: theme.colors.onDarkMuted }]}>{notice}</Text>}
         {user ? <>
-          <Text style={styles.body}>Olá, {user.username}</Text>
-          <Button title="Nova denúncia" disabled={!user.permissions.includes('denuncia.create')} onPress={() => navigation.navigate('CreateReport')} />
+          <Button title="Nova denúncia" icon="plus-lg" variant="accent" disabled={!user.permissions.includes('denuncia.create')} onPress={() => navigation.navigate('CreateReport')} />
         </> : <>
-          <Button title="Entrar para publicar" onPress={() => navigation.navigate('Login')} />
-          <Button title="Criar conta" onPress={() => navigation.navigate('Register')} />
+          <Button title="Entrar para publicar" icon="plus-lg" variant="accent" onPress={() => navigation.navigate('Login')} />
+          <Button title="Criar conta" icon="person" onPress={() => navigation.navigate('Register')} />
         </>}
-        <Field label="Buscar pelo título" value={search} onChangeText={setSearch} maxLength={120} returnKeyType="search"
+        </Hero>
+        <Surface>
+        <Text style={styles.heading}>Encontre uma denúncia</Text>
+        <Field label="Buscar pelo título" icon="search" placeholder="Ex.: buraco na avenida" value={search} onChangeText={setSearch} maxLength={120} returnKeyType="search"
           onSubmitEditing={apply} />
-        <Button title={showFilters ? 'Ocultar filtros' : 'Mostrar filtros'} onPress={() => setShowFilters((value) => !value)} />
+        <Button title={showFilters ? 'Ocultar filtros' : 'Mostrar filtros'} icon="sliders" onPress={() => setShowFilters((value) => !value)} />
         {showFilters && <>
           <Choices label="Categoria" value={filters.categoria ?? ''} options={[{ value: '', label: 'Todas' }, ...categories.map((value) => ({ value, label: value }))]} onChange={(categoria) => setFilters((current) => ({ ...current, categoria: categoria || undefined }))} />
           <Choices label="Situação" value={filters.resolucaoStatus ?? ''} options={[{ value: '', label: 'Todas' }, ...Object.entries(resolutionLabels).map(([value, label]) => ({ value, label }))]} onChange={(resolucaoStatus) => setFilters((current) => ({ ...current, resolucaoStatus: resolucaoStatus || undefined }))} />
           <Choices label="Ordenação" value={filters.sort ?? 'newest'} options={[{ value: 'newest', label: 'Mais recentes' }, { value: 'oldest', label: 'Mais antigas' }, ...(!isMine ? [{ value: 'likes', label: 'Mais curtidas' }, { value: 'shares', label: 'Mais compartilhadas' }] : [])]} onChange={(sort) => setFilters((current) => ({ ...current, sort: sort as ReportFilters['sort'] }))} />
           <Button title="Limpar filtros e busca" onPress={() => { setFilters({}); setApplied({}); setSearch(''); setQuery(''); setPage(1); retry(); }} />
         </>}
-        <Button title="Buscar" loading={busy} onPress={apply} />
+        <Button title="Buscar" icon="search" variant="primary" loading={busy} onPress={apply} />
+        </Surface>
         <Text accessibilityRole="header" style={styles.heading}>{isMine ? 'Seus registros' : 'Denúncias publicadas'}</Text>
         {result && <Text style={styles.body}>{result.total} denúncias encontradas</Text>}
       </View>}
       ListEmptyComponent={busy ? <ActivityIndicator accessibilityLabel="Carregando denúncias" color={theme.colors.primary} />
-        : error ? <View style={styles.header}><Text accessibilityRole="alert" style={styles.error}>{error}</Text><Button title="Tentar novamente" onPress={retry} /></View>
-          : <Text style={styles.body}>{isMine ? 'Você ainda não tem denúncias para esta busca.' : 'Nenhuma denúncia encontrada. Denúncias pendentes só aparecem aqui após aprovação.'}</Text>}
-      renderItem={({ item }) => <Pressable accessibilityRole="button" accessibilityLabel={`Ver denúncia: ${item.titulo}`}
-        onPress={() => navigation.navigate('ReportDetail', { id: item.id })} style={styles.card}>
-        <Text style={styles.tag}>{item.categoria} · {resolutionLabels[item.resolucaoStatus] ?? item.resolucaoStatus}</Text>
-        {isMine && <Text style={styles.tag}>{item.status === 'pendente' ? 'Aguardando moderação' : item.status === 'rejeitada' ? 'Rejeitada' : 'Aprovada'}</Text>}
-        <Text style={styles.heading}>{item.titulo}</Text>
-        <Text numberOfLines={3} style={styles.body}>{item.descricao}</Text>
-        <Text style={styles.body}>{item.localizacao}{item.bairro ? ` · ${item.bairro}` : ''}</Text>
-        <Text style={styles.tag}>Ver detalhes →</Text>
-      </Pressable>}
+        : error ? <Surface><Icon name="exclamation-triangle" color={theme.colors.danger} size={28} /><Text accessibilityRole="alert" style={styles.error}>{error}</Text><Button title="Tentar novamente" icon="arrow-clockwise" onPress={retry} /></Surface>
+          : <Surface><Icon name="search" size={28} /><Text style={styles.body}>{isMine ? 'Você ainda não tem denúncias para esta busca.' : 'Nenhuma denúncia encontrada. Denúncias pendentes só aparecem aqui após aprovação.'}</Text></Surface>}
+      renderItem={({ item }) => <ReportCard report={item} apiBaseUrl={client.defaults?.baseURL ?? ''} onPress={() => navigation.navigate('ReportDetail', { id: item.id })} />}
       ListFooterComponent={<View style={styles.footer}>
         {!!result?.data.length && <>
           <Text style={styles.body}>Página {result.page} de {Math.max(1, result.totalPages)}</Text>
-          <Button title="Página anterior" disabled={busy || page <= 1} onPress={() => setPage((value) => value - 1)} />
-          <Button title="Próxima página" disabled={busy || page >= result.totalPages} onPress={() => setPage((value) => value + 1)} />
+          <Button title="Página anterior" icon="arrow-left" disabled={busy || page <= 1} onPress={() => setPage((value) => value - 1)} />
+          <Button title="Próxima página" icon="arrow-right" disabled={busy || page >= result.totalPages} onPress={() => setPage((value) => value + 1)} />
         </>}
-        <Button title="Sobre o aplicativo" onPress={() => navigation.navigate('About')} />
+        <Button title="Sobre o aplicativo" icon="info-circle" variant="ghost" onPress={() => navigation.navigate('About')} />
       </View>} />
   </SafeAreaView>;
 }
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.colors.background },
-  content: { padding: 24, flexGrow: 1, maxWidth: 720, width: '100%', alignSelf: 'center' },
+  content: { padding: 18, paddingBottom: 32, flexGrow: 1, maxWidth: 720, width: '100%', alignSelf: 'center' },
   header: { gap: 16, marginBottom: 24 }, footer: { gap: 16, marginTop: 24 },
-  title: { ...theme.typography.title, color: theme.colors.text }, heading: { ...theme.typography.heading, color: theme.colors.text },
+  heading: { ...theme.typography.heading, color: theme.colors.text },
   body: { ...theme.typography.body, color: theme.colors.muted }, error: { ...theme.typography.body, color: theme.colors.danger },
-  tag: { ...theme.typography.caption, color: theme.colors.primary },
-  card: { backgroundColor: theme.colors.surface, padding: 20, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border, gap: 12 },
 });

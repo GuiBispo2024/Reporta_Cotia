@@ -67,7 +67,7 @@ export function ReportComments({ reportId }: { reportId: number }) {
       {reply && <><Text>Respondendo a {reply.username}</Text><Button title="Cancelar resposta" disabled={busy} onPress={() => setReply(null)} /></>}
       <Field label="Seu comentário" value={text} onChangeText={setText} multiline maxLength={255} editable={!busy} />
       <Text>{text.length}/255 caracteres</Text>
-      <Button title="Publicar comentário" loading={busy} disabled={!text.trim()} onPress={() => void send()} />
+      <Button title="Publicar comentário" icon="send" variant="primary" loading={busy} disabled={!text.trim()} onPress={() => void send()} />
     </> : <Text>Entre na aba Conta para comentar.</Text>}
     {!!actionError && <Text accessibilityRole="alert" style={{ color: theme.colors.danger }}>{actionError}</Text>}
   </View>;
