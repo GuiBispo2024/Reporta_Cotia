@@ -12,6 +12,7 @@ import { theme } from '../theme';
 import { resolutionLabels } from './ReportsScreen';
 import { ReportImages } from '../components/ReportImages';
 import { ReportMap } from '../components/ReportMap';
+import { ReportComments } from '../components/ReportComments';
 
 export function ReportDetailScreen({ route, navigation }: NativeStackScreenProps<RootStackParamList, 'ReportDetail'>) {
   const { client, user } = useAuth();
@@ -61,6 +62,7 @@ export function ReportDetailScreen({ route, navigation }: NativeStackScreenProps
     </>}
     {!!report.User?.username && <Text style={theme.typography.body}>Publicado por {report.User.username}</Text>}
     {!!report.createdAt && <Text style={theme.typography.caption}>{new Date(report.createdAt).toLocaleDateString('pt-BR')}</Text>}
+    {report.status === 'aprovada' && <ReportComments key={report.id} reportId={report.id} />}
     <Text accessibilityRole="header" style={theme.typography.heading}>Histórico de acompanhamento</Text>
     {historyError ? <>
       <Text accessibilityRole="alert">{historyError}</Text>
