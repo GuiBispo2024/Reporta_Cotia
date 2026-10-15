@@ -24,7 +24,7 @@ module.exports = () => {
       },
     },
     android: { package: `br.com.reportacotia.app${suffix}` },
-    plugins: [['expo-dev-client', { launchMode: 'launcher' }], ['react-native-maps', {
+    plugins: [['expo-dev-client', { launchMode: 'launcher' }], ['./plugins/withReportMaps.cjs', {
       ...(process.env.GOOGLE_MAPS_ANDROID_API_KEY ? { androidGoogleMapsApiKey: process.env.GOOGLE_MAPS_ANDROID_API_KEY } : {}),
     }], 'expo-status-bar', 'expo-secure-store', ['expo-image-picker', {
       photosPermission: 'Selecionar fotos para anexar à denúncia.', cameraPermission: 'Fotografar problemas urbanos para a denúncia.', microphonePermission: false,
