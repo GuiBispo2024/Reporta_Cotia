@@ -13,6 +13,8 @@ import { selectPhotos, type ReportPhoto } from '../services/photoService';
 import { getCurrentLocation, parseCoordinates } from '../services/locationService';
 import { useReportDraft } from '../services/useReportDraft';
 import { ReportImages } from '../components/ReportImages';
+import { UploadProgress } from '../components/UploadProgress';
+import type { ReportTransfer } from '../services/reportService';
 
 export function CreateReportScreen({ navigation, initialReport }: { navigation: Pick<NativeStackNavigationProp<RootStackParamList>, 'replace' | 'popToTop'>; initialReport?: Report }) {
   const { client, user } = useAuth();
@@ -20,6 +22,8 @@ export function CreateReportScreen({ navigation, initialReport }: { navigation: 
   const [input, setInput] = useState<ReportInput>(initialInput);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [phase, setPhase] = useState('');
+  const [percent, setPercent] = useState<number | null>(null);
   const [reportId, setReportId] = useState<number | null>(null);
   const submitting = useRef(false);
   const [photos, setPhotos] = useState<ReportPhoto[]>([]);
@@ -60,21 +64,30 @@ export function CreateReportScreen({ navigation, initialReport }: { navigation: 
     if (![input.titulo, input.descricao, input.localizacao].every((value) => value.trim())) {
       setError('Preencha título, descrição e endereço.'); return;
     }
-    submitting.current = true; setBusy(true); setError('');
+    submitting.current = true; setBusy(true); setError(''); setPercent(null); setPhase('Validando denúncia…');
     try {
       parseCoordinates(latitude, longitude);
       if (draft.submissionKey) {
+        setPhase('Consultando confirmação do envio anterior…');
         try {
           const report = initialReport ? await getReport(client, initialReport.id) : await getSubmission(client, draft.submissionKey);
           if (!initialReport || report.status !== 'rejeitada') { setReportId(report.id); await draft.discard(true); return; }
         } catch (reason) { if (initialReport || toApiError(reason).status !== 404) throw reason; }
         if (draft.missingPhotos) throw new ApiError('Uma foto do envio pendente está indisponível. Consulte o protocolo antes de começar outro envio.', 'MISSING_SUBMISSION_PHOTO');
       }
+      setPhase('Preservando dados e fotos neste aparelho…');
       const saved = await draft.prepareSubmission();
       setPhotos(saved.photos);
       const payload = { ...saved.input, ...parseCoordinates(saved.latitude, saved.longitude) };
-      const report = initialReport ? await updateReport(client, initialReport.id, payload, saved.photos, saved.removeImages)
-        : await createReport(client, payload, saved.photos, saved.submissionKey);
+      setPhase('Enviando denúncia…');
+      const transfer: ReportTransfer = { onUploadProgress: (event) => {
+        const ratio = event.total ? event.loaded / event.total : event.progress;
+        if (ratio === undefined) return;
+        const value = Math.min(100, Math.max(0, Math.floor(ratio * 100)));
+        setPercent(value); setPhase(value === 100 ? 'Upload concluído. Aguardando confirmação do servidor…' : 'Enviando denúncia…');
+      } };
+      const report = initialReport ? await updateReport(client, initialReport.id, payload, saved.photos, saved.removeImages, transfer)
+        : await createReport(client, payload, saved.photos, saved.submissionKey, transfer);
       setReportId(report.id); await draft.discard(true);
     }
     catch (reason) {
@@ -128,6 +141,7 @@ export function CreateReportScreen({ navigation, initialReport }: { navigation: 
     </View>)}
     {!canCreate && <Text accessibilityRole="alert">Sua conta não tem permissão para publicar denúncias.</Text>}
     {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
+    {busy && <UploadProgress phase={phase} percent={percent} />}
     <Button title={draft.submissionKey ? 'Confirmar envio pendente' : initialReport ? 'Reenviar para moderação' : 'Enviar denúncia'} loading={busy} disabled={busy || !draft.ready || !canCreate || selecting || locating} onPress={() => void submit()} />
   </Screen>;
 }

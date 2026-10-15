@@ -26,6 +26,16 @@ test('avatar usa upload multipart no campo avatar', async () => {
   });
   await uploadAvatar(client, { uri: 'file:///avatar.jpg', name: 'avatar.jpg', type: 'image/jpeg' });
 });
+test('envio preserva chave idempotente e repassa progresso real do transporte', async () => {
+  const progress = jest.fn();
+  mock.onPost('denuncia').reply((config) => {
+    expect(config.headers?.['Idempotency-Key']).toBe('stable-key');
+    config.onUploadProgress?.({ loaded: 50, total: 100, bytes: 50, lengthComputable: true });
+    return [201, { denuncia: report }];
+  });
+  await createReport(client, input, [], 'stable-key', { onUploadProgress: progress });
+  expect(progress).toHaveBeenCalledWith(expect.objectContaining({ loaded: 50, total: 100 }));
+});
 test('correção usa PUT no protocolo original e envia null para remover coordenadas', async () => {
   mock.onPut('denuncia/1', { ...input, latitude: null, longitude: null, removeImages: true }).reply(200, { denuncia: { ...report, status: 'pendente' } });
   await expect(updateReport(client, 1, input, [], true)).resolves.toMatchObject({ id: 1, status: 'pendente' });

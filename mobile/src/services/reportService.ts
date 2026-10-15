@@ -1,4 +1,5 @@
-import type { AxiosInstance } from 'axios';
+import type { AxiosInstance, AxiosProgressEvent } from 'axios';
+export type ReportTransfer = { onUploadProgress?: (event: AxiosProgressEvent) => void };
 import { ApiError } from '../utils/ApiError';
 import type { ReportPhoto } from './photoService';
 
@@ -48,22 +49,22 @@ export async function getSubmission(client: AxiosInstance, key: string): Promise
   const { data } = await client.get(`denuncia/submissions/${key}`);
   return parseReport(data?.denuncia);
 }
-export async function updateReport(client: AxiosInstance, id: number, input: ReportInput, photos: ReportPhoto[] = [], removeImages = false): Promise<Report> {
+export async function updateReport(client: AxiosInstance, id: number, input: ReportInput, photos: ReportPhoto[] = [], removeImages = false, transfer?: ReportTransfer): Promise<Report> {
   if (photos.length > 4) throw new ApiError('Você pode anexar até quatro fotos.', 'IMAGE_LIMIT');
   const fields = { ...input, latitude: input.latitude ?? null, longitude: input.longitude ?? null, ...(removeImages ? { removeImages: true } : {}) };
   const form = new FormData();
   for (const [key, value] of Object.entries(fields)) form.append(key, value === null ? '' : String(typeof value === 'string' ? value.trim() : value));
   for (const photo of photos) form.append('imagens', { uri: photo.uri, name: photo.name, type: photo.type } as unknown as Blob);
-  const { data } = await client.put(`denuncia/${id}`, photos.length ? form : fields);
+  const { data } = await client.put(`denuncia/${id}`, photos.length ? form : fields, transfer);
   return parseReport(data?.denuncia);
 }
-export async function createReport(client: AxiosInstance, input: ReportInput, photos: ReportPhoto[] = [], key?: string): Promise<Report> {
+export async function createReport(client: AxiosInstance, input: ReportInput, photos: ReportPhoto[] = [], key?: string, transfer?: ReportTransfer): Promise<Report> {
   if (photos.length > 4) throw new ApiError('Você pode anexar até quatro fotos.', 'IMAGE_LIMIT');
   const fields = Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined).map(([key, value]) => [key, typeof value === 'string' ? value.trim() : value]));
   const form = new FormData();
   for (const [key, value] of Object.entries(fields)) form.append(key, String(value));
   for (const photo of photos) form.append('imagens', { uri: photo.uri, name: photo.name, type: photo.type } as unknown as Blob);
   // Axios/React Native define o boundary; não fixar Content-Type manualmente.
-  const { data } = await client.post('denuncia', photos.length ? form : fields, key ? { headers: { 'Idempotency-Key': key } } : undefined);
+  const { data } = await client.post('denuncia', photos.length ? form : fields, key || transfer ? { ...transfer, ...(key ? { headers: { 'Idempotency-Key': key } } : {}) } : undefined);
   return parseReport(data?.denuncia);
 }

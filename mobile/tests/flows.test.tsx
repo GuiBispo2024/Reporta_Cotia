@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { AccountScreen } from '../src/screens/AccountScreen';
 import { CreateReportScreen } from '../src/screens/CreateReportScreen';
 import { useAuth } from '../src/context/AuthContext';
@@ -100,5 +100,21 @@ test('correção preserva protocolo e permite remover imagens e coordenadas', as
   fireEvent.press(screen.getByRole('button', { name: 'Reenviar para moderação' }));
   await screen.findByText(/Protocolo #9/);
   expect(createReport).not.toHaveBeenCalled();
-  expect(updateReport).toHaveBeenCalledWith(context.client, 9, { titulo: 'Buraco', descricao: 'Na rua', localizacao: 'Rua, 10', bairro: 'Centro', categoria: 'Outros' }, [], true);
+  expect(updateReport).toHaveBeenCalledWith(context.client, 9, { titulo: 'Buraco', descricao: 'Na rua', localizacao: 'Rua, 10', bairro: 'Centro', categoria: 'Outros' }, [], true, expect.objectContaining({ onUploadProgress: expect.any(Function) }));
+});
+test('100% de upload aguarda confirmação antes de apresentar protocolo', async () => {
+  let finish!: (value: any) => void;
+  jest.mocked(createReport).mockImplementation(async (_client, _input, _photos, _key, transfer) => {
+    transfer?.onUploadProgress?.({ loaded: 100, total: 100, bytes: 100, lengthComputable: true });
+    return new Promise((resolve) => { finish = resolve; });
+  });
+  render(<CreateReportScreen {...createProps} />);
+  fireEvent.changeText(screen.getByLabelText('Título'), 'Buraco');
+  fireEvent.changeText(screen.getByLabelText('Descrição'), 'Na rua');
+  fireEvent.changeText(screen.getByLabelText('Endereço / localização'), 'Rua, 10');
+  fireEvent.press(screen.getByRole('button', { name: 'Enviar denúncia' }));
+  await screen.findByText('Upload concluído. Aguardando confirmação do servidor…');
+  expect(screen.queryByText(/Protocolo #/)).toBeNull();
+  await act(async () => { finish({ id: 42 }); });
+  await screen.findByText(/Protocolo #42/);
 });
