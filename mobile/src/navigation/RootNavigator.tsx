@@ -24,7 +24,7 @@ export function RootNavigator() {
       prefixes: [`${typeof Constants.expoConfig?.scheme === 'string' ? Constants.expoConfig.scheme : 'reportacotia'}://`],
       config: { screens: { ResetPassword: 'redefinir-senha' } },
     }}>
-      <Stack.Navigator key={user ? `user-${user.id}` : 'guest'} screenOptions={{ headerTintColor: theme.colors.primary, headerTitleStyle: theme.typography.heading }}>
+      <Stack.Navigator key={user ? `user-${user.id}` : 'guest'} screenOptions={{ headerTintColor: theme.colors.onPrimary, headerStyle: { backgroundColor: theme.colors.primaryDark }, headerTitleStyle: { fontSize: 18, fontWeight: '700' }, headerShadowVisible: false }}>
         <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
         {!user ? <>
           <Stack.Screen name="Login" component={AccountScreen} options={{ title: 'Entrar' }} />

@@ -1,6 +1,7 @@
 import { createBottomTabNavigator, type BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Text } from 'react-native';
+import { Icon } from '../components/Icon';
+import { Brand } from '../components/Brand';
 import { ReportsScreen } from '../screens/ReportsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { useAuth } from '../context/AuthContext';
@@ -15,9 +16,12 @@ function ReportTab({ navigation, route }: BottomTabScreenProps<MainTabParamList,
 export function MainTabs() {
   const { user } = useAuth();
   return <Tabs.Navigator screenOptions={({ route }) => ({
-    headerTintColor: theme.colors.primary, tabBarActiveTintColor: theme.colors.primary,
-    tabBarInactiveTintColor: theme.colors.muted, tabBarLabelStyle: { fontSize: 12 },
-    tabBarIcon: ({ color }) => <Text accessibilityElementsHidden importantForAccessibility="no" style={{ color, fontSize: 23 }}>{route.name === 'Reports' ? '⌂' : route.name === 'MyReports' ? '▤' : '●'}</Text>,
+    headerTintColor: theme.colors.onPrimary, headerStyle: { backgroundColor: theme.colors.primaryDark }, headerShadowVisible: false,
+    headerTitle: () => <Brand />, tabBarActiveTintColor: theme.colors.primaryDark,
+    tabBarInactiveTintColor: theme.colors.muted, tabBarLabelStyle: { fontSize: 12, fontWeight: '700' },
+    tabBarStyle: { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border },
+    tabBarItemStyle: { paddingVertical: 4 }, tabBarActiveBackgroundColor: theme.colors.tint,
+    tabBarIcon: ({ color, focused }) => <Icon name={route.name === 'Reports' ? focused ? 'house-fill' : 'house' : route.name === 'MyReports' ? 'clipboard2-check' : 'person-circle'} color={color} size={23} />,
   })}>
     <Tabs.Screen name="Reports" component={ReportTab} options={{ title: 'Reporta Cotia', tabBarLabel: 'Início', tabBarAccessibilityLabel: 'Aba Início' }} />
     {user && <Tabs.Screen name="MyReports" component={ReportTab} options={{ title: 'Minhas denúncias', tabBarLabel: 'Minhas', tabBarAccessibilityLabel: 'Aba Minhas denúncias' }} />}

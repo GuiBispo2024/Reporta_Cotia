@@ -15,5 +15,5 @@ export function Screen({ children }: PropsWithChildren) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.colors.background },
-  content: { flexGrow: 1, padding: theme.spacing.lg, gap: theme.spacing.lg, width: '100%', maxWidth: 720, alignSelf: 'center' },
+  content: { flexGrow: 1, padding: 18, paddingBottom: 32, gap: 18, width: '100%', maxWidth: 720, alignSelf: 'center' },
 });
