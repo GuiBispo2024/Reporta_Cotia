@@ -17,9 +17,11 @@ Implementações em sequência, com um commit por etapa e um roteiro separado pa
 
 Use `git log --oneline -10` para identificar também o hash da última entrega. Leia os roteiros na ordem e registre o resultado no seu aparelho; finalizar o código não confirma o teste físico. Para comparar commits, prefira um checkout separado: evite mudar a branch atual com alterações locais.
 
-## Verificações locais
+## Verificações da entrega inicial (10/10/2026)
 
 TypeScript, 5 testes de configuração e 63 testes Jest aprovados. Dois testes de leitura do cliente mobile passaram contra a API real com PostgreSQL. Backend: 206 testes aprovados; concorrência de envios confirmada no PostgreSQL com conta temporária removida ao concluir. Expo Doctor: 21/21. Bundles Hermes Android/iOS exportados.
+
+Os recursos e checks mais recentes estão nos [roteiros de fechamento das sprints](../sprints/README.md).
 
 APK/AAB/IPA, instalação física, envio real de e-mail, abertura de custom scheme no aparelho e execução remota do CI permanecem pendentes. A etapa 6 terá ajustes adicionais se os testes físicos revelarem problemas.
 

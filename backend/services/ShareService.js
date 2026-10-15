@@ -1,5 +1,5 @@
 const ShareRepository = require('../repositories/ShareRepository')
-const { Denuncia } = require('../models/rel')
+const { Denuncia, Share } = require('../models/rel')
 const filterBadWords = require('../utils/filterBadWords')
 const AppError = require('../utils/AppError')
 
@@ -11,18 +11,19 @@ async function requirePublicReport(denunciaId) {
 class ShareService {
     
   // Compartilha uma denúncia com comentário opcional
-  static async compartilhar({ denunciaId, comentario },user) {
+  static async compartilhar({ denunciaId, comentario, clientRequestId },user) {
     const { id: userId } = user
     await requirePublicReport(denunciaId)
 
     const mensagem = typeof comentario === 'string' ? comentario.trim().slice(0, 255) : ''
     const { hasBadWord, filteredText } = filterBadWords(mensagem)
+    if (clientRequestId !== undefined && (typeof clientRequestId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientRequestId))) throw new AppError('Identificador de compartilhamento inválido.', 400, 'VALIDATION_ERROR')
 
-    const share = await ShareRepository.create({
-      userId,
-      denunciaId,
-      comentario: filteredText
-    })
+    const data = { userId, denunciaId, comentario: filteredText }
+    const share = clientRequestId
+      ? (await Share.findOrCreate({ where: { userId, clientRequestId: clientRequestId.toLowerCase() }, defaults: data }))[0]
+      : await ShareRepository.create(data)
+    if (clientRequestId && (Number(share.denunciaId) !== Number(denunciaId) || share.comentario !== filteredText)) throw new AppError('Este envio já foi registrado com outro conteúdo.', 409, 'IDEMPOTENCY_CONFLICT')
 
     return {
       message: hasBadWord

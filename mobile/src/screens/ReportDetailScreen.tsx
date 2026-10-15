@@ -14,6 +14,7 @@ import { ReportImages } from '../components/ReportImages';
 import { ReportMap } from '../components/ReportMap';
 import { ReportComments } from '../components/ReportComments';
 import { ReportLikes } from '../components/ReportLikes';
+import { ReportSharing } from '../components/ReportSharing';
 
 export function ReportDetailScreen({ route, navigation }: NativeStackScreenProps<RootStackParamList, 'ReportDetail'>) {
   const { client, user } = useAuth();
@@ -65,6 +66,7 @@ export function ReportDetailScreen({ route, navigation }: NativeStackScreenProps
     {!!report.createdAt && <Text style={theme.typography.caption}>{new Date(report.createdAt).toLocaleDateString('pt-BR')}</Text>}
     {report.status === 'aprovada' && <>
       <ReportLikes key={`likes-${report.id}`} report={report} />
+      <ReportSharing key={`shares-${report.id}`} report={report} />
       <ReportComments key={report.id} reportId={report.id} />
     </>}
     <Text accessibilityRole="header" style={theme.typography.heading}>Histórico de acompanhamento</Text>

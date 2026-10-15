@@ -44,8 +44,8 @@ const auth = require('../middlewares/auth')
 // Compartilha denúncia
 router.post('/:denunciaId/share',auth, async (req, res, next) => {
   try {
-    const { comentario } = req.body
-    const result = await ShareService.compartilhar({ denunciaId: req.params.denunciaId, comentario }, req.user)
+    const { comentario, clientRequestId } = req.body
+    const result = await ShareService.compartilhar({ denunciaId: req.params.denunciaId, comentario, clientRequestId }, req.user)
     res.status(201).json(result)
   } catch (error) { next(error) }
 })

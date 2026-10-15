@@ -1,0 +1,31 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { ReportSharing } from '../src/components/ReportSharing';
+import { openReportShare, recordShare } from '../src/services/shareService';
+import type { Report } from '../src/services/reportService';
+import { ApiError } from '../src/utils/ApiError';
+jest.mock('../src/context/AuthContext', () => { const client = {}; return { useAuth: () => ({ client, user: { id: 1 } }) }; });
+jest.mock('../src/services/shareService', () => ({ openReportShare: jest.fn(), recordShare: jest.fn() }));
+jest.mock('expo-crypto', () => ({ randomUUID: () => 'f1768e55-b65c-4faf-a5cc-51ac3b095676' }));
+const report = { id: 9, titulo: 'Buraco', status: 'aprovada', sharesCount: 2 } as Report;
+beforeEach(() => jest.resetAllMocks());
+test('abrir e cancelar seletor ou confirmação Android não envia registro', async () => {
+  jest.mocked(openReportShare).mockResolvedValueOnce('cancelled').mockResolvedValueOnce('confirm');
+  render(<ReportSharing report={report} />);
+  fireEvent.press(screen.getByRole('button', { name: 'Compartilhar denúncia' }));
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Compartilhar denúncia' }).props.accessibilityState.busy).toBe(false));
+  fireEvent.press(screen.getByRole('button', { name: 'Compartilhar denúncia' }));
+  fireEvent.press(await screen.findByRole('button', { name: 'Não compartilhei' }));
+  expect(recordShare).not.toHaveBeenCalled(); expect(screen.getByText('2 compartilhamentos')).toBeTruthy();
+});
+test('falha ao registrar repete a mesma chave sem reabrir compartilhamento', async () => {
+  jest.mocked(openReportShare).mockResolvedValue('confirm');
+  jest.mocked(recordShare).mockRejectedValueOnce(new ApiError('Sem rede', 'NETWORK_ERROR')).mockResolvedValueOnce({ ...report, sharesCount: 3 });
+  render(<ReportSharing report={report} />);
+  fireEvent.press(screen.getByRole('button', { name: 'Compartilhar denúncia' }));
+  fireEvent.press(await screen.findByRole('button', { name: 'Concluí o compartilhamento' }));
+  fireEvent.press(await screen.findByRole('button', { name: 'Confirmar registro pendente' }));
+  await screen.findByText('3 compartilhamentos');
+  expect(recordShare).toHaveBeenCalledTimes(2);
+  expect(jest.mocked(recordShare).mock.calls[0]?.[2]).toBe(jest.mocked(recordShare).mock.calls[1]?.[2]);
+  expect(openReportShare).toHaveBeenCalledTimes(1);
+});

@@ -167,9 +167,9 @@ npx eas-cli build --platform ios --profile development
 
 ## Atualização para SDK 57 (10/10/2026)
 
-Expo 57.0.27, React Native 0.86.3, React 19.2.3 e TypeScript 6. Os módulos Expo, safe-area, screens e jest-expo foram alinhados com as versões recomendadas pelo SDK. A configuração inclui o plugin `expo-status-bar`. O script de seleção de ambiente agora se chama `expo:env`, evitando conflito com o executável do Expo.
+Expo 57.0.30, React Native 0.86.3, React 19.2.3 e TypeScript 6. Os módulos Expo, safe-area, screens e jest-expo foram alinhados com as versões recomendadas pelo SDK. A configuração inclui o plugin `expo-status-bar`. O script de seleção de ambiente agora se chama `expo:env`, evitando conflito com o executável do Expo.
 
-Validação atual: Expo Doctor 21/21, TypeScript, 5 testes de ambiente, 63 testes Jest, 2 testes de leitura com API/PostgreSQL local e exportação Hermes Android/iOS aprovados. O teste de integração usa o adaptador HTTP do Node para fazer uma requisição real, pois os adaptadores nativos são simulados pelo preset Jest. Builds nativos APK/AAB/IPA e execução no aparelho ainda precisam de validação; exportar bundles não substitui essas etapas. Os [dez roteiros incrementais](delivery/incremental/README.md) descrevem rascunhos, confirmação de envio, abas, recuperação de senha, conta e correção de rejeitadas.
+Validação atual: Expo Doctor 21/21, TypeScript, 6 testes de configuração, 78 testes Jest, 2 testes de leitura com API/PostgreSQL local, Prebuild Android e exportação Hermes Android/iOS. O teste de integração usa o adaptador HTTP do Node para fazer uma requisição real, pois os adaptadores nativos são simulados pelo preset Jest. Builds nativos APK/AAB/IPA e execução no aparelho ainda precisam de validação; exportar bundles não substitui essas etapas. Além dos [dez roteiros incrementais](delivery/incremental/README.md), consulte os [roteiros de fechamento das sprints](delivery/sprints/README.md) para foto do perfil, progresso, filtros, mapa, comentários, curtidas e compartilhamento.
 
 O inventário em `delivery/README.md` é um snapshot histórico do SDK 55. As versões atuais estão em `package.json` e `package-lock.json`.
 
