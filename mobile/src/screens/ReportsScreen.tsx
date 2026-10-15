@@ -7,7 +7,8 @@ import { Button } from '../components/Button';
 import { Field } from '../components/Field';
 import { useAuth } from '../context/AuthContext';
 import type { RootStackParamList } from '../navigation/types';
-import { listReports, listMyReports, type ReportPage } from '../services/reportService';
+import { categories, listReports, listMyReports, type ReportFilters, type ReportPage } from '../services/reportService';
+import { Choices } from '../components/Choices';
 import { toApiError } from '../utils/ApiError';
 import { theme } from '../theme';
 
@@ -19,20 +20,25 @@ export function ReportsScreen({ navigation, route }: { navigation: Pick<NativeSt
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [query, setQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<ReportFilters>({});
+  const [applied, setApplied] = useState<ReportFilters>({});
   const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
   useFocusEffect(useCallback(() => {
     const controller = new AbortController();
     setBusy(true); setError(''); setResult(null);
-    const request = isMine && user ? listMyReports(client, user.id, page, query, controller.signal) : listReports(client, page, query, controller.signal);
+    const extra = Object.keys(applied).length ? [applied] as const : [];
+    const request = isMine && user ? listMyReports(client, user.id, page, query, controller.signal, ...extra) : listReports(client, page, query, controller.signal, ...extra);
     void request.then(
       (data) => { if (!controller.signal.aborted) setResult(data); },
       (reason: unknown) => { if (!controller.signal.aborted) setError(toApiError(reason).message); },
     ).finally(() => { if (!controller.signal.aborted) setBusy(false); });
     return () => controller.abort();
-  }, [client, page, query, attempt, isMine, user]));
+  }, [client, page, query, applied, attempt, isMine, user]));
   const retry = () => setAttempt((value) => value + 1);
+  function apply() { setPage(1); setQuery(search); setApplied(filters); retry(); }
   return <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
     <FlatList data={result?.data ?? []} keyExtractor={(item) => String(item.id)} contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled" ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
@@ -49,8 +55,15 @@ export function ReportsScreen({ navigation, route }: { navigation: Pick<NativeSt
           <Button title="Criar conta" onPress={() => navigation.navigate('Register')} />
         </>}
         <Field label="Buscar pelo título" value={search} onChangeText={setSearch} maxLength={120} returnKeyType="search"
-          onSubmitEditing={() => { setPage(1); setQuery(search); retry(); }} />
-        <Button title="Buscar" loading={busy} onPress={() => { setPage(1); setQuery(search); retry(); }} />
+          onSubmitEditing={apply} />
+        <Button title={showFilters ? 'Ocultar filtros' : 'Mostrar filtros'} onPress={() => setShowFilters((value) => !value)} />
+        {showFilters && <>
+          <Choices label="Categoria" value={filters.categoria ?? ''} options={[{ value: '', label: 'Todas' }, ...categories.map((value) => ({ value, label: value }))]} onChange={(categoria) => setFilters((current) => ({ ...current, categoria: categoria || undefined }))} />
+          <Choices label="Situação" value={filters.resolucaoStatus ?? ''} options={[{ value: '', label: 'Todas' }, ...Object.entries(resolutionLabels).map(([value, label]) => ({ value, label }))]} onChange={(resolucaoStatus) => setFilters((current) => ({ ...current, resolucaoStatus: resolucaoStatus || undefined }))} />
+          <Choices label="Ordenação" value={filters.sort ?? 'newest'} options={[{ value: 'newest', label: 'Mais recentes' }, { value: 'oldest', label: 'Mais antigas' }, ...(!isMine ? [{ value: 'likes', label: 'Mais curtidas' }, { value: 'shares', label: 'Mais compartilhadas' }] : [])]} onChange={(sort) => setFilters((current) => ({ ...current, sort: sort as ReportFilters['sort'] }))} />
+          <Button title="Limpar filtros e busca" onPress={() => { setFilters({}); setApplied({}); setSearch(''); setQuery(''); setPage(1); retry(); }} />
+        </>}
+        <Button title="Buscar" loading={busy} onPress={apply} />
         <Text accessibilityRole="header" style={styles.heading}>{isMine ? 'Seus registros' : 'Denúncias publicadas'}</Text>
         {result && <Text style={styles.body}>{result.total} denúncias encontradas</Text>}
       </View>}

@@ -7,7 +7,7 @@ import { ApiError } from '../src/utils/ApiError';
 import type { RootStackParamList } from '../src/navigation/types';
 
 jest.mock('../src/context/AuthContext', () => ({ useAuth: jest.fn() }));
-jest.mock('../src/services/reportService', () => ({ listReports: jest.fn(), listMyReports: jest.fn() }));
+jest.mock('../src/services/reportService', () => ({ ...jest.requireActual('../src/services/reportService'), listReports: jest.fn(), listMyReports: jest.fn() }));
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
   useFocusEffect: (callback: () => (() => void)) => require('react').useEffect(callback, [callback]),
@@ -55,4 +55,16 @@ test('minhas denúncias consulta a conta atual e mostra registros ainda privados
   await screen.findByText('Aguardando moderação');
   expect(listMyReports).toHaveBeenCalledWith(context.client, 7, 1, '', expect.anything());
   expect(listReports).not.toHaveBeenCalled();
+});
+test('combina filtros ao buscar e limpar restaura consulta inicial', async () => {
+  jest.mocked(listReports).mockResolvedValue({ data: [], page: 1, total: 0, totalPages: 0 });
+  render(<ReportsScreen {...props} />); await screen.findByText(/Nenhuma denúncia encontrada/);
+  fireEvent.press(screen.getByRole('button', { name: 'Mostrar filtros' }));
+  fireEvent.press(screen.getByRole('radio', { name: 'Categoria: Iluminação pública' }));
+  fireEvent.press(screen.getByRole('radio', { name: 'Situação: Resolvida' }));
+  fireEvent.press(screen.getByRole('radio', { name: 'Ordenação: Mais antigas' }));
+  fireEvent.press(screen.getByRole('button', { name: 'Buscar' }));
+  await waitFor(() => expect(listReports).toHaveBeenLastCalledWith(expect.anything(), 1, '', expect.anything(), { categoria: 'Iluminação pública', resolucaoStatus: 'resolvida', sort: 'oldest' }));
+  fireEvent.press(screen.getByRole('button', { name: 'Limpar filtros e busca' }));
+  await waitFor(() => expect(listReports).toHaveBeenLastCalledWith(expect.anything(), 1, '', expect.anything()));
 });

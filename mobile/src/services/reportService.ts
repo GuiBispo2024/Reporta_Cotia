@@ -16,6 +16,7 @@ export async function getReportHistory(client: AxiosInstance, id: number, signal
   return data;
 }
 export type ReportPage = { data: Report[]; page: number; totalPages: number; total: number };
+export type ReportFilters = { categoria?: string; resolucaoStatus?: string; sort?: 'newest' | 'oldest' | 'likes' | 'shares' };
 export function parseReport(data: unknown): Report {
   const value = data as Partial<Report> | null;
   if (!value || !Number.isInteger(value.id) || typeof value.titulo !== 'string'
@@ -27,8 +28,8 @@ export function parseReport(data: unknown): Report {
   }
   return { ...value, bairro: value.bairro ?? '', categoria: value.categoria ?? 'Outros' } as Report;
 }
-export async function listReports(client: AxiosInstance, page: number, title: string, signal?: AbortSignal): Promise<ReportPage> {
-  const { data } = await client.get('denuncia', { params: { page, limit: 12, titulo: title.trim() }, signal });
+export async function listReports(client: AxiosInstance, page: number, title: string, signal?: AbortSignal, filters: ReportFilters = {}): Promise<ReportPage> {
+  const { data } = await client.get('denuncia', { params: { page, limit: 12, titulo: title.trim(), ...filters }, signal });
   if (!data || !Array.isArray(data.data) || !Number.isInteger(data.totalPages)
     || !Number.isInteger(data.total) || !Number.isInteger(data.page)) {
     throw new ApiError('Lista de denúncias inválida. Tente novamente.', 'INVALID_RESPONSE');
@@ -39,10 +40,12 @@ export async function getReport(client: AxiosInstance, id: number, signal?: Abor
   const { data } = await client.get(`denuncia/${id}`, { signal });
   return parseReport(data);
 }
-export async function listMyReports(client: AxiosInstance, userId: number, page: number, title: string, signal?: AbortSignal): Promise<ReportPage> {
+export async function listMyReports(client: AxiosInstance, userId: number, page: number, title: string, signal?: AbortSignal, filters: ReportFilters = {}): Promise<ReportPage> {
   const { data } = await client.get(`denuncia/user/${userId}`, { signal });
   if (!Array.isArray(data)) throw new ApiError('Lista de denúncias inválida.', 'INVALID_RESPONSE');
-  const reports = data.map(parseReport).filter((report) => report.titulo.toLocaleLowerCase('pt-BR').includes(title.trim().toLocaleLowerCase('pt-BR')));
+  const reports = data.map(parseReport).filter((report) => report.titulo.toLocaleLowerCase('pt-BR').includes(title.trim().toLocaleLowerCase('pt-BR'))
+    && (!filters.categoria || report.categoria === filters.categoria) && (!filters.resolucaoStatus || report.resolucaoStatus === filters.resolucaoStatus));
+  if (filters.sort) reports.sort((a, b) => filters.sort === 'oldest' ? a.id - b.id : b.id - a.id);
   return { data: reports.slice((page - 1) * 12, page * 12), total: reports.length, page, totalPages: Math.ceil(reports.length / 12) };
 }
 export async function getSubmission(client: AxiosInstance, key: string): Promise<Report> {

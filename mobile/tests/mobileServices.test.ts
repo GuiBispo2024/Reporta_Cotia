@@ -97,6 +97,13 @@ test('lista usa paginação e busca no contrato do backend', async () => {
   mock.onGet('denuncia', { params: { page: 2, limit: 12, titulo: 'Buraco' } }).reply(200, { data: [report], total: 13, totalPages: 2, page: 2 });
   await expect(listReports(client, 2, ' Buraco ')).resolves.toMatchObject({ page: 2, data: [report] });
 });
+test('lista transmite filtros combinados ao servidor e filtra registros próprios', async () => {
+  const filters = { categoria: 'Outros', resolucaoStatus: 'aberta', sort: 'oldest' as const };
+  mock.onGet('denuncia', { params: { page: 1, limit: 12, titulo: '', ...filters } }).reply(200, { data: [report], total: 1, totalPages: 1, page: 1 });
+  await expect(listReports(client, 1, '', undefined, filters)).resolves.toMatchObject({ total: 1 });
+  mock.onGet('denuncia/user/7').reply(200, [report, { ...report, id: 2, categoria: 'Iluminação pública' }]);
+  await expect(listMyReports(client, 7, 1, '', undefined, filters)).resolves.toMatchObject({ total: 1, data: [{ id: 1 }] });
+});
 test('criação envia texto e retorna o protocolo pendente', async () => {
   mock.onPost('denuncia', input).reply(201, { denuncia: { ...report, status: 'pendente' } });
   await expect(createReport(client, { ...input, titulo: ' Buraco ' })).resolves.toMatchObject({ id: 1, status: 'pendente' });
