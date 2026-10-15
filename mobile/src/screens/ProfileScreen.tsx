@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Text } from 'react-native';
+import { Alert, Image, Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Screen } from '../components/Screen';
@@ -11,9 +11,12 @@ import { Field } from '../components/Field';
 import { deleteAccount } from '../services/authService';
 import { clearAccountDrafts } from '../services/draftService';
 import { toApiError } from '../utils/ApiError';
+import { selectPhotos } from '../services/photoService';
+import { uploadAvatar, removeAvatar } from '../services/avatarService';
+import { resolveImageUrl } from '../utils/imageUrl';
 
 export function ProfileScreen() {
-  const { user, client, signOut, notice, updateAccount } = useAuth();
+  const { user, client, signOut, notice, updateAccount, reloadProfile } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [busy, setBusy] = useState(false);
   const working = useRef(false);
@@ -24,6 +27,21 @@ export function ProfileScreen() {
   const [confirmation, setConfirmation] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const avatar = user?.avatarUrl ? resolveImageUrl(user.avatarUrl, client.defaults.baseURL ?? '', __DEV__) : null;
+  async function changePhoto(source: 'camera' | 'library' | 'remove' | 'refresh') {
+    if (working.current || !user) return;
+    working.current = true; setBusy(true); setError(''); setMessage('');
+    try {
+      if (source === 'remove') await removeAvatar(client);
+      else if (source !== 'refresh') {
+        const [photo] = await selectPhotos(source, 1);
+        if (!photo) return;
+        await uploadAvatar(client, photo);
+      }
+      await reloadProfile(); setMessage('Foto de perfil atualizada.');
+    } catch (reason) { setError(toApiError(reason).message); }
+    finally { working.current = false; setBusy(false); }
+  }
   useEffect(() => { setUsername(user?.username ?? ''); setEmail(user?.email ?? ''); }, [user?.id, user?.username, user?.email]);
   async function save() {
     if (working.current || !user) return;
@@ -53,6 +71,13 @@ export function ProfileScreen() {
     {!!notice && <Text accessibilityRole="alert">{notice}</Text>}
     {user ? <>
       <Text>{user.username}</Text><Text>{user.email}</Text>
+      {avatar ? <Image source={{ uri: avatar }} accessibilityLabel="Sua foto de perfil" style={{ width: 112, height: 112, borderRadius: 56 }} /> : <Text>Sem foto de perfil</Text>}
+      <Button title="Fotografar para o perfil" disabled={busy} onPress={() => void changePhoto('camera')} />
+      <Button title="Escolher foto do perfil" disabled={busy} onPress={() => void changePhoto('library')} />
+      {!!user.avatarUrl && <Button title="Remover foto do perfil" disabled={busy} onPress={() => Alert.alert('Remover foto?', 'Sua conta ficará sem foto de perfil.', [
+        { text: 'Cancelar', style: 'cancel' }, { text: 'Remover', style: 'destructive', onPress: () => void changePhoto('remove') },
+      ])} />}
+      <Button title="Atualizar perfil" disabled={busy} onPress={() => void changePhoto('refresh')} />
       <Field label="Nome de usuário" value={username} onChangeText={setUsername} maxLength={255} editable={!busy} />
       <Field label="E-mail" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" maxLength={255} editable={!busy} />
       <Text>A senha atual é necessária para alterar e-mail, senha ou excluir a conta.</Text>

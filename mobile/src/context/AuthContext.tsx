@@ -4,14 +4,14 @@ import type { AxiosInstance } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { getEnvironment } from '../config/environment';
 import { createHttpClient } from '../services/httpClient';
-import { login, parseSession, parseUser, type Session, type User, type AccountUpdate } from '../services/authService';
+import { login, getMe, parseSession, parseUser, type Session, type User, type AccountUpdate } from '../services/authService';
 import { ApiError, toApiError } from '../utils/ApiError';
 import { SessionActivityContext } from './SessionActivityContext';
 
 const IDLE_MS = 15 * 60 * 1000;
 type Auth = { user: User | null; client: AxiosInstance; restoring: boolean; notice: string;
   signIn: (email: string, password: string) => Promise<void>; signOut: () => Promise<void>;
-  updateAccount: (input: AccountUpdate) => Promise<void> };
+  updateAccount: (input: AccountUpdate) => Promise<void>; reloadProfile: () => Promise<void> };
 const Context = createContext<Auth | null>(null);
 export function AuthProvider({ children }: PropsWithChildren) {
   const environment = useMemo(getEnvironment, []);
@@ -222,7 +222,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
     accountChange.current = pending;
     try { await pending; } finally { if (accountChange.current === pending) accountChange.current = null; }
   }
-  return <Context.Provider value={{ user: session?.user ?? null, client, restoring, notice, signIn, signOut: () => end(), updateAccount }}>
+  async function reloadProfile() {
+    const originalEpoch = epoch.current;
+    const user = await getMe(client);
+    if (originalEpoch !== epoch.current || !current.current || user.id !== current.current.user.id) throw new ApiError('A sessão mudou.', 'SESSION_REVOKED', 401);
+    commit({ ...current.current, user });
+  }
+  return <Context.Provider value={{ user: session?.user ?? null, client, restoring, notice, signIn, signOut: () => end(), updateAccount, reloadProfile }}>
     <SessionActivityContext.Provider value={markActivity}><View style={{ flex: 1 }} onTouchStart={markActivity} onTouchMove={markActivity}>{children}</View></SessionActivityContext.Provider>
   </Context.Provider>;
 }

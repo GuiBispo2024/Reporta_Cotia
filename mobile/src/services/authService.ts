@@ -1,7 +1,7 @@
 import type { AxiosInstance } from 'axios';
 import { ApiError } from '../utils/ApiError';
 
-export type User = { id: number; username: string; email: string; permissions: string[] };
+export type User = { id: number; username: string; email: string; permissions: string[]; avatarUrl?: string | null };
 export type AccountUpdate = { username: string; email: string; senhaAtual?: string; novaSenha?: string };
 export async function deleteAccount(client: AxiosInstance, senhaAtual: string) {
   await client.delete('users/delete', { data: { senhaAtual } });
@@ -14,7 +14,8 @@ export function parseUser(data: unknown): User {
     || !value.permissions.every((permission) => typeof permission === 'string')) {
     throw new ApiError('Resposta de conta inválida. Tente novamente.', 'INVALID_RESPONSE');
   }
-  return { id: value.id as number, username: value.username, email: value.email, permissions: value.permissions };
+  if (value.avatarUrl != null && typeof value.avatarUrl !== 'string') throw new ApiError('Foto de perfil inválida.', 'INVALID_RESPONSE');
+  return { id: value.id as number, username: value.username, email: value.email, permissions: value.permissions, ...(value.avatarUrl !== undefined ? { avatarUrl: value.avatarUrl } : {}) };
 }
 export function parseSession(data: unknown): Session {
   const value = data as Partial<Session> | null;

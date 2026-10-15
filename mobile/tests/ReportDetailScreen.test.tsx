@@ -12,7 +12,7 @@ jest.mock('../src/context/AuthContext', () => {
 });
 test('somente autor com permissão pode abrir correção de uma rejeitada', async () => {
   const client = {} as ReturnType<typeof useAuth>['client'];
-  jest.mocked(useAuth).mockReturnValue({ client, user: { id: 1, username: 'Ana', email: 'ana@example.org', permissions: ['denuncia.update_own'] }, restoring: false, notice: '', signIn: jest.fn(), signOut: jest.fn(), updateAccount: jest.fn() });
+  jest.mocked(useAuth).mockReturnValue({ client, user: { id: 1, username: 'Ana', email: 'ana@example.org', permissions: ['denuncia.update_own'] }, restoring: false, notice: '', signIn: jest.fn(), signOut: jest.fn(), updateAccount: jest.fn(), reloadProfile: jest.fn() });
   jest.mocked(getReport).mockResolvedValue({ id: 9, userId: 1, titulo: 'Buraco', descricao: 'Na rua', localizacao: 'Rua', bairro: '', categoria: 'Outros', status: 'rejeitada', resolucaoStatus: 'aberta' });
   jest.mocked(getReportHistory).mockResolvedValue([]);
   const navigate = jest.fn();
@@ -21,7 +21,7 @@ test('somente autor com permissão pode abrir correção de uma rejeitada', asyn
   expect(navigate).toHaveBeenCalledWith('EditReport', { id: 9 });
 });
 test('outro autor não recebe ação de correção', async () => {
-  jest.mocked(useAuth).mockReturnValue({ client: {} as ReturnType<typeof useAuth>['client'], user: { id: 2, username: 'Outra', email: 'outra@example.org', permissions: ['denuncia.update_own'] }, restoring: false, notice: '', signIn: jest.fn(), signOut: jest.fn(), updateAccount: jest.fn() });
+  jest.mocked(useAuth).mockReturnValue({ client: {} as ReturnType<typeof useAuth>['client'], user: { id: 2, username: 'Outra', email: 'outra@example.org', permissions: ['denuncia.update_own'] }, restoring: false, notice: '', signIn: jest.fn(), signOut: jest.fn(), updateAccount: jest.fn(), reloadProfile: jest.fn() });
   jest.mocked(getReport).mockResolvedValue({ id: 9, userId: 1, titulo: 'Buraco', descricao: 'Na rua', localizacao: 'Rua', bairro: '', categoria: 'Outros', status: 'rejeitada', resolucaoStatus: 'aberta' });
   jest.mocked(getReportHistory).mockResolvedValue([]);
   render(<ReportDetailScreen {...props} />);

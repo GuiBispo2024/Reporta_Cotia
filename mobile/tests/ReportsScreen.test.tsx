@@ -19,7 +19,7 @@ const first = { id: 1, titulo: 'Buraco', descricao: 'Descrição', localizacao: 
 beforeEach(() => {
   jest.useFakeTimers();
   jest.resetAllMocks();
-  jest.mocked(useAuth).mockReturnValue({ client: {} as ReturnType<typeof useAuth>['client'], user: null, restoring: false, notice: '', signIn: jest.fn(), signOut: jest.fn(), updateAccount: jest.fn() });
+  jest.mocked(useAuth).mockReturnValue({ client: {} as ReturnType<typeof useAuth>['client'], user: null, restoring: false, notice: '', signIn: jest.fn(), signOut: jest.fn(), updateAccount: jest.fn(), reloadProfile: jest.fn() });
 });
 afterEach(() => { cleanup(); act(() => jest.runOnlyPendingTimers()); jest.useRealTimers(); });
 test('visitante vê lista, abre detalhes e navega para a próxima página', async () => {

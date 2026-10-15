@@ -1,5 +1,6 @@
 import MockAdapter from 'axios-mock-adapter';
 import axios from 'axios';
+import { uploadAvatar } from '../src/services/avatarService';
 import { createHttpClient } from '../src/services/httpClient';
 import { login, register, getMe } from '../src/services/authService';
 import { listReports, listMyReports, createReport, getReport, getReportHistory, getSubmission, updateReport } from '../src/services/reportService';
@@ -17,6 +18,14 @@ const input = { titulo: 'Buraco', descricao: 'Descrição', localizacao: 'Rua A'
 const report = { ...input, id: 1, status: 'aprovada', resolucaoStatus: 'aberta' };
 afterEach(() => mock.reset());
 afterAll(() => mock.restore());
+test('avatar usa upload multipart no campo avatar', async () => {
+  mock.onPost('users/avatar').reply((config) => {
+    const parts = (config.data as FormData & { getParts: () => any[] }).getParts();
+    expect(parts.find((part) => part.fieldName === 'avatar')).toMatchObject({ uri: 'file:///avatar.jpg', type: 'image/jpeg' });
+    return [200, {}];
+  });
+  await uploadAvatar(client, { uri: 'file:///avatar.jpg', name: 'avatar.jpg', type: 'image/jpeg' });
+});
 test('correção usa PUT no protocolo original e envia null para remover coordenadas', async () => {
   mock.onPut('denuncia/1', { ...input, latitude: null, longitude: null, removeImages: true }).reply(200, { denuncia: { ...report, status: 'pendente' } });
   await expect(updateReport(client, 1, input, [], true)).resolves.toMatchObject({ id: 1, status: 'pendente' });

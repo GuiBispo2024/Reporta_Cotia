@@ -5,6 +5,10 @@ import { useAuth } from '../src/context/AuthContext';
 import { deleteAccount } from '../src/services/authService';
 import { clearAccountDrafts } from '../src/services/draftService';
 import { ApiError } from '../src/utils/ApiError';
+import { selectPhotos } from '../src/services/photoService';
+import { uploadAvatar, removeAvatar } from '../src/services/avatarService';
+jest.mock('../src/services/photoService', () => ({ selectPhotos: jest.fn() }));
+jest.mock('../src/services/avatarService', () => ({ uploadAvatar: jest.fn(), removeAvatar: jest.fn() }));
 jest.mock('../src/context/AuthContext', () => ({ useAuth: jest.fn() }));
 jest.mock('../src/services/authService', () => ({ deleteAccount: jest.fn() }));
 jest.mock('../src/services/draftService', () => ({ clearAccountDrafts: jest.fn() }));
@@ -13,7 +17,7 @@ jest.mock('react-native-safe-area-context', () => require('react-native-safe-are
 const updateAccount = jest.fn(), signOut = jest.fn();
 beforeEach(() => {
   jest.resetAllMocks();
-  jest.mocked(useAuth).mockReturnValue({ client: { defaults: { baseURL: 'api' } } as any, user: { id: 1, username: 'Ana', email: 'ana@example.org', permissions: [] }, restoring: false, notice: '', signIn: jest.fn(), updateAccount, signOut });
+  jest.mocked(useAuth).mockReturnValue({ client: { defaults: { baseURL: 'api' } } as any, user: { id: 1, username: 'Ana', email: 'ana@example.org', permissions: [] }, restoring: false, notice: '', signIn: jest.fn(), updateAccount, signOut, reloadProfile: jest.fn().mockResolvedValue(undefined) });
   updateAccount.mockResolvedValue(undefined); signOut.mockResolvedValue(undefined); jest.mocked(clearAccountDrafts).mockResolvedValue(undefined);
 });
 test('mudança de e-mail exige senha atual e confirma somente após a resposta', async () => {
@@ -25,6 +29,22 @@ test('mudança de e-mail exige senha atual e confirma somente após a resposta',
   fireEvent.press(screen.getByRole('button', { name: 'Salvar conta' }));
   await screen.findByText('Conta atualizada.');
   expect(updateAccount).toHaveBeenCalledWith({ username: 'Ana', email: 'nova@example.org', senhaAtual: '123456' });
+});
+test('cancelar seleção não envia foto; seleção e remoção atualizam perfil pela API', async () => {
+  const context = jest.mocked(useAuth)();
+  jest.mocked(useAuth).mockReturnValue({ ...context, user: { ...context.user!, avatarUrl: '/uploads/avatar.jpg' } });
+  jest.mocked(selectPhotos).mockResolvedValueOnce([]).mockResolvedValueOnce([{ uri: 'file:///photo.jpg', name: 'photo.jpg', type: 'image/jpeg' }]);
+  jest.mocked(uploadAvatar).mockResolvedValue(undefined); jest.mocked(removeAvatar).mockResolvedValue(undefined);
+  const alert = jest.spyOn(Alert, 'alert');
+  render(<ProfileScreen />);
+  fireEvent.press(screen.getByRole('button', { name: 'Escolher foto do perfil' }));
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Escolher foto do perfil' }).props.accessibilityState.disabled).toBe(false));
+  expect(uploadAvatar).not.toHaveBeenCalled();
+  fireEvent.press(screen.getByRole('button', { name: 'Escolher foto do perfil' })); await screen.findByText('Foto de perfil atualizada.');
+  expect(uploadAvatar).toHaveBeenCalledTimes(1); expect(context.reloadProfile).toHaveBeenCalledTimes(1);
+  fireEvent.press(screen.getByRole('button', { name: 'Remover foto do perfil' }));
+  await act(async () => { alert.mock.calls.at(-1)![2]![1]!.onPress!(); });
+  expect(removeAvatar).toHaveBeenCalledTimes(1); expect(context.reloadProfile).toHaveBeenCalledTimes(2); alert.mockRestore();
 });
 test('exclusão exige confirmação; falha preserva conta, sucesso limpa dados e encerra sessão', async () => {
   const alert = jest.spyOn(Alert, 'alert');
