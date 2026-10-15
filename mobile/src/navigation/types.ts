@@ -7,6 +7,7 @@ export type RootStackParamList = {
   ForgotPassword: undefined;
   ResetPassword: { token?: string } | undefined;
   CreateReport: undefined;
+  AccountSecurity: undefined;
   EditReport: { id: number };
   ReportDetail: { id: number };
   Home: undefined;

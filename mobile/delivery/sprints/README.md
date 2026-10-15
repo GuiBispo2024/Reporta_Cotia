@@ -19,6 +19,10 @@ Essa sequência tem oito commits porque a integração revelou um ajuste de conf
 
 A entrega seguinte aproxima o layout do mobile da Web: [18 — Layout e ícones](18-layout/README.md). O commit c4e0c06 contém marca, ícones Bootstrap, tema, componentes e navegação; o commit seguinte aplica os cards, cabeçalhos e formulários. Use git log --oneline -2 para consultar a entrega visual. A validação de aparência no aparelho permanece pendente.
 
+## Organização das telas
+
+[19 — Conta em duas páginas](19-conta/README.md): perfil e foto na aba Conta; e-mail, senha e exclusão em Segurança da conta.
+
 ## Situação dos critérios de aceite
 
 | Sprint | Implementação | Pendência para aceite final |
