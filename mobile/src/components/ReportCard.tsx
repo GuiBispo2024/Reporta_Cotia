@@ -7,6 +7,7 @@ import { theme } from '../theme';
 import { illustrations } from '../theme/illustrations';
 import { Icon } from './Icon';
 import { ReportStatus } from './ReportStatus';
+import { publicAddress } from '../utils/publicAddress';
 
 const categoryImages: Record<string, string> = { 'Buraco e pavimentação': 'obras', 'Iluminação pública': 'iluminacao', 'Limpeza urbana': 'limpeza', Saneamento: 'saneamento', 'Água e esgoto': 'saneamento', 'Trânsito e sinalização': 'transito', 'Árvore e área verde': 'meio-ambiente' };
 const sectorImages: Record<string, string> = { 'Secretaria de Infraestrutura e Obras': 'obras', 'Secretaria de Mobilidade e Trânsito': 'transito', 'Secretaria do Verde e Meio Ambiente': 'meio-ambiente', 'Secretaria de Saúde': 'saude', 'Secretaria de Educação': 'educacao', 'Secretaria de Segurança Pública': 'seguranca', 'Serviço de Iluminação Pública': 'iluminacao', 'Limpeza Urbana e Zeladoria': 'limpeza', 'Defesa Civil': 'defesa-civil' };
@@ -25,7 +26,7 @@ export function ReportCard({ report, apiBaseUrl, onPress }: { report: Report; ap
       <View style={styles.top}><Text style={styles.category}>{report.categoria}</Text><ReportStatus status={report.status} resolution={report.resolucaoStatus} /></View>
       <Text accessibilityRole="header" numberOfLines={2} style={styles.title}>{report.titulo}</Text>
       <Text numberOfLines={3} style={styles.description}>{report.descricao}</Text>
-      <View style={styles.row}><Icon name="geo-alt-fill" size={17} /><Text numberOfLines={2} style={[styles.description, { flex: 1 }]}>{report.localizacao}{report.bairro ? ` · ${report.bairro}` : ''}</Text></View>
+      <View style={styles.row}><Icon name="geo-alt-fill" size={17} /><Text numberOfLines={2} style={[styles.description, { flex: 1 }]}>{publicAddress(report.localizacao)}{report.bairro ? ` · ${report.bairro}` : ''}</Text></View>
       {!!report.setorResponsavel && <View style={styles.sector}><Icon name="building" size={16} /><Text style={{ ...theme.typography.caption, color: theme.colors.primaryDark, flex: 1 }}>{report.setorResponsavel}</Text></View>}
       <View style={styles.meta}><View style={[styles.row, { flex: 1 }]}><Icon name="person-circle" size={15} color={theme.colors.muted} /><Text numberOfLines={1} style={styles.metaText}>{report.User?.username || 'Cidadão'}</Text></View>
         <Text style={styles.metaText}>{report.createdAt && Number.isFinite(Date.parse(report.createdAt)) ? new Date(report.createdAt).toLocaleDateString('pt-BR') : `Protocolo #${report.id}`}</Text></View>

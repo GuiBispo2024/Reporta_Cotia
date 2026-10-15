@@ -50,7 +50,7 @@ test('detalhes mantêm motivo e setor quando histórico falha e permitem recarre
 });
 
 test('pendente destaca moderação sem apresentar atendimento como concluído', async () => {
-  jest.mocked(getReport).mockResolvedValue({ id: 9, titulo: 'Buraco', descricao: 'Descrição', localizacao: 'Rua A', bairro: 'Centro', categoria: 'Outros', status: 'pendente', resolucaoStatus: 'aberta' });
+  jest.mocked(getReport).mockResolvedValue({ id: 9, titulo: 'Buraco', descricao: 'Descrição', localizacao: 'Rua A, 123', bairro: 'Centro', categoria: 'Outros', status: 'pendente', resolucaoStatus: 'aberta' });
   jest.mocked(getReportHistory).mockResolvedValue([]);
   render(<ReportDetailScreen {...props} />);
   await screen.findByText('Aguardando moderação');

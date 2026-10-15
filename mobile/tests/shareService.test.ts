@@ -2,6 +2,12 @@ import { Platform, Share } from 'react-native';
 import { openReportShare, shareMessage } from '../src/services/shareService';
 import type { Report } from '../src/services/reportService';
 const report = { id: 9, titulo: 'Buraco', localizacao: 'Rua A' } as Report;
+
+test('compartilhamento não inclui o número residencial de denúncias existentes', () => {
+  const message = shareMessage({ ...report, localizacao: 'Rua A, 123, Cotia' });
+  expect(message).toContain('Rua A, Cotia');
+  expect(message).not.toContain('123');
+});
 test('sem site usa protocolo; URL só é adicionada quando configurada e válida', () => {
   expect(shareMessage(report)).toContain('Protocolo #9'); expect(shareMessage(report)).not.toContain('http');
   expect(shareMessage(report, 'https://example.org')).toContain('https://example.org/denuncia/9');

@@ -1,5 +1,6 @@
 import * as Location from 'expo-location';
 import { ApiError } from '../utils/ApiError';
+import { publicAddress } from '../utils/publicAddress';
 
 async function withTimeout<T>(promise: Promise<T>, milliseconds: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -26,7 +27,7 @@ export async function getCurrentLocation(): Promise<{ latitude: number; longitud
   try {
     const [place] = await withTimeout(Location.reverseGeocodeAsync(coords), 5000);
     if (place) {
-      address = [place.street, place.streetNumber, place.city].filter(Boolean).join(', ');
+      address = [publicAddress(place.street ?? ''), place.city].filter(Boolean).join(', ');
       neighborhood = place.district ?? '';
     }
   } catch { /* GPS funciona mesmo se a consulta de endereço estiver indisponível. */ }

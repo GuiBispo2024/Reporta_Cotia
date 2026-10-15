@@ -8,6 +8,11 @@ beforeEach(() => {
   jest.mocked(Location.getCurrentPositionAsync).mockResolvedValue({ coords: { latitude: -23.6, longitude: -46.9, accuracy: 10 } } as Awaited<ReturnType<typeof Location.getCurrentPositionAsync>>);
 });
 afterEach(() => jest.useRealTimers());
+
+test('GPS preenche rua e cidade sem incluir número residencial', async () => {
+  jest.mocked(Location.reverseGeocodeAsync).mockResolvedValue([{ street: 'Rua 13', streetNumber: '123', city: 'Cotia', district: 'Centro' }] as Awaited<ReturnType<typeof Location.reverseGeocodeAsync>>);
+  await expect(getCurrentLocation()).resolves.toMatchObject({ address: 'Rua 13, Cotia', neighborhood: 'Centro' });
+});
 test('coordenadas são opcionais, aceitam zero e vírgula decimal, mas exigem par válido', () => {
   expect(parseCoordinates('', '')).toEqual({});
   expect(parseCoordinates('0', '-46,9')).toEqual({ latitude: 0, longitude: -46.9 });

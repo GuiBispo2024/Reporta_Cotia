@@ -7,6 +7,7 @@ const report = { id: 1, titulo: 'Buraco', localizacao: 'Rua A' } as Report;
 test('sem coordenadas exibe explicação; latitude zero é aceita e mapa fica dentro da tela', () => {
   const view = render(<ReportMap report={report} />);
   expect(screen.getByText('Esta denúncia não possui coordenadas para exibir no mapa.')).toBeTruthy();
-  view.rerender(<ReportMap report={{ ...report, latitude: 0, longitude: -46.9 }} />);
+  view.rerender(<ReportMap report={{ ...report, localizacao: 'Rua A, 123', latitude: 0, longitude: -46.9 }} />);
   expect(screen.getByLabelText('Mapa da denúncia Buraco').props.initialRegion.latitude).toBe(0);
+  expect(screen.UNSAFE_getByProps({ description: 'Rua A' })).toBeTruthy();
 });

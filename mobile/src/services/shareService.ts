@@ -3,8 +3,9 @@ import type { AxiosInstance } from 'axios';
 import type { Report } from './reportService';
 import { getReport } from './reportService';
 import { ApiError } from '../utils/ApiError';
+import { publicAddress } from '../utils/publicAddress';
 export function shareMessage(report: Report, publicWebUrl = '') {
-  const lines = [`Reporta Cotia — ${report.titulo}`, report.localizacao, `Protocolo #${report.id}`];
+  const lines = [`Reporta Cotia — ${report.titulo}`, publicAddress(report.localizacao), `Protocolo #${report.id}`];
   if (publicWebUrl) {
     try {
       const url = new URL(publicWebUrl);

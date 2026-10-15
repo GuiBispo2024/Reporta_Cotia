@@ -4,6 +4,7 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import Constants from 'expo-constants';
 import { Button } from './Button';
 import type { Report } from '../services/reportService';
+import { publicAddress } from '../utils/publicAddress';
 
 export function ReportMap({ report, showTitle = true }: { report: Report; showTitle?: boolean }) {
   const [attempt, setAttempt] = useState(0);
@@ -21,7 +22,7 @@ export function ReportMap({ report, showTitle = true }: { report: Report; showTi
       accessibilityLabel={`Mapa da denúncia ${report.titulo}`} style={{ height: 260, width: '100%' }}
       initialRegion={{ latitude, longitude, latitudeDelta: 0.008, longitudeDelta: 0.008 }}
       onMapReady={() => setReady(true)} showsUserLocation={false} showsMyLocationButton={false} toolbarEnabled={false}>
-      <Marker coordinate={{ latitude, longitude }} title={report.titulo} description={report.localizacao} />
+      <Marker coordinate={{ latitude, longitude }} title={report.titulo} description={publicAddress(report.localizacao)} />
     </MapView>
     <Button title="Recarregar mapa" onPress={() => { setReady(false); setAttempt((value) => value + 1); }} />
   </View>;

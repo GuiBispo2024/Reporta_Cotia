@@ -20,6 +20,7 @@ import { Surface } from '../components/Surface';
 import { ReportStatus } from '../components/ReportStatus';
 import { ReportProgress } from '../components/ReportProgress';
 import { Icon, type IconName } from '../components/Icon';
+import { publicAddress } from '../utils/publicAddress';
 
 function SectionTitle({ title, icon }: { title: string; icon: IconName }) {
   return <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -99,7 +100,7 @@ export function ReportDetailScreen({ route, navigation }: NativeStackScreenProps
     {hasPhotos && <Surface><ReportImages report={report} /><Text style={{ ...theme.typography.caption, color: theme.colors.muted }}>Toque em uma foto para ampliar. Deslize para ver as demais.</Text></Surface>}
     <Surface>
       <SectionTitle title="Onde aconteceu" icon="geo-alt-fill" />
-      <Text selectable style={theme.typography.body}>{report.localizacao}{report.bairro ? ` · ${report.bairro}` : ''}</Text>
+      <Text selectable style={theme.typography.body}>{publicAddress(report.localizacao)}{report.bairro ? ` · ${report.bairro}` : ''}</Text>
       <ReportMap report={report} showTitle={false} />
       {hasCoordinates && <>
         <Text selectable style={{ ...theme.typography.caption, color: theme.colors.muted }}>Coordenadas: {report.latitude}, {report.longitude}</Text>
