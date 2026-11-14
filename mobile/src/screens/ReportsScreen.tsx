@@ -15,6 +15,7 @@ import { Hero } from '../components/Hero';
 import { Surface } from '../components/Surface';
 import { ReportCard } from '../components/ReportCard';
 import { Icon } from '../components/Icon';
+import { PersonalReportBoard } from '../components/PersonalReportBoard';
 
 export const resolutionLabels: Record<string, string> = { aberta: 'Aberta', em_andamento: 'Em andamento', resolvida: 'Resolvida' };
 export function ReportsScreen({ navigation, route }: { navigation: Pick<NativeStackNavigationProp<RootStackParamList>, 'navigate'>; route: { name: 'Reports' | 'MyReports' } }) {
@@ -28,6 +29,7 @@ export function ReportsScreen({ navigation, route }: { navigation: Pick<NativeSt
   const [filters, setFilters] = useState<ReportFilters>({});
   const [applied, setApplied] = useState<ReportFilters>({});
   const [attempt, setAttempt] = useState(0);
+  const [boardRefresh, setBoardRefresh] = useState(0);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
   useFocusEffect(useCallback(() => {
@@ -46,11 +48,12 @@ export function ReportsScreen({ navigation, route }: { navigation: Pick<NativeSt
     return () => controller.abort();
   }, [client, page, query, applied, attempt, isMine, user?.id]));
   const retry = () => setAttempt((value) => value + 1);
+  function refreshAll() { retry(); setBoardRefresh((value) => value + 1); }
   function apply() { setPage(1); setQuery(search); setApplied(filters); retry(); }
   return <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
     <FlatList data={result?.data ?? []} keyExtractor={(item) => String(item.id)} contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
-      refreshing={busy} onRefresh={retry}
+      refreshing={busy} onRefresh={refreshAll}
       ListHeaderComponent={<View style={styles.header}>
         <Hero title={isMine ? 'Minhas denúncias' : user ? `Olá, ${user.username}!` : 'Ajude a melhorar Cotia.'} icon={isMine ? 'clipboard2-check' : 'geo-alt-fill'}
           description={isMine ? 'Acompanhe também registros pendentes e rejeitados.' : 'Registre problemas urbanos e acompanhe as mudanças no seu bairro.'}>
@@ -62,6 +65,7 @@ export function ReportsScreen({ navigation, route }: { navigation: Pick<NativeSt
           <Button title="Criar conta" icon="person" onPress={() => navigation.navigate('Register')} />
         </>}
         </Hero>
+        {isMine && user && <PersonalReportBoard key={user.id} refreshVersion={boardRefresh} />}
         <Surface>
         <Text style={styles.heading}>Encontre uma denúncia</Text>
         <Field label="Buscar pelo título" icon="search" placeholder="Ex.: buraco na avenida" value={search} onChangeText={setSearch} maxLength={120} returnKeyType="search"

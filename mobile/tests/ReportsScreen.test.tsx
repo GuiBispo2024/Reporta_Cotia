@@ -3,10 +3,12 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { ReportsScreen } from '../src/screens/ReportsScreen';
 import { useAuth } from '../src/context/AuthContext';
 import { listReports, listMyReports } from '../src/services/reportService';
+import { getPersonalBoard } from '../src/services/boardService';
 import { ApiError } from '../src/utils/ApiError';
 import type { RootStackParamList } from '../src/navigation/types';
 
 jest.mock('../src/context/AuthContext', () => ({ useAuth: jest.fn() }));
+jest.mock('../src/services/boardService', () => ({ getPersonalBoard: jest.fn() }));
 jest.mock('../src/services/reportService', () => ({ ...jest.requireActual('../src/services/reportService'), listReports: jest.fn(), listMyReports: jest.fn() }));
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
@@ -19,6 +21,7 @@ const first = { id: 1, titulo: 'Buraco', descricao: 'Descrição', localizacao: 
 beforeEach(() => {
   jest.useFakeTimers();
   jest.resetAllMocks();
+  jest.mocked(getPersonalBoard).mockResolvedValue({ total: 12, pendente: 3, approved: 7, rejeitada: 2, em_andamento: 2, resolvida: 4 });
   jest.mocked(useAuth).mockReturnValue({ client: {} as ReturnType<typeof useAuth>['client'], user: null, restoring: false, notice: '', signIn: jest.fn(), signOut: jest.fn(), updateAccount: jest.fn(), reloadProfile: jest.fn() });
 });
 afterEach(() => { cleanup(); act(() => jest.runOnlyPendingTimers()); jest.useRealTimers(); });
@@ -74,6 +77,7 @@ test('lista privada sem sessão não consulta endpoints nem exibe feed público 
   await screen.findByText('Entre para acompanhar suas denúncias.');
   expect(listReports).not.toHaveBeenCalled();
   expect(listMyReports).not.toHaveBeenCalled();
+  expect(getPersonalBoard).not.toHaveBeenCalled();
 });
 
 test('redução do total de páginas após atualização retorna à última página disponível', async () => {

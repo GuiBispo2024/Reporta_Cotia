@@ -86,6 +86,34 @@ describe('Boards pessoais e analíticos', () => {
     expect(JSON.stringify(response.body)).not.toContain('Privada de outro autor');
     expect((await get('/boards/public', citizen, { column: 'rejeitada' })).status).toBe(400);
   });
+  test('contrato do resumo mobile mantém totais globais com uma coluna limitada e ignora outro proprietário', async () => {
+    const created = await Denuncia.bulkCreate([
+      { titulo: 'Andamento temporário', status: 'aprovada', resolucaoStatus: 'em_andamento' },
+      { titulo: 'Rejeitada temporária', status: 'rejeitada', resolucaoStatus: 'aberta' },
+    ].map(report => ({ ...report, descricao: 'Teste do board mobile', localizacao: 'Cotia', categoria: 'Outros', userId: citizen.id })));
+    try {
+      const complete = await get('/boards/mine', citizen);
+      const limited = await get('/boards/mine', citizen, { column: 'pendente', limit: 1, userId: other.id });
+      expect(limited.status).toBe(200);
+      expect(limited.body.scope).toBe('mine');
+      expect(limited.body.summary).toEqual(complete.body.summary);
+      expect(limited.body.summary).toMatchObject({ total: 7, pendente: 1, approved: 5, rejeitada: 1, em_andamento: 1, resolvida: 1 });
+      expect(limited.body.columns).toHaveLength(1);
+      expect(limited.body.columns[0]).toMatchObject({ key: 'pendente', total: 1 });
+      expect(limited.body.columns[0].reports).toHaveLength(1);
+      expect(JSON.stringify(limited.body)).not.toContain('Privada de outro autor');
+      await created[0].update({ resolucaoStatus: 'resolvida' });
+      const refreshed = await get('/boards/mine', citizen, { column: 'pendente', limit: 1 });
+      expect(refreshed.body.summary).toMatchObject({ total: 7, approved: 5, em_andamento: 0, resolvida: 2 });
+    } finally {
+      await Denuncia.destroy({ where: { id: created.map(report => report.id) } });
+    }
+  });
+  test('conta autenticada sem denúncias recebe zeros no contrato mobile', async () => {
+    const response = await get('/boards/mine', auditor, { column: 'pendente', limit: 1 });
+    expect(response.status).toBe(200);
+    expect(response.body.summary).toMatchObject({ total: 0, pendente: 0, approved: 0, rejeitada: 0, em_andamento: 0, resolvida: 0 });
+  });
   test('mapas de calor respeitam escopo, filtros, permissões e privacidade', async () => {
     expect((await request(app).get('/boards/public/heatmap')).status).toBe(401);
     expect((await get('/boards/analytics/heatmap', citizen)).status).toBe(403);
