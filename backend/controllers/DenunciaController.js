@@ -10,6 +10,7 @@ const { upload, storeImages, deleteImage } = require('../utils/upload');
 const { PERMISSIONS } = require('../constants/accessControl');
 const { validateDenuncia } = require('../utils/validateDenuncia');
 const { hasPermission } = require('../utils/authorization');
+router.use((req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 
 function pagination(req) {
   const hasPagination = req.query.page !== undefined || req.query.limit !== undefined;

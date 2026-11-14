@@ -18,11 +18,15 @@ export function parseCoordinates(latitude: string, longitude: string): { latitud
   }
   return { latitude: lat, longitude: lon };
 }
-export async function getCurrentLocation(): Promise<{ latitude: number; longitude: number; address: string; neighborhood: string; accuracy: number | null }> {
+export async function getDevicePosition() {
   const permission = await Location.requestForegroundPermissionsAsync();
   if (!permission.granted) throw new ApiError('Permita a localização nas configurações ou preencha o endereço manualmente.', 'PERMISSION_DENIED');
   if (!await Location.hasServicesEnabledAsync()) throw new ApiError('Ative a localização do celular ou preencha o endereço manualmente.', 'LOCATION_DISABLED');
   const { coords } = await withTimeout(Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }), 15000);
+  return coords;
+}
+export async function getCurrentLocation(): Promise<{ latitude: number; longitude: number; address: string; neighborhood: string; accuracy: number | null }> {
+  const coords = await getDevicePosition();
   let address = ''; let neighborhood = '';
   try {
     const [place] = await withTimeout(Location.reverseGeocodeAsync(coords), 5000);

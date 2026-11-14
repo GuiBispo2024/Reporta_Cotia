@@ -139,6 +139,7 @@ export default function NovaDenuncia() {
               </div>
             </div>
 
+            <p>Na consulta pública, o endereço é ocultado e a localização aparece aproximada. Você e a moderação autorizada mantêm acesso aos dados exatos.</p>
             <details className="rc-location-details mt-3">
               <summary>Ajustar coordenadas manualmente (opcional)</summary>
               <div className="row g-3">

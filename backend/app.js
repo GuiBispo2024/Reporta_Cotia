@@ -76,6 +76,7 @@ app.get('/', async (req, res) => {
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/users', userController);
 app.use('/boards', boardController);
+app.use('/community', require('./controllers/CommunityController'));
 app.use('/denuncia', denunciaController);
 app.use('/denuncia', commentController);
 app.use('/denuncia', likeController);

@@ -1,5 +1,5 @@
 import * as Location from 'expo-location';
-import { getCurrentLocation, parseCoordinates } from '../src/services/locationService';
+import { getCurrentLocation, getDevicePosition, parseCoordinates } from '../src/services/locationService';
 jest.mock('expo-location', () => ({ requestForegroundPermissionsAsync: jest.fn(), hasServicesEnabledAsync: jest.fn(), getCurrentPositionAsync: jest.fn(), reverseGeocodeAsync: jest.fn(), Accuracy: { High: 4 } }));
 beforeEach(() => {
   jest.resetAllMocks();
@@ -8,6 +8,11 @@ beforeEach(() => {
   jest.mocked(Location.getCurrentPositionAsync).mockResolvedValue({ coords: { latitude: -23.6, longitude: -46.9, accuracy: 10 } } as Awaited<ReturnType<typeof Location.getCurrentPositionAsync>>);
 });
 afterEach(() => jest.useRealTimers());
+test('centralização do mapa obtém GPS sem geocodificação reversa', async () => {
+  await expect(getDevicePosition()).resolves.toMatchObject({ latitude: -23.6, longitude: -46.9 });
+  expect(Location.requestForegroundPermissionsAsync).toHaveBeenCalledTimes(1);
+  expect(Location.reverseGeocodeAsync).not.toHaveBeenCalled();
+});
 
 test('GPS preenche rua e cidade sem incluir número residencial', async () => {
   jest.mocked(Location.reverseGeocodeAsync).mockResolvedValue([{ street: 'Rua 13', streetNumber: '123', city: 'Cotia', district: 'Centro' }] as Awaited<ReturnType<typeof Location.reverseGeocodeAsync>>);

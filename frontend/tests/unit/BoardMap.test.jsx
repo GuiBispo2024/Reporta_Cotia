@@ -125,12 +125,13 @@ test('carrega denúncias sob demanda e abre os detalhes ao clicar no marcador', 
 
   rerender(<BoardMap
     heatmap={heatmap}
-    reportMap={{ points: [report], total: 1, limit: 500, truncated: false }}
+    reportMap={{ points: [report], total: 1, limit: 500, truncated: false, privacy: { approximate: true } }}
     onLoadReports={onLoadReports}
     onSelectReport={onSelectReport}
   />);
 
   expect(screen.getByRole('region', { name: 'Mapa das denúncias individuais' })).toBeInTheDocument();
+  expect(screen.getByText(/Localizações individuais aproximadas para preservar a privacidade/)).toBeInTheDocument();
   expect(L.circleMarker).toHaveBeenCalledWith([-23.61, -46.93], expect.objectContaining({
     radius: 9,
     fillColor: '#2563eb'

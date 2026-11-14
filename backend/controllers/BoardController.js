@@ -30,7 +30,7 @@ router.use(auth);
  * /boards/public/indicators:
  *   get:
  *     summary: Consulta indicadores agregados de denúncias aprovadas
- *     description: Requer dashboard.public.view. Usa os mesmos filtros e datas do endpoint analítico. Não inclui relatório de qualidade, denúncias pendentes ou rejeitadas. Sem carga retorna status not_processed e lastUpdatedAt nulo.
+ *     description: Requer dashboard.public.view. Resumo e categorias consultam aprovadas atuais, identificados por summarySource=live e summaryGeneratedAt. Séries e demais distribuições usam a carga analítica. Sem carga retorna status not_processed e lastUpdatedAt nulo, mas o resumo atual continua disponível. Não inclui relatório de qualidade ou denúncias privadas.
  *     tags: [Boards]
  *     security:
  *       - bearerAuth: []
@@ -70,7 +70,7 @@ router.get('/analytics/indicators', requirePermission(PERMISSIONS.DASHBOARD_FULL
   try { res.json(await AnalyticsService.indicators(req.user, req.query)); } catch (error) { next(error); }
 });
 router.get('/public/indicators', requirePermission(PERMISSIONS.DASHBOARD_PUBLIC_VIEW), async (req, res, next) => {
-  try { res.json(await AnalyticsService.indicators(req.user, req.query, 'public')); } catch (error) { next(error); }
+  try { res.json(await BoardService.publicIndicators(req.user, req.query)); } catch (error) { next(error); }
 });
 router.get('/analytics/quality', requirePermission(PERMISSIONS.DASHBOARD_FULL_VIEW), async (req, res, next) => {
   try { res.json(await AnalyticsService.quality(req.user, req.query)); } catch (error) { next(error); }

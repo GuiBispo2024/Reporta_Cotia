@@ -113,7 +113,7 @@ describe('DenunciaService (unit)', () => {
 
     const res = await DenunciaService.buscarPorId(1);
 
-    expect(res).toEqual({ id: 1, status: 'aprovada' });
+    expect(res).toEqual({ id: 1, status: 'aprovada', bairro: '', localizacao: 'Cotia — localização aproximada', locationApproximate: true });
   });
 
   test('buscarPorId: erro se não existe', async () => {

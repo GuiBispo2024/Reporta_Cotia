@@ -101,6 +101,7 @@ export default function EditarDenuncia() {
               <div className="col-md-4"><label htmlFor={`${accessibilityId}-field-neighborhood`} className="form-label fw-semibold">Bairro</label><input id={`${accessibilityId}-field-neighborhood`} className="form-control" name="bairro" maxLength="120" value={form.bairro} onChange={change} required /></div>
             </div>
             <div className="mb-3 mt-3"><label htmlFor={`${accessibilityId}-field-4`} className="form-label fw-semibold">Descrição</label><textarea id={`${accessibilityId}-field-4`} className="form-control" rows="5" name="descricao" value={form.descricao} onChange={change} required /></div>
+            <p>Na consulta pública, o endereço é ocultado e a localização aparece aproximada. Você e a moderação autorizada mantêm acesso aos dados exatos.</p>
             <div className="row g-3 mb-4">
               <div className="col-6"><label htmlFor={`${accessibilityId}-field-5`} className="form-label small">Latitude</label><input id={`${accessibilityId}-field-5`} className="form-control" name="latitude" value={form.latitude} onChange={change} /></div>
               <div className="col-6"><label htmlFor={`${accessibilityId}-field-6`} className="form-label small">Longitude</label><input id={`${accessibilityId}-field-6`} className="form-control" name="longitude" value={form.longitude} onChange={change} /></div>

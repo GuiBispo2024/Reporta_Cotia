@@ -6,6 +6,7 @@ const { validateDenuncia } = require('../utils/validateDenuncia');
 const { deleteImage } = require('../utils/upload');
 const { PERMISSIONS } = require('../constants/accessControl');
 const { hasPermission } = require('../utils/authorization');
+const { publicReport, publicResults } = require('../utils/publicGeography');
 
 function removeCensorshipSource(report) {
   const visible = report?.get ? report.get({ plain: true }) : { ...report };
@@ -178,17 +179,22 @@ class DenunciaService {
   }
 
   static async listarPublicadas(options = {}) {
-    return DenunciaRepository.findApproved(options);
+    return publicResults(await DenunciaRepository.findApproved(options));
   }
 
   static async getFiltered(options, requester = null) {
+    // Do not let the public search act as an oracle for a redacted house number
+    // or for coordinate strings stored by older GPS forms.
+    if (options.localizacao && (typeof options.localizacao !== 'string' || /[\d%_]/.test(options.localizacao))) {
+      throw new AppError('Na busca pública, informe apenas o nome da via, sem números ou curingas.', 400, 'PRIVATE_LOCATION_FILTER');
+    }
     const allowedResolutionStatuses = ['aberta', 'em_andamento', 'resolvida'];
     if (options.resolucaoStatus && !allowedResolutionStatuses.includes(options.resolucaoStatus)) {
       throw new AppError('Selecione um status de resolução válido.', 400, 'VALIDATION_ERROR');
     }
     const result = await DenunciaRepository.findWithFilters(options);
     result.data = await DenunciaRepository.addEngagementStats(result.data, requester?.id);
-    return result;
+    return publicResults(result);
   }
 
   static async buscarPorId(id, requester = null) {
@@ -207,7 +213,8 @@ class DenunciaService {
     }
     if (denuncia.status === 'aprovada') {
       const enriched = await DenunciaRepository.addEngagementStats([visible], requester?.id);
-      return enriched?.[0] || visible;
+      const result = enriched?.[0] || visible;
+      return canSeePrivate ? result : publicReport(result);
     }
     return visible;
   }
@@ -229,7 +236,7 @@ class DenunciaService {
   }
 
   static async buscarPublicadasPorUsuario(userId, options) {
-    return DenunciaRepository.findApprovedByUserId(userId, options);
+    return publicResults(await DenunciaRepository.findApprovedByUserId(userId, options));
   }
 
   static async atualizar(id, data, userIdToken, { uploadedImages = false } = {}, transaction = null) {

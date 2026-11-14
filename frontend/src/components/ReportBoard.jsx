@@ -248,8 +248,9 @@ export default function ReportBoard({ analytical = false, community = false }) {
         <div className="d-flex flex-wrap gap-2"><Link className="btn btn-outline-primary" to={aggregated ? '/meu-board' : '/minhas-denuncias'}>{aggregated ? 'Meu board pessoal' : 'Ver em lista'}</Link>{canViewExportHistory && <Link className="btn btn-outline-secondary" to="/administracao/historico-exportacoes"><i aria-hidden="true" className="bi bi-clock-history me-1" />Histórico de exportações</Link>}{canExport && <button className="btn btn-primary" onClick={exportBoard} disabled={loading || exporting}>{exporting ? 'Gerando planilha...' : 'Exportar Excel'}</button>}<button className="btn btn-outline-secondary" onClick={() => setReload(value => value + 1)} disabled={loading}>Atualizar</button></div>
       </header>
       {(aggregated ? data?.lastUpdatedAt : data?.generatedAt) && <p className="rc-board-updated" aria-live="polite"><i className="bi bi-clock-history" aria-hidden="true" /> Dados atualizados em <time dateTime={aggregated ? data.lastUpdatedAt : data.generatedAt}>{dateTimeLabel(aggregated ? data.lastUpdatedAt : data.generatedAt)}</time></p>}
-      {aggregated && data?.status === 'not_processed' && <p className="alert alert-info" role="status">Os indicadores aguardam o primeiro processamento. As denúncias continuam disponíveis abaixo.</p>}
-      {aggregated && data?.lastUpdatedAt && <p className="rc-board-guidance">Os indicadores refletem a última carga concluída. Os cartões, mapas, a operação da moderação e a exportação consultam os registros atuais e podem apresentar diferenças.</p>}
+      {aggregated && data?.status === 'not_processed' && <p className="alert alert-info" role="status">{community && data?.summarySource === 'live' ? 'As séries históricas aguardam o primeiro processamento. Resumo e categorias consultam as denúncias aprovadas atuais.' : 'Os indicadores aguardam o primeiro processamento. As denúncias continuam disponíveis abaixo.'}</p>}
+      {community && data?.summarySource === 'live' && <p className="rc-board-guidance">Resumo e categorias consultam denúncias aprovadas atuais. Séries históricas e demais distribuições refletem a última carga concluída e podem apresentar diferenças.</p>}
+      {aggregated && !community && data?.lastUpdatedAt && <p className="rc-board-guidance">Os indicadores refletem a última carga concluída. Os cartões, mapas, a operação da moderação e a exportação consultam os registros atuais e podem apresentar diferenças.</p>}
       {exportMessage && <p className="alert alert-success" role="status">{exportMessage}</p>}
       {exportError && <p className="alert alert-danger" role="alert">{exportError}</p>}
 
@@ -317,7 +318,7 @@ export default function ReportBoard({ analytical = false, community = false }) {
             </div>
           </section>}
           {aggregated && <BoardCharts summary={data.summary} categories={data.breakdown?.categories || []} neighborhoods={data.breakdown?.neighborhoods || []} trend={data.trend || []} categoryTrend={analytical ? data.categoryTrend : null} community={community} />}
-          {!data.summary.total && data.status !== 'not_processed' && <div className="rc-board-state"><p>{aggregated ? 'Nenhuma denúncia elegível na última carga para os filtros aplicados.' : 'Você ainda não tem denúncias para acompanhar.'}</p>{!aggregated && <Link className="btn btn-primary" to="/nova-denuncia">Registrar denúncia</Link>}</div>}
+            {!data.summary.total && (community || data.status !== 'not_processed') && <div className="rc-board-state"><p>{community ? 'Nenhuma denúncia pública para os filtros aplicados.' : aggregated ? 'Nenhuma denúncia elegível na última carga para os filtros aplicados.' : 'Você ainda não tem denúncias para acompanhar.'}</p>{!aggregated && <Link className="btn btn-primary" to="/nova-denuncia">Registrar denúncia</Link>}</div>}
           {aggregated && <BoardMap
             heatmap={heatmap}
             reportMap={reportMap}

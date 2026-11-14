@@ -6,6 +6,8 @@ Implementação incremental na branch `feat/boards`. Nesta versão, o board acom
 
 ## API
 
+Atualização de 14/11/2026, [Etapa 4 mobile](../../mobile/delivery/stage-4-community-map.md): `GET /community` é uma leitura anônima mínima de aprovadas atuais, com indicadores/categorias e até 500 pontos aproximados. O router `/boards` continua autenticado. No board público e em `/boards/public/indicators`, resumo e categorias passam a usar dados operacionais aprovados atuais (`summarySource=live`, `summaryGeneratedAt`); séries e demais distribuições permanecem na carga analítica. Coordenadas individuais e endereços nas projeções públicas foram generalizados no servidor, também para os clientes web. Nenhum dado original foi alterado no banco.
+
 - `GET /boards/mine`: requer sessão; consulta apenas denúncias do usuário autenticado.
 - `GET /boards/public`: requer `dashboard.public.view`; apresenta somente denúncias aprovadas e indicadores comunitários por categoria, setor, bairro e localização.
 - `GET /boards/analytics`: requer `dashboard.full.view`; consulta todas as denúncias e distribuições por categoria, setor e bairro.

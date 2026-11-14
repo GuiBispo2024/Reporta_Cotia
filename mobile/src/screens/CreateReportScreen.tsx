@@ -137,6 +137,7 @@ export function CreateReportScreen({ navigation, initialReport }: { navigation: 
     <Field label="Descrição" value={input.descricao} onChangeText={field('descricao')} error={fieldErrors.descricao} hint="Obrigatória. Descreva o problema sem incluir dados pessoais." maxLength={2000} multiline editable={!locked} />
     <Field icon="geo-alt-fill" label="Endereço / localização" value={input.localizacao} onChangeText={field('localizacao')} error={fieldErrors.localizacao} hint="Obrigatório. Confira o endereço antes de enviar." maxLength={255} editable={!locked} />
     <Field label="Bairro (opcional)" value={input.bairro} onChangeText={field('bairro')} maxLength={120} editable={!locked} />
+    <Text style={styles.body}>Na consulta pública, o endereço é ocultado e a localização aparece aproximada. Você e a moderação autorizada mantêm acesso aos dados exatos.</Text>
     <Button icon="geo-alt-fill" title="Usar minha localização" loading={locating} disabled={locked || selecting} onPress={() => void locate()} />
     {!!locationNotice && <Text accessibilityRole="alert" style={styles.body}>{locationNotice}</Text>}
     <Field label="Latitude (opcional)" value={latitude} onChangeText={setLatitude} maxLength={24} editable={!locked && !locating} autoCapitalize="none" />

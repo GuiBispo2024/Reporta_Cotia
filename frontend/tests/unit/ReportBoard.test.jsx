@@ -24,6 +24,13 @@ const initial = {
   summary: { total: 2, pendente: 0, aberta: 2, em_andamento: 0, resolvida: 0, rejeitada: 0 },
   columns: [{ key: 'aberta', label: 'Abertas', page: 1, totalPages: 2, total: 2, reports: [report] }]
 };
+test('comunidade distingue resumo atual de séries ainda não processadas', async () => {
+  boardService.getBoard.mockResolvedValue({ ...initial, summarySource: 'live', status: 'not_processed', lastUpdatedAt: null });
+  render(<ReportBoard community />);
+  await screen.findByText(/Resumo e categorias consultam denúncias aprovadas atuais/);
+  expect(screen.getByText(/As séries históricas aguardam o primeiro processamento/)).toBeInTheDocument();
+  expect(screen.queryByText(/Os indicadores refletem a última carga concluída/)).not.toBeInTheDocument();
+});
 
 test('mostra a data da carga e o relatório de qualidade sem usar a hora da resposta', async () => {
   boardService.getBoard.mockResolvedValue({ ...initial, generatedAt: '2026-09-26T18:00:00Z', status: 'ready',

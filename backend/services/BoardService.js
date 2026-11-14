@@ -1,6 +1,8 @@
 const BoardRepository = require('../repositories/BoardRepository');
 const AnalyticsService = require('./AnalyticsService');
 const AppError = require('../utils/AppError');
+const { publicReport, publicMapTitle, publicBreakdown } = require('../utils/publicGeography');
+const CommunityService = require('./CommunityService');
 const { PERMISSIONS } = require('../constants/accessControl');
 const { hasPermission } = require('../utils/authorization');
 const { Op } = require('sequelize');
@@ -193,6 +195,14 @@ async function exportWorkbook(records) {
 }
 
 class BoardService {
+  static async publicIndicators(user, query = {}) {
+    // Retain snapshot series/metrics and authorization, but share live approved-only
+    // counters/categories with the public board and anonymous community map.
+    const snapshot = await AnalyticsService.indicators(user, query, 'public');
+    const live = await CommunityService.indicators(boardFilters(query).where);
+    return { ...snapshot, summary: live.summary, breakdown: { ...publicBreakdown(snapshot.breakdown), categories: live.categories },
+      summarySource: 'live', summaryGeneratedAt: new Date().toISOString() };
+  }
   static async getBoard(user, query = {}, scopeType = 'mine') {
     if (!user?.id) throw new AppError('Entre na sua conta para consultar o painel.', 401, 'AUTH_REQUIRED');
     const analytical = scopeType === 'analytical';
@@ -229,9 +239,10 @@ class BoardService {
       const totalPages = Math.ceil(total / limit);
       const currentPage = Math.min(page, Math.max(totalPages, 1));
       return { key: item.key, label: item.label, total, page: currentPage, totalPages,
-        reports: await BoardRepository.reports({ ...where, ...item.where }, currentPage, limit) };
+        reports: (await BoardRepository.reports({ ...where, ...item.where }, currentPage, limit)).map(report => publicView ? publicReport(report) : report) };
     }));
     const summary = summaryFromCounts(counts);
+    const livePublic = publicView ? await CommunityService.indicators(where) : null;
     const { approved } = summary;
     return {
       scope: scopeType,
@@ -239,6 +250,7 @@ class BoardService {
       summary,
       columns,
       ...(indicators || {}),
+      ...(livePublic ? { summary: livePublic.summary, breakdown: { ...publicBreakdown(indicators?.breakdown), categories: livePublic.categories }, summarySource: 'live', summaryGeneratedAt: new Date().toISOString() } : {}),
       ...(analytical ? { moderation: {
         pending: counts.pendente,
         approved,
@@ -319,6 +331,7 @@ class BoardService {
       scope: scopeType,
       generatedAt: new Date().toISOString(),
       ...map,
+      ...(publicView ? { points: map.points.map(point => ({ ...publicReport(point), titulo: publicMapTitle(point.titulo) })), privacy: { coordinatePrecision: 2, approximate: true } } : {}),
       filters: parsedFilters.filters
     };
   }

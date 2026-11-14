@@ -11,12 +11,13 @@ const EXPORT_FIELDS = ['id', 'titulo', 'localizacao', 'bairro', 'categoria', 'st
 const MAP_FIELDS = [...REPORT_FIELDS, 'latitude', 'longitude'];
 
 class BoardRepository {
-  static grouped(where, fields) {
+  static grouped(where, fields, transaction = null) {
     return Denuncia.findAll({
       where,
       attributes: [...fields, [sequelize.fn('COUNT', sequelize.col('id')), 'total']],
       group: fields,
-      raw: true
+      raw: true,
+      ...(transaction ? { transaction } : {})
     });
   }
 
@@ -60,11 +61,12 @@ class BoardRepository {
     }));
   }
 
-  static async mapPoints(where, limit = 500) {
+  static async mapPoints(where, limit = 500, transaction = null) {
     const mapWhere = {
       ...where,
       latitude: { [Op.ne]: null },
-      longitude: { [Op.ne]: null }
+      longitude: { [Op.ne]: null },
+      [Op.and]: [{ latitude: { [Op.between]: [-90, 90] } }, { longitude: { [Op.between]: [-180, 180] } }]
     };
     const [points, total] = await Promise.all([
       Denuncia.findAll({
@@ -72,9 +74,10 @@ class BoardRepository {
         attributes: MAP_FIELDS,
         order: [['createdAt', 'DESC'], ['id', 'DESC']],
         limit,
-        raw: true
+        raw: true,
+        ...(transaction ? { transaction } : {})
       }),
-      Denuncia.count({ where: mapWhere })
+      Denuncia.count({ where: mapWhere, ...(transaction ? { transaction } : {}) })
     ]);
 
     return { points: points.map(withNeighborhood), total, limit, truncated: total > points.length };

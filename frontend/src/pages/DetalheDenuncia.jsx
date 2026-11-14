@@ -50,6 +50,7 @@ export default function DetalheDenuncia() {
   useEffect(() => {
     if (!denuncia) return;
     const original = denuncia.localizacao?.trim();
+    if (denuncia.locationApproximate) { setResolvedAddress(original || 'Localização aproximada em Cotia'); return; }
     const genericAddress = !original || /^(localização atual|seu local)$/i.test(original);
 
     if (!genericAddress || !denuncia.latitude || !denuncia.longitude) {
@@ -119,7 +120,7 @@ export default function DetalheDenuncia() {
 
           {mapUrl ? (
             <section className="rc-map-section mt-4">
-              <div className="rc-map-header"><div><h2><i aria-hidden="true" className="bi bi-map me-2" />Local do problema</h2><p>Visualize a localização sem sair do Reporta Cotia.</p></div><span className="rc-map-coordinates">{Number(denuncia.latitude).toFixed(5)}, {Number(denuncia.longitude).toFixed(5)}</span></div>
+              <div className="rc-map-header"><div><h2><i aria-hidden="true" className="bi bi-map me-2" />Local do problema</h2><p>{denuncia.locationApproximate ? 'Região aproximada para preservar a privacidade.' : 'Visualize a localização sem sair do Reporta Cotia.'}</p></div><span className="rc-map-coordinates">{Number(denuncia.latitude).toFixed(denuncia.locationApproximate ? 2 : 5)}, {Number(denuncia.longitude).toFixed(denuncia.locationApproximate ? 2 : 5)}</span></div>
               <iframe className="rc-map-frame" src={mapUrl} title={`Mapa da localização de ${denuncia.titulo}`} loading="lazy" referrerPolicy="no-referrer" />
               <div className="rc-map-caption"><i aria-hidden="true" className="bi bi-geo-alt-fill" /><span>{resolvedAddress || denuncia.localizacao}</span><small>Mapa fornecido pelo OpenStreetMap</small></div>
             </section>

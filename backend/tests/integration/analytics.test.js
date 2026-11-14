@@ -123,7 +123,10 @@ test('endpoints protegem dados restritos e validam filtros', async () => {
   expect((await get('/boards/analytics/quality', tokens.analyst, { limit: '101' })).status).toBe(400);
   const publicResponse = await get('/boards/public/indicators', tokens.citizen);
   expect(publicResponse.status).toBe(200);
-  expect(publicResponse.body.summary).toMatchObject({ total: 2, pendente: 0, rejeitada: 0 });
+  // Live public counters include every currently approved report; snapshot
+  // eligibility (e.g. invalid future dates) still applies to analytical series.
+  expect(publicResponse.body.summary).toMatchObject({ total: 3, pendente: 0, rejeitada: 0 });
+  expect(publicResponse.body.summarySource).toBe('live');
   expect(publicResponse.body).not.toHaveProperty('quality');
 });
 
@@ -210,7 +213,8 @@ test('worker publica mudanças da moderação e inclui bairro de denúncias anti
     expect(approved.body.summary).toMatchObject({ total: 1, aberta: 1 });
     expect(approved.body.breakdown.neighborhoods).toEqual([{ label: 'Parque Mirante da Mata', total: 1 }]);
     expect(approved.body.columns.find(column => column.key === 'aberta').reports[0].id).toBe(report.id);
-    expect(approved.body.columns.find(column => column.key === 'aberta').reports[0].bairro).toBe('Parque Mirante da Mata');
+    expect(approved.body.columns.find(column => column.key === 'aberta').reports[0].bairro).toBe('');
+    expect(approved.body.columns.find(column => column.key === 'aberta').reports[0].locationApproximate).toBe(true);
     await DenunciaService.atualizarResolucao(report.id, 'resolvida', {}, moderator.id);
     await worker.flush();
     const resolved = await get('/boards/public', tokens.citizen, { bairro: 'Parque Mirante da Mata' });

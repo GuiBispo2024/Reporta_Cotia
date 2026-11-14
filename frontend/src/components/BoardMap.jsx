@@ -213,7 +213,7 @@ export default function BoardMap({
           ? <div className="rc-board-point-legend" aria-label="Legenda dos pontos agrupados"><i aria-hidden="true" /><span>Círculos maiores indicam mais denúncias na região</span></div>
           : <div className="rc-board-report-legend" aria-label="Situação das denúncias">{Object.entries(STATUS_LABELS).map(([key, label]) => <span key={key}><i className={`is-${key}`} aria-hidden="true" />{label}</span>)}</div>}
       <small>{isReports
-        ? (reportMap?.truncated ? `Exibindo as ${reports.length} denúncias mais recentes de ${reportMap.total}. Refine os filtros para consultar outros pontos.` : 'Os marcadores acompanham os filtros aplicados. Selecione um ponto para abrir os detalhes.')
+        ? `${reportMap?.privacy?.approximate ? 'Localizações individuais aproximadas para preservar a privacidade. ' : ''}${reportMap?.truncated ? `Exibindo as ${reports.length} denúncias mais recentes de ${reportMap.total}. Refine os filtros para consultar outros pontos.` : 'Os marcadores acompanham os filtros aplicados. Selecione um ponto para abrir os detalhes.'}`
         : heatmap.summary?.truncated
           ? 'As regiões mais intensas estão visíveis. Refine os filtros para consultar outras concentrações.'
           : `As coordenadas estão agrupadas e regiões com menos de ${heatmap.privacy?.minimumReportsPerCell || 3} denúncias são ocultadas.`}</small>

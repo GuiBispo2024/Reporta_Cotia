@@ -2,7 +2,9 @@
 
 Estado: implementação disponível; **validação dos responsáveis pendente**. Este documento não registra aprovação em nome da equipe.
 
-## Regras comuns
+Atualização de 14/11/2026: resumo e categorias das respostas `/boards/public` e `/boards/public/indicators` agora consultam aprovadas atuais, com `summarySource=live` e `summaryGeneratedAt`. O mapa mobile usa essa mesma agregação em `GET /community`, sem autenticação e sem outros dados analíticos. As regras de elegibilidade, datas e atualização abaixo continuam aplicáveis às séries/distribuições da carga e à visão analítica completa. Assim, registros aprovados com data futura legada podem entrar no resumo operacional e continuar excluídos da série analítica. Consulte a [política e compatibilidade da Etapa 4](../../mobile/delivery/stage-4-community-map.md).
+
+## Regras da carga analítica
 
 - Unidade: uma denúncia, identificada por `Denuncia.id`; históricos não multiplicam a contagem.
 - Fonte operacional: `Denuncia` e `DenunciaHistorico`. Fonte de consulta: `AnalyticsAggregates`, reconstruída pelo comando `npm run analytics:refresh`.
