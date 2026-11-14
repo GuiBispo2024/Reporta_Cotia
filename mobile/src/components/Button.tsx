@@ -10,7 +10,7 @@ export function Button({ title, onPress, loading = false, disabled = false, icon
   const backgroundColor = filled ? theme.colors.primary : variant === 'accent' ? theme.colors.accent : variant === 'danger' ? theme.colors.dangerTint : variant === 'ghost' ? 'transparent' : theme.colors.tint;
   const borderColor = variant === 'secondary' ? theme.colors.tintBorder : variant === 'danger' ? '#efc2c7' : 'transparent';
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={title}
+    <Pressable accessibilityRole="button" accessibilityLabel={title} hitSlop={4}
       accessibilityState={{ disabled: disabled || loading, busy: loading }}
       disabled={disabled || loading} onPress={onPress}
       style={({ pressed }) => [styles.button, { backgroundColor, borderColor }, (pressed || disabled || loading) && styles.inactive]}>

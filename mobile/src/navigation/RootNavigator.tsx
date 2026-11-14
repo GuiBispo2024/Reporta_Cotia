@@ -1,4 +1,5 @@
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
+import { useEffect, useRef } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeScreen } from '../screens/HomeScreen';
 import { AboutScreen } from '../screens/AboutScreen';
@@ -19,14 +20,29 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
   const { user, restoring } = useAuth();
+  const navigation = useNavigationContainerRef<RootStackParamList>();
+  const pendingReport = useRef(false);
+  useEffect(() => {
+    if (user && pendingReport.current && navigation.isReady()) {
+      pendingReport.current = false;
+      navigation.navigate('CreateReport');
+    }
+  }, [user?.id, navigation]);
   if (restoring) return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator accessibilityLabel="Restaurando sessão" color={theme.colors.primary} /></View>;
   return (
-    <NavigationContainer theme={navigationTheme} linking={{
+    <NavigationContainer ref={navigation} theme={navigationTheme} onStateChange={() => {
+      // Returning to the public tabs cancels the login intent. It is never persisted.
+      if (!user && navigation.getCurrentRoute()?.name !== 'Login' && navigation.getCurrentRoute()?.name !== 'Register'
+        && navigation.getCurrentRoute()?.name !== 'ForgotPassword') pendingReport.current = false;
+    }} linking={{
       prefixes: [`${typeof Constants.expoConfig?.scheme === 'string' ? Constants.expoConfig.scheme : 'reportacotia'}://`],
       config: { screens: { ResetPassword: 'redefinir-senha' } },
     }}>
       <Stack.Navigator key={user ? `user-${user.id}` : 'guest'} screenOptions={{ headerTintColor: theme.colors.onPrimary, headerStyle: { backgroundColor: theme.colors.primaryDark }, headerTitleStyle: { fontSize: 18, fontWeight: '700' }, headerShadowVisible: false }}>
-        <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
+        <Stack.Screen name="Main" options={{ headerShown: false }}>{() => <MainTabs onDenounce={() => {
+          if (user) navigation.navigate('CreateReport');
+          else { pendingReport.current = true; navigation.navigate('Login'); }
+        }} />}</Stack.Screen>
         {!user ? <>
           <Stack.Screen name="Login" component={AccountScreen} options={{ title: 'Entrar' }} />
           <Stack.Screen name="Register" component={AccountScreen} options={{ title: 'Criar conta' }} />

@@ -33,19 +33,23 @@ export function ReportsScreen({ navigation, route }: { navigation: Pick<NativeSt
   useFocusEffect(useCallback(() => {
     const controller = new AbortController();
     setBusy(true); setError(''); setResult(null);
+    if (isMine && !user) { setBusy(false); return () => controller.abort(); }
     const extra = Object.keys(applied).length ? [applied] as const : [];
     const request = isMine && user ? listMyReports(client, user.id, page, query, controller.signal, ...extra) : listReports(client, page, query, controller.signal, ...extra);
     void request.then(
-      (data) => { if (!controller.signal.aborted) setResult(data); },
+      (data) => { if (!controller.signal.aborted) {
+        if (page > Math.max(1, data.totalPages)) setPage(Math.max(1, data.totalPages));
+        else setResult(data);
+      } },
       (reason: unknown) => { if (!controller.signal.aborted) setError(toApiError(reason).message); },
     ).finally(() => { if (!controller.signal.aborted) setBusy(false); });
     return () => controller.abort();
-  }, [client, page, query, applied, attempt, isMine, user]));
+  }, [client, page, query, applied, attempt, isMine, user?.id]));
   const retry = () => setAttempt((value) => value + 1);
   function apply() { setPage(1); setQuery(search); setApplied(filters); retry(); }
   return <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
     <FlatList data={result?.data ?? []} keyExtractor={(item) => String(item.id)} contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled" ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
+      keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
       refreshing={busy} onRefresh={retry}
       ListHeaderComponent={<View style={styles.header}>
         <Hero title={isMine ? 'Minhas denúncias' : user ? `Olá, ${user.username}!` : 'Ajude a melhorar Cotia.'} icon={isMine ? 'clipboard2-check' : 'geo-alt-fill'}
@@ -76,7 +80,7 @@ export function ReportsScreen({ navigation, route }: { navigation: Pick<NativeSt
       </View>}
       ListEmptyComponent={busy ? <ActivityIndicator accessibilityLabel="Carregando denúncias" color={theme.colors.primary} />
         : error ? <Surface><Icon name="exclamation-triangle" color={theme.colors.danger} size={28} /><Text accessibilityRole="alert" style={styles.error}>{error}</Text><Button title="Tentar novamente" icon="arrow-clockwise" onPress={retry} /></Surface>
-          : <Surface><Icon name="search" size={28} /><Text style={styles.body}>{isMine ? 'Você ainda não tem denúncias para esta busca.' : 'Nenhuma denúncia encontrada. Denúncias pendentes só aparecem aqui após aprovação.'}</Text></Surface>}
+          : <Surface><Icon name="search" size={28} /><Text style={styles.body}>{isMine ? user ? 'Você ainda não tem denúncias para esta busca.' : 'Entre para acompanhar suas denúncias.' : 'Nenhuma denúncia encontrada. Denúncias pendentes só aparecem aqui após aprovação.'}</Text></Surface>}
       renderItem={({ item }) => <ReportCard report={item} apiBaseUrl={client.defaults?.baseURL ?? ''} onPress={() => navigation.navigate('ReportDetail', { id: item.id })} />}
       ListFooterComponent={<View style={styles.footer}>
         {!!result?.data.length && <>

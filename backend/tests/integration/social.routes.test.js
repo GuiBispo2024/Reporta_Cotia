@@ -39,6 +39,21 @@ describe('Interações sociais e sessões', () => {
     expect((await request(app).delete(`/denuncia/comentario/${id}`).set('Authorization', `Bearer ${token}`)).status).toBe(200)
   })
 
+  test('edição usada pelo mobile exige sessão e autoria, preservando texto quando negada', async () => {
+    const created = await request(app).post(`/denuncia/${denunciaId}/comentario`).auth(token, { type: 'bearer' }).send({ comentario: 'Texto do autor.' })
+    const id = created.body.comentario.id
+    await request(app).post('/users').send({ username: 'outroautor', email: 'outroautor@example.com', password: '123456' })
+    const other = await request(app).post('/users/login').send({ email: 'outroautor@example.com', password: '123456' })
+    expect((await request(app).put(`/denuncia/comentario/${id}`).send({ comentario: 'Sem sessão.' })).status).toBe(401)
+    expect((await request(app).put(`/denuncia/comentario/${id}`).auth(other.body.token, { type: 'bearer' }).send({ comentario: 'Outro usuário.' })).status).toBe(403)
+    expect((await Comment.findByPk(id)).comentario).toBe('Texto do autor.')
+    const updated = await request(app).put(`/denuncia/comentario/${id}`).auth(token, { type: 'bearer' }).send({ comentario: 'Texto revisado.' })
+    expect(updated.status).toBe(200)
+    expect(updated.body.message).toBe('Comentário atualizado com sucesso.')
+    expect((await Comment.findByPk(id)).comentario).toBe('Texto revisado.')
+    await Comment.destroy({ where: { id } })
+  })
+
   test('responde comentários em vários níveis e preserva a conversa ao paginar', async () => {
     const parent = await request(app).post(`/denuncia/${denunciaId}/comentario`).set('Authorization', `Bearer ${token}`).send({ comentario: 'Comentário principal.' })
     const reply = await request(app).post(`/denuncia/${denunciaId}/comentario`).set('Authorization', `Bearer ${token}`).send({ comentario: 'Esta é uma resposta.', parentCommentId: parent.body.comentario.id })

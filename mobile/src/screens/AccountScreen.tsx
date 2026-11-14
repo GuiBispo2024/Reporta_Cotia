@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Text } from 'react-native';
+import { Keyboard, Text } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Button } from '../components/Button';
 import { Field } from '../components/Field';
@@ -30,7 +30,7 @@ export function AccountScreen({ route, navigation }: NativeStackScreenProps<Root
       setError(isRegister ? 'Preencha o nome, um e-mail válido e uma senha de pelo menos 6 caracteres. As senhas devem ser iguais.' : 'Informe um e-mail válido e sua senha.');
       return;
     }
-    submitting.current = true; setBusy(true); setError('');
+    Keyboard.dismiss(); submitting.current = true; setBusy(true); setError('');
     try {
       if (isRegister) { await register(client, username, email, password); setPassword(''); setConfirmation(''); setCreated(true); }
       else await signIn(email, password);
@@ -45,8 +45,8 @@ export function AccountScreen({ route, navigation }: NativeStackScreenProps<Root
       <Button title="Entrar na conta" onPress={() => navigation.replace('Login')} />
     </> : <>
       {isRegister && <Field icon="person" label="Nome de usuário" value={username} onChangeText={setUsername} maxLength={255} autoCapitalize="none" editable={!busy} />}
-      <Field icon="envelope" label="E-mail" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} maxLength={255} editable={!busy} />
-      <Field icon="lock" label="Senha" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoCorrect={false} editable={!busy} />
+      <Field icon="envelope" label="E-mail" value={email} onChangeText={setEmail} autoComplete="email" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} maxLength={255} editable={!busy} />
+      <Field icon="lock" label="Senha" value={password} onChangeText={setPassword} autoComplete={isRegister ? 'new-password' : 'current-password'} secureTextEntry autoCapitalize="none" autoCorrect={false} editable={!busy} returnKeyType={isRegister ? 'next' : 'go'} onSubmitEditing={isRegister ? undefined : () => void submit()} />
       {isRegister && <Field label="Confirmar senha" value={confirmation} onChangeText={setConfirmation} secureTextEntry autoCapitalize="none" editable={!busy} />}
       {!!error && <Text accessibilityRole="alert" style={{ color: theme.colors.danger }}>{error}</Text>}
       <Button title={isRegister ? 'Criar conta' : 'Entrar'} icon="arrow-right" variant="primary" loading={busy} onPress={() => void submit()} />

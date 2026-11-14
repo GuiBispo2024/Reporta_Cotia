@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Alert } from 'react-native';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { AccountScreen } from '../src/screens/AccountScreen';
 import { CreateReportScreen } from '../src/screens/CreateReportScreen';
@@ -10,7 +11,8 @@ import { ApiError } from '../src/utils/ApiError';
 import type { RootStackParamList } from '../src/navigation/types';
 
 jest.mock('../src/context/AuthContext', () => ({ useAuth: jest.fn() }));
-jest.mock('../src/services/useReportDraft', () => ({ useReportDraft: (_api: string, _user: number, content: unknown) => ({ ready: true, notice: '', flush: async () => {}, discard: async () => {}, prepareSubmission: async () => ({ ...(content as object), submissionKey: 'key' }), releaseSubmission: async () => {} }) }));
+const mockDiscard = jest.fn();
+jest.mock('../src/services/useReportDraft', () => ({ useReportDraft: (_api: string, _user: number, content: unknown) => ({ ready: true, notice: '', flush: async () => {}, discard: mockDiscard, prepareSubmission: async () => ({ ...(content as object), submissionKey: 'key' }), releaseSubmission: async () => {} }) }));
 jest.mock('../src/services/photoService', () => ({ selectPhotos: jest.fn() }));
 jest.mock('../src/components/ReportImages', () => ({ ReportImages: () => null }));
 jest.mock('../src/services/locationService', () => ({ ...jest.requireActual('../src/services/locationService'), getCurrentLocation: jest.fn() }));
@@ -25,8 +27,10 @@ const accountProps = (name: 'Login' | 'Register') => ({ navigation, route: { key
 const createProps = { navigation, route: { key: 'create', name: 'CreateReport' } } as unknown as NativeStackScreenProps<RootStackParamList, 'CreateReport'>;
 beforeEach(() => {
   jest.resetAllMocks();
+  mockDiscard.mockResolvedValue(undefined);
   jest.mocked(useAuth).mockReturnValue({ client: {} as ReturnType<typeof useAuth>['client'], user: { id: 1, username: 'Ana', email: 'ana@example.org', permissions: ['denuncia.create'] }, restoring: false, notice: '', signIn, signOut: jest.fn(), updateAccount: jest.fn(), reloadProfile: jest.fn() });
 });
+afterEach(() => jest.restoreAllMocks());
 test('login mantém os campos após falha e permite tentar novamente', async () => {
   signIn.mockRejectedValueOnce(new ApiError('Senha incorreta.', 'HTTP_401', 401)).mockResolvedValueOnce(undefined);
   render(<AccountScreen {...accountProps('Login')} />);
@@ -88,6 +92,7 @@ test('GPS preenche coordenadas sem sobrescrever o endereço informado', async ()
   expect(screen.getByLabelText('Latitude (opcional)').props.value).toBe('');
 });
 test('correção preserva protocolo e permite remover imagens e coordenadas', async () => {
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   const context = jest.mocked(useAuth)();
   jest.mocked(useAuth).mockReturnValue({ ...context, user: { ...context.user!, permissions: ['denuncia.update_own'] } });
   const report = { id: 9, userId: 1, titulo: 'Buraco', descricao: 'Na rua', localizacao: 'Rua', bairro: 'Centro', categoria: 'Outros', latitude: -23.6, longitude: -46.9, status: 'rejeitada', resolucaoStatus: 'aberta', motivoRejeicao: 'Informe número' };
@@ -97,10 +102,27 @@ test('correção preserva protocolo e permite remover imagens e coordenadas', as
   fireEvent.changeText(screen.getByLabelText('Endereço / localização'), 'Rua, 10');
   fireEvent.press(screen.getByRole('button', { name: 'Remover coordenadas' }));
   fireEvent.press(screen.getByRole('button', { name: 'Remover todas as fotos atuais' }));
+  act(() => alert.mock.calls.at(-1)?.[2]?.find((item) => item.style === 'destructive')?.onPress?.());
   fireEvent.press(screen.getByRole('button', { name: 'Reenviar para moderação' }));
   await screen.findByText(/Protocolo #9/);
   expect(createReport).not.toHaveBeenCalled();
   expect(updateReport).toHaveBeenCalledWith(context.client, 9, { titulo: 'Buraco', descricao: 'Na rua', localizacao: 'Rua, 10', bairro: 'Centro', categoria: 'Outros' }, [], true, expect.objectContaining({ onUploadProgress: expect.any(Function) }));
+});
+
+test('validação identifica campos obrigatórios e descarte falho preserva formulário', async () => {
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  mockDiscard.mockRejectedValue(new Error('Sem acesso ao disco'));
+  render(<CreateReportScreen {...createProps} />);
+  fireEvent.press(screen.getByRole('button', { name: 'Enviar denúncia' }));
+  expect(screen.getByText('Informe um título.')).toBeTruthy();
+  expect(screen.getByText('Descreva o problema.')).toBeTruthy();
+  fireEvent.changeText(screen.getByLabelText('Título'), 'Buraco');
+  expect(screen.queryByText('Informe um título.')).toBeNull();
+  fireEvent.press(screen.getByRole('button', { name: 'Descartar rascunho' }));
+  expect(mockDiscard).not.toHaveBeenCalled();
+  await act(async () => { alert.mock.calls.at(-1)?.[2]?.find((item) => item.style === 'destructive')?.onPress?.(); });
+  await screen.findByText(/Não foi possível descartar o rascunho/);
+  expect(screen.getByLabelText('Título').props.value).toBe('Buraco');
 });
 test('100% de upload aguarda confirmação antes de apresentar protocolo', async () => {
   let finish!: (value: any) => void;

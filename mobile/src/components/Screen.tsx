@@ -1,13 +1,15 @@
-import type { PropsWithChildren } from 'react';
+import { useContext, type PropsWithChildren } from 'react';
+import { HeaderHeightContext } from '@react-navigation/elements';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 
 export function Screen({ children }: PropsWithChildren) {
+  const headerHeight = useContext(HeaderHeightContext) ?? 0;
   return (
     <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={88}>
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>{children}</ScrollView>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={headerHeight}>
+        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.content}>{children}</ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

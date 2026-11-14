@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Button } from '../components/Button';
 import { Field } from '../components/Field';
@@ -23,6 +23,7 @@ export function CreateReportScreen({ navigation, initialReport }: { navigation: 
   const initialInput = { titulo: initialReport?.titulo ?? '', descricao: initialReport?.descricao ?? '', localizacao: initialReport?.localizacao ?? '', bairro: initialReport?.bairro ?? '', categoria: initialReport?.categoria ?? 'Outros' };
   const [input, setInput] = useState<ReportInput>(initialInput);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof ReportInput, string>>>({});
   const [busy, setBusy] = useState(false);
   const [phase, setPhase] = useState('');
   const [percent, setPercent] = useState<number | null>(null);
@@ -59,13 +60,28 @@ export function CreateReportScreen({ navigation, initialReport }: { navigation: 
     catch (reason) { setError(toApiError(reason).message); }
     finally { picking.current = false; setSelecting(false); }
   }
-  const field = (name: keyof ReportInput) => (value: string) => setInput((current) => ({ ...current, [name]: value }));
+  const field = (name: keyof ReportInput) => (value: string) => {
+    setInput((current) => ({ ...current, [name]: value }));
+    setFieldErrors((current) => ({ ...current, [name]: undefined }));
+  };
   const canCreate = !!user?.permissions.includes(initialReport ? 'denuncia.update_own' : 'denuncia.create');
+  async function discardDraft() {
+    if (submitting.current || picking.current || locatingRef.current || !draft.ready || draft.submissionKey) return;
+    submitting.current = true; setBusy(true); setPhase('Descartando rascunho…'); setPercent(null); setError('');
+    try {
+      await draft.discard();
+      setInput(initialInput); setPhotos([]); setLatitude(initialReport?.latitude != null ? String(initialReport.latitude) : '');
+      setLongitude(initialReport?.longitude != null ? String(initialReport.longitude) : ''); setRemoveImages(false); setFieldErrors({}); setLocationNotice('');
+    } catch { setError('Não foi possível descartar o rascunho. Seus dados foram mantidos; tente novamente.'); }
+    finally { submitting.current = false; setBusy(false); }
+  }
   async function submit() {
     if (!draft.ready || submitting.current || picking.current || locatingRef.current || !canCreate) return;
     if (![input.titulo, input.descricao, input.localizacao].every((value) => value.trim())) {
+      setFieldErrors({ titulo: input.titulo.trim() ? undefined : 'Informe um título.', descricao: input.descricao.trim() ? undefined : 'Descreva o problema.', localizacao: input.localizacao.trim() ? undefined : 'Informe o endereço do problema.' });
       setError('Preencha título, descrição e endereço.'); return;
     }
+    Keyboard.dismiss(); setFieldErrors({});
     submitting.current = true; setBusy(true); setError(''); setPercent(null); setPhase('Validando denúncia…');
     try {
       parseCoordinates(latitude, longitude);
@@ -100,23 +116,26 @@ export function CreateReportScreen({ navigation, initialReport }: { navigation: 
     finally { submitting.current = false; setBusy(false); }
   }
   if (reportId !== null) return <Screen>
-    <Text accessibilityRole="header" style={styles.title}>{initialReport ? 'Correção enviada' : 'Denúncia enviada'}</Text>
+    <Hero title={initialReport ? 'Correção enviada' : 'Denúncia enviada'} description="Acompanhe o protocolo e as próximas atualizações." icon="check-circle-fill" />
+    <Surface>
     <Text accessibilityRole="alert" style={styles.body}>Protocolo #{reportId}. Sua denúncia aguarda moderação e aparecerá na lista pública após aprovação.</Text>
     <Button title="Ver denúncia enviada" onPress={() => navigation.replace('ReportDetail', { id: reportId })} />
     <Button title="Voltar à lista" onPress={() => navigation.popToTop()} />
+    </Surface>
   </Screen>;
   return <Screen>
     <Hero title={initialReport ? `Corrigir denúncia #${initialReport.id}` : 'O que precisa de atenção?'} description="Informe o problema e o endereço em Cotia. Sua denúncia será analisada antes da publicação." icon="pencil-square" />
     <Surface>
     {!!initialReport?.motivoRejeicao && <Text accessibilityRole="alert" style={styles.error}>Motivo da rejeição: {initialReport.motivoRejeicao}</Text>}
+    {!draft.ready && <ActivityIndicator accessibilityLabel="Carregando rascunho" color={theme.colors.primary} />}
     <Text accessibilityLiveRegion="polite" style={styles.body}>{draft.notice}</Text>
     {!!draft.submissionKey && <Text accessibilityRole="alert" style={styles.body}>Envio aguardando confirmação. Os dados estão preservados; use o botão abaixo para consultar o protocolo e, se necessário, repetir o mesmo envio.</Text>}
     <Button title="Descartar rascunho" disabled={locked || selecting || locating} onPress={() => Alert.alert('Descartar rascunho?', 'Os textos e fotos salvos neste aparelho serão removidos.', [
-      { text: 'Cancelar', style: 'cancel' }, { text: 'Descartar', style: 'destructive', onPress: () => { void draft.discard().then(() => { setInput(initialInput); setPhotos([]); setLatitude(initialReport?.latitude != null ? String(initialReport.latitude) : ''); setLongitude(initialReport?.longitude != null ? String(initialReport.longitude) : ''); setRemoveImages(false); }); } },
+      { text: 'Cancelar', style: 'cancel' }, { text: 'Descartar', style: 'destructive', onPress: () => void discardDraft() },
     ])} />
-    <Field icon="pencil-square" label="Título" value={input.titulo} onChangeText={field('titulo')} maxLength={120} editable={!locked} />
-    <Field label="Descrição" value={input.descricao} onChangeText={field('descricao')} maxLength={2000} multiline editable={!locked} />
-    <Field icon="geo-alt-fill" label="Endereço / localização" value={input.localizacao} onChangeText={field('localizacao')} maxLength={255} editable={!locked} />
+    <Field icon="pencil-square" label="Título" value={input.titulo} onChangeText={field('titulo')} error={fieldErrors.titulo} hint="Obrigatório. Resuma o problema em até 120 caracteres." maxLength={120} editable={!locked} />
+    <Field label="Descrição" value={input.descricao} onChangeText={field('descricao')} error={fieldErrors.descricao} hint="Obrigatória. Descreva o problema sem incluir dados pessoais." maxLength={2000} multiline editable={!locked} />
+    <Field icon="geo-alt-fill" label="Endereço / localização" value={input.localizacao} onChangeText={field('localizacao')} error={fieldErrors.localizacao} hint="Obrigatório. Confira o endereço antes de enviar." maxLength={255} editable={!locked} />
     <Field label="Bairro (opcional)" value={input.bairro} onChangeText={field('bairro')} maxLength={120} editable={!locked} />
     <Button icon="geo-alt-fill" title="Usar minha localização" loading={locating} disabled={locked || selecting} onPress={() => void locate()} />
     {!!locationNotice && <Text accessibilityRole="alert" style={styles.body}>{locationNotice}</Text>}
@@ -132,7 +151,12 @@ export function CreateReportScreen({ navigation, initialReport }: { navigation: 
     {initialReport && <>
       {!removeImages && !photos.length && <ReportImages report={initialReport} />}
       <Text style={styles.body}>{photos.length ? 'As novas fotos substituirão todas as fotos atuais.' : removeImages ? 'As fotos atuais serão removidas ao reenviar.' : 'As fotos atuais serão mantidas. Anexar novas fotos substitui todas as atuais.'}</Text>
-      <Button title={removeImages ? 'Manter fotos atuais' : 'Remover todas as fotos atuais'} disabled={locked || !!photos.length || selecting} onPress={() => setRemoveImages((value) => !value)} />
+      <Button title={removeImages ? 'Manter fotos atuais' : 'Remover todas as fotos atuais'} disabled={locked || !!photos.length || selecting} onPress={() => {
+        if (removeImages) setRemoveImages(false);
+        else Alert.alert('Remover fotos atuais?', 'As fotos atuais serão removidas quando você reenviar a correção.', [
+          { text: 'Cancelar', style: 'cancel' }, { text: 'Remover fotos', style: 'destructive', onPress: () => setRemoveImages(true) },
+        ]);
+      }} />
     </>}
     <Text style={styles.body}>Fotos (opcional): {photos.length}/4</Text>
     <Button icon="camera" title="Tirar foto" disabled={locked || locating || selecting || photos.length >= 4} onPress={() => void pick('camera')} />
@@ -149,7 +173,7 @@ export function CreateReportScreen({ navigation, initialReport }: { navigation: 
   </Screen>;
 }
 const styles = StyleSheet.create({
-  title: { ...theme.typography.title, color: theme.colors.text }, body: { ...theme.typography.body, color: theme.colors.muted },
+  body: { ...theme.typography.body, color: theme.colors.muted },
   error: { color: theme.colors.danger }, categories: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   category: { padding: 12, minHeight: 48, justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface },
   selected: { backgroundColor: theme.colors.primary },

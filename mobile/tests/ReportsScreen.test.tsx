@@ -68,3 +68,20 @@ test('combina filtros ao buscar e limpar restaura consulta inicial', async () =>
   fireEvent.press(screen.getByRole('button', { name: 'Limpar filtros e busca' }));
   await waitFor(() => expect(listReports).toHaveBeenLastCalledWith(expect.anything(), 1, '', expect.anything()));
 });
+
+test('lista privada sem sessão não consulta endpoints nem exibe feed público no lugar', async () => {
+  render(<ReportsScreen {...props} route={{ name: 'MyReports' }} />);
+  await screen.findByText('Entre para acompanhar suas denúncias.');
+  expect(listReports).not.toHaveBeenCalled();
+  expect(listMyReports).not.toHaveBeenCalled();
+});
+
+test('redução do total de páginas após atualização retorna à última página disponível', async () => {
+  jest.mocked(listReports).mockResolvedValueOnce({ data: [first], page: 1, total: 13, totalPages: 2 })
+    .mockResolvedValueOnce({ data: [], page: 2, total: 1, totalPages: 1 })
+    .mockResolvedValue({ data: [first], page: 1, total: 1, totalPages: 1 });
+  render(<ReportsScreen {...props} />); await screen.findByText('Buraco');
+  fireEvent.press(screen.getByRole('button', { name: 'Próxima página' }));
+  await waitFor(() => expect(listReports).toHaveBeenLastCalledWith(expect.anything(), 1, '', expect.anything()));
+  await screen.findByText('Página 1 de 1');
+});

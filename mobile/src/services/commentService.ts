@@ -18,3 +18,8 @@ export async function postComment(client: AxiosInstance, id: number, text: strin
   await client.post(`denuncia/${id}/comentario`, { comentario: text.trim(), ...(parentCommentId ? { parentCommentId } : {}) });
 }
 export async function deleteComment(client: AxiosInstance, id: number) { await client.delete(`denuncia/comentario/${id}`); }
+export async function updateComment(client: AxiosInstance, id: number, text: string) {
+  if (!text.trim() || text.trim().length > 255) throw new ApiError('Escreva um comentário de até 255 caracteres.', 'VALIDATION_ERROR');
+  // Authorization is enforced by the existing backend; send only the editable field.
+  await client.put(`denuncia/comentario/${id}`, { comentario: text.trim() });
+}

@@ -4,17 +4,19 @@ import { useContext, useState } from 'react';
 import { Icon, type IconName } from './Icon';
 import { SessionActivityContext } from '../context/SessionActivityContext';
 
-export function Field({ label, icon, ...props }: TextInputProps & { label: string; icon?: IconName }) {
+export function Field({ label, icon, error, hint, ...props }: TextInputProps & { label: string; icon?: IconName; error?: string; hint?: string }) {
   const markActivity = useContext(SessionActivityContext);
   const [focused, setFocused] = useState(false);
   return <View style={styles.container}>
     <Text style={styles.label}>{label}</Text>
-    <View style={[styles.control, focused && { borderColor: theme.colors.primary }]}>
+    <View style={[styles.control, focused && { borderColor: theme.colors.primary }, !!error && { borderColor: theme.colors.danger }]}>
       {icon && <Icon name={icon} size={19} />}
-      <TextInput accessibilityLabel={label} placeholderTextColor={theme.colors.muted} {...props}
+      <TextInput accessibilityLabel={label} accessibilityHint={error || hint} placeholderTextColor={theme.colors.muted} {...props}
         style={[styles.input, props.multiline && styles.multiline, props.style]} onFocus={(event) => { setFocused(true); props.onFocus?.(event); }} onBlur={(event) => { setFocused(false); props.onBlur?.(event); }}
         onChangeText={(value) => { markActivity(); props.onChangeText?.(value); }} />
     </View>
+    {!!error && <Text accessibilityRole="alert" style={{ ...theme.typography.caption, color: theme.colors.danger }}>{error}</Text>}
+    {!!hint && !error && <Text style={{ ...theme.typography.caption, color: theme.colors.muted }}>{hint}</Text>}
   </View>;
 }
 const styles = StyleSheet.create({
