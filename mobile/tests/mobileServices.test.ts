@@ -37,8 +37,19 @@ test('envio preserva chave idempotente e repassa progresso real do transporte', 
   expect(progress).toHaveBeenCalledWith(expect.objectContaining({ loaded: 50, total: 100 }));
 });
 test('correção usa PUT no protocolo original e envia null para remover coordenadas', async () => {
-  mock.onPut('denuncia/1', { ...input, latitude: null, longitude: null, removeImages: true }).reply(200, { denuncia: { ...report, status: 'pendente' } });
+  mock.onPut('denuncia/1', { ...input, latitude: null, longitude: null, removeImages: true }).reply(200, { message: 'Denúncia atualizada e reenviada para moderação.' });
+  mock.onGet('denuncia/1').reply(200, { ...report, status: 'pendente' });
   await expect(updateReport(client, 1, input, [], true)).resolves.toMatchObject({ id: 1, status: 'pendente' });
+});
+
+test('falha ao consultar correção salva não repete PUT automaticamente', async () => {
+  mock.onPut('denuncia/1').reply(200, { message: 'Denúncia atualizada e reenviada para moderação.' });
+  mock.onGet('denuncia/1').networkErrorOnce();
+  await expect(updateReport(client, 1, input)).rejects.toMatchObject({ code: 'NETWORK_ERROR' });
+  expect(mock.history.put).toHaveLength(1);
+  mock.onGet('denuncia/1').reply(200, { ...report, status: 'pendente' });
+  await expect(getReport(client, 1)).resolves.toMatchObject({ id: 1, status: 'pendente' });
+  expect(mock.history.put).toHaveLength(1);
 });
 test('resposta perdida permite consultar protocolo e repete a mesma chave', async () => {
   const key = 'f1768e55-b65c-4faf-a5cc-51ac3b095676';

@@ -21,7 +21,7 @@ O Metro mostra o QR code e as opções de abrir Android/iOS. Use uma versão do 
 - Emulador Android padrão: `localhost` e `127.0.0.1` na URL de development são convertidos para `10.0.2.2` no app.
 - Simulador iOS no mesmo Mac da API: `localhost` funciona sem conversão.
 - Celular físico ou simulador em outro computador: use o IP de rede da máquina da API. Crie `.env.development.local` com `API_BASE_URL=http://IP_DO_COMPUTADOR:5000`, substituindo pelo IP real. O celular e o computador precisam alcançar um ao outro pela rede e a porta 5000 precisa estar acessível. Reinicie com `npm start -- --clear` após alterar o arquivo.
-- O backend local mantém imagens em disco e imprime os links de recuperação de senha no console, conforme seu README. Essas funcionalidades ainda não têm telas mobile.
+- O backend local mantém imagens em disco e pode imprimir links de recuperação de senha conforme a configuração documentada no README principal. Recuperação de senha e imagens já têm fluxos mobile.
 
 ## Estrutura e limites entre camadas
 
@@ -70,7 +70,7 @@ O Error Boundary protege a renderização da árvore React e pode remontá-la. E
 - Anexe até quatro fotos da câmera ou galeria, confira a prévia e remova anexos antes do envio. As imagens são convertidas para JPEG com dimensão máxima de 2048 pixels; o backend mantém o limite de 5 MB por arquivo. Os detalhes permitem ampliar imagens, inclusive denúncias antigas com `imageUrl`.
 - “Usar minha localização” solicita apenas acesso enquanto o app está em uso. O GPS preenche coordenadas e tenta sugerir endereço/bairro sem sobrescrever texto digitado. Revise os dados; é possível editar ou remover coordenadas e enviar apenas o endereço. Permissão negada, GPS desligado ou falha de consulta não impedem o preenchimento manual. Os detalhes abrem as coordenadas no mapa externo.
 
-Recuperação de senha, edição de denúncias/perfil, curtidas, comentários, mapa interativo dentro do app e telas administrativas ficam para próximas etapas.
+Recuperação de senha, edição de perfil, correção de denúncias rejeitadas, curtidas, comentários/respostas/exclusão, mapa nos detalhes e compartilhamento nativo já estão implementados. A edição de comentários ainda não tem interface mobile. Telas administrativas permanecem exclusivas da Web. Consulte a [auditoria de estabilização](delivery/audit-stage-1.md) para o diagnóstico e as próximas etapas; os roteiros abaixo incluem resultados históricos, não validação física atual.
 
 Para verificar manualmente: abra a lista como visitante, crie uma conta, entre, envie uma denúncia, abra o protocolo, feche e reabra o app para conferir a restauração da sessão e saia da conta. Use uma denúncia real ou um banco de desenvolvimento para testar o envio. `npm run smoke:api` consulta apenas saúde e lista pública; não cria contas ou denúncias.
 

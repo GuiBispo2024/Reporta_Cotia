@@ -60,8 +60,9 @@ export async function updateReport(client: AxiosInstance, id: number, input: Rep
   const form = new FormData();
   for (const [key, value] of Object.entries(fields)) form.append(key, value === null ? '' : String(typeof value === 'string' ? value.trim() : value));
   for (const photo of photos) form.append('imagens', { uri: photo.uri, name: photo.name, type: photo.type } as unknown as Blob);
-  const { data } = await client.put(`denuncia/${id}`, photos.length ? form : fields, transfer);
-  return parseReport(data?.denuncia);
+  await client.put(`denuncia/${id}`, photos.length ? form : fields, transfer);
+  // O PUT confirma a gravação com uma mensagem; os dados vêm do GET autorizado.
+  return getReport(client, id);
 }
 export async function createReport(client: AxiosInstance, input: ReportInput, photos: ReportPhoto[] = [], key?: string, transfer?: ReportTransfer): Promise<Report> {
   if (photos.length > 4) throw new ApiError('Você pode anexar até quatro fotos.', 'IMAGE_LIMIT');

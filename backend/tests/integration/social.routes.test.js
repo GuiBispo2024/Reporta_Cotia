@@ -28,6 +28,12 @@ describe('Interações sociais e sessões', () => {
     const created = await request(app).post(`/denuncia/${denunciaId}/comentario`).set('Authorization', `Bearer ${token}`).send({ comentario: 'Precisa de manutenção.' })
     expect(created.status).toBe(201)
     const id = created.body.comentario.id
+    for (const comentario of [42, true, {}, [], null]) {
+      const invalid = await request(app).put(`/denuncia/comentario/${id}`).set('Authorization', `Bearer ${token}`).send({ comentario })
+      expect(invalid.status).toBe(400)
+      expect(invalid.body.code).toBe('VALIDATION_ERROR')
+      expect((await Comment.findByPk(id)).comentario).toBe('Precisa de manutenção.')
+    }
     expect((await request(app).get(`/denuncia/${denunciaId}/comentarios`).query({ page: 1, limit: 10 })).body.totalComments).toBe(1)
     expect((await request(app).put(`/denuncia/comentario/${id}`).set('Authorization', `Bearer ${token}`).send({ comentario: 'Manutenção urgente.' })).status).toBe(200)
     expect((await request(app).delete(`/denuncia/comentario/${id}`).set('Authorization', `Bearer ${token}`)).status).toBe(200)

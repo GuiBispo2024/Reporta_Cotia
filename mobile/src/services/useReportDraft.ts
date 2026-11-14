@@ -49,9 +49,17 @@ export function useReportDraft(api: string, userId: number, content: DraftConten
   async function prepareSubmission() {
     if (!store.current) throw Error('Armazenamento indisponível');
     const nextKey = key.current ?? randomUUID();
+    const previousKey = key.current;
+    // Autosave/background must retain the key even while persistence is pending.
+    key.current = nextKey;
     // Persist the exact body and durable photos before any request can reach the server.
-    const saved = await store.current.save({ ...latest.current, submissionKey: nextKey });
-    key.current = nextKey; setSubmissionKey(nextKey); return saved;
+    try {
+      const saved = await store.current.save({ ...latest.current, submissionKey: nextKey });
+      setSubmissionKey(nextKey); return saved;
+    } catch (error) {
+      key.current = previousKey;
+      throw error;
+    }
   }
   async function releaseSubmission() {
     if (!store.current) return;

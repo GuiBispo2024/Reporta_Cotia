@@ -105,3 +105,39 @@ test('credencial expirada ao reabrir revoga a família sem tentar renová-la', a
   expect(rawMock.history.post).toHaveLength(1); expect(rawMock.history.post[0]?.url).toBe('users/session/end');
   expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('reporta-refresh-development');
 });
+
+test('403 mantém sessão; access expirado renova uma vez e revogação encerra', async () => {
+  rawMock.onPost('users/login').reply(200, fixture());
+  rawMock.onPost('users/session/refresh').reply(200, fixture('renewed', 'b'.repeat(64)));
+  mock.onGet('forbidden').reply(403, { code: 'FORBIDDEN' });
+  mock.onGet('protected').replyOnce(401, { code: 'SESSION_EXPIRED' }).onGet('protected').reply(200, {});
+  mock.onGet('revoked').reply(401, { code: 'SESSION_REVOKED' });
+  const hook = renderHook(() => useAuth(), { wrapper: AuthProvider });
+  await waitFor(() => expect(hook.result.current.restoring).toBe(false));
+  await act(async () => { await hook.result.current.signIn(user.email, '123456'); });
+  await act(async () => { await expect(client.get('forbidden')).rejects.toMatchObject({ status: 403 }); });
+  expect(hook.result.current.user?.id).toBe(user.id);
+  expect(rawMock.history.post.filter((item) => item.url === 'users/session/refresh')).toHaveLength(0);
+  await act(async () => { await client.get('protected'); });
+  expect(mock.history.get.at(-1)?.headers?.Authorization).toBe('Bearer renewed');
+  expect(rawMock.history.post.filter((item) => item.url === 'users/session/refresh')).toHaveLength(1);
+  await act(async () => { await expect(client.get('revoked')).rejects.toMatchObject({ status: 401 }); });
+  expect(hook.result.current.user).toBeNull();
+});
+
+test('refresh concluído após logout não restaura credenciais nem envia requisição privada', async () => {
+  rawMock.onPost('users/login').reply(200, { ...fixture(), expiresAt: new Date(Date.now() + 1000).toISOString() });
+  rawMock.onPost('users/session/end').reply(204);
+  let finish!: (value: [number, unknown]) => void;
+  rawMock.onPost('users/session/refresh').reply(() => new Promise((resolve) => { finish = resolve; }));
+  const hook = renderHook(() => useAuth(), { wrapper: AuthProvider });
+  await waitFor(() => expect(hook.result.current.restoring).toBe(false));
+  await act(async () => { await hook.result.current.signIn(user.email, '123456'); });
+  let pending!: Promise<unknown>;
+  await act(async () => { pending = client.get('protected').catch((error) => error); });
+  await waitFor(() => expect(finish).toBeDefined());
+  await act(async () => { await hook.result.current.signOut(); finish([200, fixture('late', 'b'.repeat(64))]); await pending; });
+  expect(hook.result.current.user).toBeNull();
+  expect(mock.history.get).toHaveLength(0);
+  expect(SecureStore.setItemAsync).toHaveBeenCalledTimes(1);
+});

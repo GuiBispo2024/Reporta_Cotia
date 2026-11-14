@@ -40,7 +40,7 @@ class CommentService {
     const comment = await CommentRepository.findById(id)
     if (!comment) throw new AppError('Comentário não encontrado.', 404, 'NOT_FOUND')
     if (Number(comment.userId) !== Number(userId)) throw new AppError('Você não tem permissão para atualizar este comentário.', 403, 'FORBIDDEN')
-    if (!data.comentario || !data.comentario.trim()) throw new AppError('Comentário não pode ficar vazio.', 400, 'VALIDATION_ERROR')
+    if (typeof data.comentario !== 'string' || !data.comentario.trim()) throw new AppError('Comentário não pode ficar vazio.', 400, 'VALIDATION_ERROR')
     if (data.comentario.trim().length > 255) throw new AppError('Comentário deve ter no máximo 255 caracteres.', 400, 'VALIDATION_ERROR')
     const result = filterBadWords(data.comentario.trim())
     await CommentRepository.update(id, {
