@@ -5,6 +5,7 @@ jest.spyOn(sequelize, 'transaction').mockImplementation(fn => fn({ LOCK: { UPDAT
 const filterBadWords = require('../../utils/filterBadWords');
 
 jest.mock('../../repositories/DenunciaRepository');
+jest.mock('../../services/NotificationService', () => ({ record: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('../../utils/filterBadWords');
 
 describe('DenunciaService (unit)', () => {

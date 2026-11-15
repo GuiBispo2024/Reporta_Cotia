@@ -14,7 +14,7 @@ test('all migrations bootstrap an empty database and enforce unique likes', asyn
       await require(path.join(folder, file)).up(qi, Sequelize);
     }
     const tables = await qi.showAllTables();
-    expect(tables).toEqual(expect.arrayContaining(['Users', 'Denuncia', 'Likes', 'AnalyticsFacts']));
+    expect(tables).toEqual(expect.arrayContaining(['Users', 'Denuncia', 'Likes', 'AnalyticsFacts', 'PushPreferences', 'PushDevices', 'NotificationEvents', 'NotificationDeliveries']));
     expect((await qi.describeTable('Denuncia')).status.allowNull).toBe(false);
     expect((await qi.showIndex('Likes')).find(index => index.name === 'likes_user_report_unique').unique).toBe(true);
     // Running the historical baseline on an existing schema never drops data.

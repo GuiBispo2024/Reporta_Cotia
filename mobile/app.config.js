@@ -24,11 +24,11 @@ module.exports = () => {
       },
     },
     android: { package: `br.com.reportacotia.app${suffix}` },
-    plugins: [['expo-dev-client', { launchMode: 'launcher' }], ['./plugins/withReportMaps.cjs', {
+    plugins: ['expo-notifications', ['expo-dev-client', { launchMode: 'launcher' }], ['./plugins/withReportMaps.cjs', {
       ...(process.env.GOOGLE_MAPS_ANDROID_API_KEY ? { androidGoogleMapsApiKey: process.env.GOOGLE_MAPS_ANDROID_API_KEY } : {}),
     }], 'expo-status-bar', 'expo-secure-store', ['expo-image-picker', {
       photosPermission: 'Selecionar fotos para anexar à denúncia.', cameraPermission: 'Fotografar problemas urbanos para a denúncia.', microphonePermission: false,
     }], ['expo-location', { locationWhenInUsePermission: 'Usar sua localização para indicar onde está o problema urbano.' }], ['expo-build-properties', { android: { usesCleartextTraffic: isDevelopment } }]],
-    extra: { ...environment, mapsAndroidConfigured: !!process.env.GOOGLE_MAPS_ANDROID_API_KEY, publicWebUrl: process.env.PUBLIC_WEB_URL || '' },
+    extra: { ...environment, ...(process.env.EXPO_PROJECT_ID ? { eas: { projectId: process.env.EXPO_PROJECT_ID } } : {}), mapsAndroidConfigured: !!process.env.GOOGLE_MAPS_ANDROID_API_KEY, publicWebUrl: process.env.PUBLIC_WEB_URL || '' },
   };
 };

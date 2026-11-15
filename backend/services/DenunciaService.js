@@ -7,6 +7,7 @@ const { deleteImage } = require('../utils/upload');
 const { PERMISSIONS } = require('../constants/accessControl');
 const { hasPermission } = require('../utils/authorization');
 const { publicReport, publicResults } = require('../utils/publicGeography');
+const NotificationService = require('./NotificationService');
 
 function removeCensorshipSource(report) {
   const visible = report?.get ? report.get({ plain: true }) : { ...report };
@@ -93,7 +94,8 @@ class DenunciaService {
     if (status !== 'aprovada') {
       await DenunciaRepository.clearSocialHistory(id, transaction);
     }
-    if (moderatorId) await DenunciaHistorico.create({ tipo: 'moderacao', statusAnterior, statusNovo: status, motivo, denunciaId: id, userId: moderatorId }, { transaction });
+    const history = moderatorId ? await DenunciaHistorico.create({ tipo: 'moderacao', statusAnterior, statusNovo: status, motivo, denunciaId: id, userId: moderatorId }, { transaction }) : null;
+    if (statusAnterior !== status && ['aprovada', 'rejeitada'].includes(status)) await NotificationService.record(denuncia, status, history?.id, transaction);
     denuncia.status = status;
     denuncia.motivoRejeicao = motivo;
     return { message: status === 'rejeitada' ? 'Denúncia rejeitada. O autor poderá consultar o motivo e corrigir o registro.' : `Denúncia marcada como ${status}.`, denuncia };
@@ -157,14 +159,15 @@ class DenunciaService {
       setorResponsavel: setorResponsavel || null,
       resolucaoAtualizadaEm: new Date()
     }, transaction);
-    if (moderatorId) await DenunciaHistorico.create({
+    const history = moderatorId ? await DenunciaHistorico.create({
       tipo: 'resolucao',
       statusAnterior,
       statusNovo: resolucaoStatus,
       responsavel: setorResponsavel || null,
       denunciaId: id,
       userId: moderatorId
-    }, { transaction });
+    }, { transaction }) : null;
+    if (statusAnterior !== resolucaoStatus && ['em_andamento', 'resolvida'].includes(resolucaoStatus)) await NotificationService.record(denuncia, resolucaoStatus, history?.id, transaction);
 
     return {
       message: 'Andamento e setor responsável atualizados com sucesso.',

@@ -2,6 +2,10 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-
 import { Platform } from 'react-native';
 import { RootNavigator } from '../src/navigation/RootNavigator';
 import { useAuth } from '../src/context/AuthContext';
+import { usePushNotifications } from '../src/context/PushNotificationContext';
+import { resolvePushEvent } from '../src/services/notificationService';
+jest.mock('../src/context/PushNotificationContext', () => ({ usePushNotifications: jest.fn() }));
+jest.mock('../src/services/notificationService', () => ({ resolvePushEvent: jest.fn() }));
 
 jest.mock('../src/context/AuthContext', () => ({ useAuth: jest.fn() }));
 jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default);
@@ -38,12 +42,37 @@ jest.mock('../src/screens/HomeScreen', () => ({ HomeScreen: () => null }));
 
 const user = { id: 1, username: 'Ana', email: 'ana@example.org', permissions: ['denuncia.create'] };
 let context: ReturnType<typeof useAuth>;
+let push: ReturnType<typeof usePushNotifications>;
 beforeEach(() => {
   jest.useFakeTimers();
   context = { user: null, restoring: false, client: {} as any, notice: '', signIn: jest.fn(), signOut: jest.fn(), updateAccount: jest.fn(), reloadProfile: jest.fn() };
   jest.mocked(useAuth).mockImplementation(() => context);
+  push = { pendingEvent: null, consumeEvent: jest.fn(), notice: '', setNotice: jest.fn() } as any;
+  jest.mocked(usePushNotifications).mockImplementation(() => push);
 });
 afterEach(() => { cleanup(); act(() => jest.runOnlyPendingTimers()); jest.useRealTimers(); jest.restoreAllMocks(); });
+
+test('toque aguarda login e resolve destino na API; não abre formulário', async () => {
+  push.pendingEvent = 'e5b106a6-88a1-4bdb-bf68-a82feb696921';
+  jest.mocked(resolvePushEvent).mockResolvedValue(4);
+  const view = render(<RootNavigator />); await screen.findByText('Login existente');
+  expect(resolvePushEvent).not.toHaveBeenCalled();
+  context = { ...context, user }; view.rerender(<RootNavigator />);
+  await screen.findByText('Detalhe existente'); expect(push.consumeEvent).toHaveBeenCalledWith(push.pendingEvent);
+  expect(screen.queryByText('Formulário existente')).toBeNull();
+});
+test('evento de outra conta ou removido mostra aviso sem abrir detalhes', async () => {
+  context = { ...context, user }; push.pendingEvent = 'e5b106a6-88a1-4bdb-bf68-a82feb696921';
+  jest.mocked(resolvePushEvent).mockRejectedValue({ status: 404 });
+  render(<RootNavigator />); await act(async () => {});
+  expect(push.consumeEvent).toHaveBeenCalledWith(push.pendingEvent); expect(push.setNotice).toHaveBeenCalled(); expect(screen.queryByText('Detalhe existente')).toBeNull();
+});
+test('401 mantém intenção e expiração encaminha ao login', async () => {
+  context = { ...context, user }; push.pendingEvent = 'e5b106a6-88a1-4bdb-bf68-a82feb696921';
+  jest.mocked(resolvePushEvent).mockRejectedValue({ status: 401 });
+  const view = render(<RootNavigator />); await act(async () => {}); expect(push.consumeEvent).not.toHaveBeenCalled();
+  context = { ...context, user: null }; view.rerender(<RootNavigator />); await screen.findByText('Login existente');
+});
 
 test.each(['ios', 'android'] as const)('%s: visitante consulta feed; Denunciar abre login e continua no formulário após autenticar', async (os) => {
   jest.replaceProperty(Platform, 'OS', os);

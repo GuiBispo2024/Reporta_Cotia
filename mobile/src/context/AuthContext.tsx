@@ -7,9 +7,10 @@ import { createHttpClient } from '../services/httpClient';
 import { login, getMe, parseSession, parseUser, type Session, type User, type AccountUpdate } from '../services/authService';
 import { ApiError, toApiError } from '../utils/ApiError';
 import { SessionActivityContext } from './SessionActivityContext';
+import { detachPushOnLogout } from '../services/pushStorage';
 
 const IDLE_MS = 15 * 60 * 1000;
-type Auth = { user: User | null; client: AxiosInstance; restoring: boolean; notice: string;
+type Auth = { user: User | null; sessionId?: string; client: AxiosInstance; restoring: boolean; notice: string;
   signIn: (email: string, password: string) => Promise<void>; signOut: () => Promise<void>;
   updateAccount: (input: AccountUpdate) => Promise<void>; reloadProfile: () => Promise<void> };
 const Context = createContext<Auth | null>(null);
@@ -46,6 +47,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     if (!same) { dirty.current = false; lastSent.current = Date.now(); warned.current = false; }
   }
   function clear(reason: string) {
+    void detachPushOnLogout(raw, current.current?.token, current.current?.user.id, environment.apiBaseUrl).catch(() => {});
     epoch.current += 1; current.current = null; refreshToken.current = null; dirty.current = false;
     setSession(null); setNotice(reason);
     void writeStorage(() => SecureStore.deleteItemAsync(storageKey)).catch(() => {});
@@ -228,7 +230,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     if (originalEpoch !== epoch.current || !current.current || user.id !== current.current.user.id) throw new ApiError('A sessão mudou.', 'SESSION_REVOKED', 401);
     commit({ ...current.current, user });
   }
-  return <Context.Provider value={{ user: session?.user ?? null, client, restoring, notice, signIn, signOut: () => end(), updateAccount, reloadProfile }}>
+  return <Context.Provider value={{ user: session?.user ?? null, sessionId: session?.sessionId, client, restoring, notice, signIn, signOut: () => end(), updateAccount, reloadProfile }}>
     <SessionActivityContext.Provider value={markActivity}><View style={{ flex: 1 }} onTouchStart={markActivity} onTouchMove={markActivity}>{children}</View></SessionActivityContext.Provider>
   </Context.Provider>;
 }

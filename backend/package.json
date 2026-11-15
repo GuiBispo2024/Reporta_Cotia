@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "notifications:worker": "node scripts/processNotifications.js",
+    "notifications:once": "node scripts/processNotifications.js --once",
     "sessions:prune": "node scripts/pruneSessions.js",
     "sessions:smoke": "node scripts/smokeSessions.js",
     "analytics:refresh": "node scripts/refreshAnalytics.js",

@@ -17,6 +17,24 @@ const analytics = require('./Analytics')
 const AuthSession = require('./Reporta_Cotia_Tables/AuthSession')
 const SessionRefreshToken = require('./Reporta_Cotia_Tables/SessionRefreshToken')
 const ReportSubmission = require('./Reporta_Cotia_Tables/ReportSubmission')
+const notifications = require('./Notifications')
+const { PushPreference, PushDevice, NotificationEvent, NotificationDelivery } = notifications
+User.hasOne(PushPreference, { foreignKey: 'userId', onDelete: 'CASCADE' })
+PushPreference.belongsTo(User, { foreignKey: 'userId' })
+User.hasMany(PushDevice, { foreignKey: 'userId', onDelete: 'CASCADE' })
+PushDevice.belongsTo(User, { foreignKey: 'userId' })
+AuthSession.hasMany(PushDevice, { foreignKey: 'sessionId', onDelete: 'CASCADE' })
+PushDevice.belongsTo(AuthSession, { foreignKey: 'sessionId' })
+User.hasMany(NotificationEvent, { foreignKey: 'userId', onDelete: 'CASCADE' })
+NotificationEvent.belongsTo(User, { foreignKey: 'userId' })
+Denuncia.hasMany(NotificationEvent, { foreignKey: 'denunciaId', onDelete: 'CASCADE' })
+NotificationEvent.belongsTo(Denuncia, { foreignKey: 'denunciaId' })
+DenunciaHistorico.hasOne(NotificationEvent, { foreignKey: 'historyId', onDelete: 'SET NULL' })
+NotificationEvent.belongsTo(DenunciaHistorico, { foreignKey: 'historyId' })
+NotificationEvent.hasMany(NotificationDelivery, { foreignKey: 'notificationEventId', onDelete: 'CASCADE' })
+NotificationDelivery.belongsTo(NotificationEvent, { foreignKey: 'notificationEventId' })
+PushDevice.hasMany(NotificationDelivery, { foreignKey: 'pushDeviceId', onDelete: 'SET NULL' })
+NotificationDelivery.belongsTo(PushDevice, { foreignKey: 'pushDeviceId' })
 User.hasMany(ReportSubmission, { foreignKey: 'userId', onDelete: 'CASCADE' })
 ReportSubmission.belongsTo(User, { foreignKey: 'userId' })
 Denuncia.hasMany(ReportSubmission, { foreignKey: 'denunciaId', onDelete: 'SET NULL' })
@@ -133,5 +151,5 @@ Permission.belongsToMany(Role, {
 module.exports = {
     sequelize, User, Denuncia, Comment, Like, Share, AuthSession, SessionRefreshToken, ReportSubmission,
     DenunciaHistorico, PasswordResetToken, PasswordResetHistorico,
-    Role, Permission, UserRole, RolePermission, UserRoleHistory, BoardExportHistory, ...analytics
+    Role, Permission, UserRole, RolePermission, UserRoleHistory, BoardExportHistory, ...analytics, ...notifications
 }

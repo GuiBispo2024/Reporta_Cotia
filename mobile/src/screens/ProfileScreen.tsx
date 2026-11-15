@@ -15,6 +15,7 @@ import { resolveImageUrl } from '../utils/imageUrl';
 import { Hero } from '../components/Hero';
 import { Surface } from '../components/Surface';
 import { Icon } from '../components/Icon';
+import { NotificationSettings } from '../components/NotificationSettings';
 
 export function ProfileScreen() {
   const { user, client, signOut, notice, updateAccount, reloadProfile } = useAuth();
@@ -83,6 +84,7 @@ export function ProfileScreen() {
       <Text style={{ ...theme.typography.body, color: theme.colors.muted }}>Altere e-mail e senha ou gerencie a exclusão da conta em uma página separada.</Text>
       <Button icon="arrow-right" title="Segurança da conta" disabled={busy} onPress={() => navigation.navigate('AccountSecurity')} />
     </Surface>}
+    {user && <NotificationSettings />}
     <Surface>
       {user && <Button icon="box-arrow-right" variant="ghost" title="Sair da conta" disabled={busy} onPress={() => { setBusy(true); void signOut().catch((reason) => setError(toApiError(reason).message)).finally(() => setBusy(false)); }} />}
       <Button icon="info-circle" variant="ghost" title="Sobre o aplicativo" onPress={() => navigation.navigate('About')} />

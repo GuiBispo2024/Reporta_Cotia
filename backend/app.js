@@ -77,6 +77,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/users', userController);
 app.use('/boards', boardController);
 app.use('/community', require('./controllers/CommunityController'));
+app.use('/notifications', require('./controllers/NotificationController'));
 app.use('/denuncia', denunciaController);
 app.use('/denuncia', commentController);
 app.use('/denuncia', likeController);
